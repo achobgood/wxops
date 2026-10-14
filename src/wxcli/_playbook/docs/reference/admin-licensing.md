@@ -92,6 +92,9 @@ wxcli licenses-api list -o json
 
 # With pagination
 wxcli licenses-api list --limit 10 --offset 0
+# Verified live 2026-10-13: /v1/licenses does not paginate. --limit/--offset go out as
+# ?max=&start= and are ignored: `-o json --limit 3 --offset 3` still returned all 18
+# licenses. In the default table view --limit only caps the printed rows ("... N more").
 ```
 
 **Table columns:** ID, Name, Total Units, Consumed.
@@ -109,6 +112,11 @@ wxcli licenses-api show "Y2lzY29zcGFyazov..." --include-assigned-to user
 
 # Paginate assigned users (max 300 per page)
 wxcli licenses-api show "Y2lzY29zcGFyazov..." --include-assigned-to user --limit 100
+# Verified live 2026-10-13: with --limit smaller than the holder count the CLI prints
+# "Note: This response was partial and the server has more pages. Re-run with --all
+# to fetch every page." -- but `show` has no --all option (`No such option: --all`).
+# Without --limit, all holders came back in one response (19 on the sandbox's Calling
+# Professional license). `show --help` lists a --next option for continuing; it was not exercised.
 ```
 
 **Response fields:** id, name, totalUnits, consumedUnits, consumedByUsers, consumedByWorkspaces, subscriptionId, siteUrl, siteType, and (if requested) a `users` array with id, type, displayName, email.
@@ -195,9 +203,9 @@ wxcli licenses-api update --email "user@example.com" --json-body '{
 - If `phoneNumber` is not provided, `locationId` is mandatory.
 - Non-calling licenses (Meetings, Messaging) do not need `properties`.
 
-> **Gotcha — Calling licenses require `properties`.** Unlike Meetings or Messaging licenses, Calling license assignment must include `properties` with at least `phoneNumber` or `extension`. If you omit `phoneNumber`, you must provide `locationId`. Error code 400411 indicates missing properties.
+> **Gotcha — Calling licenses require `properties`.** Unlike Meetings or Messaging licenses, Calling license assignment must include `properties` with at least `phoneNumber` or `extension`. If you omit `phoneNumber`, you must provide `locationId`. Error code 400411 indicates missing properties. Verified live 2026-10-13: a Calling Professional `add` with no `properties`, and one with only `locationId`, both returned `400 {"errorCode":400,"message":"license assignment for user failed","errors":[{"errorCode":400,"description":"Extension and Phone Number cannot be blank."}]}` — the 6-digit code was not observed; match on the description text. `extension` + `locationId` (no phone number) succeeded with 200.
 
-> **Gotcha — `licenses-api update` confirms "Updated" even on no-op.** If the user already has the license, the CLI prints "Updated." without error. Always verify the actual state with `licenses-api show` after assignment.
+> **Gotcha — `licenses-api update` succeeds silently on no-op.** If the user already has the license, the call returns 200 with no error and nothing to tell you nothing changed. Verified live 2026-10-13: the CLI prints the response body (`orgId`, `email`, `personId`, `licenses`), not the text "Updated.". Always verify the actual state with `licenses-api show` after assignment.
 
 > **Gotcha — Attendant Console has a prerequisite.** You must assign Calling Professional before assigning Attendant Console. Error code 400408 is returned if the prerequisite is missing.
 
@@ -226,9 +234,9 @@ wxcli licenses list -o json
 wxcli licenses show "Y2lzY29zcGFyazov..."
 ```
 
-**Table columns:** ID, Name, Total, Consumed.
+**Table columns:** ID, Name, Total Units, Consumed. (Verified live 2026-10-13: `licenses list` prints `Total Units`; this previously said `Total`.)
 
-> **Gotcha — there is no `--calling-only` filter.** `licenses list` takes only `--output/-o`, `--fields`, `--limit`, `--offset`, and `--debug`. Earlier revisions of this doc described a `--calling-only` convenience flag; it is not present on the command. To narrow to calling licenses, use `--fields` to filter the output (for example, `wxcli licenses list --fields "[?contains(name, 'Calling')]" -o json` — the JSON output is a bare array, not an `items`-wrapped object), and note that this is a case-sensitive substring match, so it may miss licenses with non-standard naming or unexpected casing.
+> **Gotcha — there is no `--calling-only` filter.** `licenses list` takes only `--output/-o`, `--fields`, `--limit`, `--offset`, `--all` (listed in `--help` as of 2026-10-13; the endpoint returned all 18 licenses in one response regardless), and `--debug`. Earlier revisions of this doc described a `--calling-only` convenience flag; it is not present on the command. To narrow to calling licenses, use `--fields` to filter the output (for example, `wxcli licenses list --fields "[?contains(name, 'Calling')]" -o json` — the JSON output is a bare array, not an `items`-wrapped object), and note that this is a case-sensitive substring match, so it may miss licenses with non-standard naming or unexpected casing.
 
 ---
 
@@ -392,7 +400,7 @@ wxcli licenses-api update --json-body '{
 
 1. **License IDs are org-specific base64-encoded strings.** They differ between organizations and subscriptions. Never hardcode license IDs -- always look them up with `licenses-api list` first.
 
-2. **Removing a Calling license is destructive.** When you remove a Webex Calling Professional license from a user, ALL their calling configuration is deleted: extension, phone number, call forwarding rules, voicemail settings, monitoring lists, and device associations. There is no undo. Always document the user's settings before removing a calling license.
+2. **Removing a Calling license is destructive.** When you remove a Webex Calling Professional license from a user, ALL their calling configuration is deleted: extension, phone number, call forwarding rules, voicemail settings, monitoring lists, and device associations. There is no undo. (Verified live 2026-10-13 on a temp user: after `operation: remove`, `people show --calling-data true` returned `extension: null` and `locationId: null`.) Always document the user's settings before removing a calling license.
 
 3. **206 Partial Content is not an error.** The PATCH endpoint can return HTTP 206 when some licenses in the request succeeded but others failed. Always compare the returned `licenses` array against what you requested to identify which ones failed.
 

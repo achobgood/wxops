@@ -193,9 +193,16 @@ wxcli devices create --mac AABBCCDDEEFF --model "DMS Cisco 8845" --person-id PER
 wxcli devices create-activation-code --workspace-id WORKSPACE_ID
 
 # Generate an activation code for a phone (model required)
+# Verified live 2026-10-13 (workspace target): a code with --model returned expiryTime 30 days out
+# and immediately created a device record in connectionStatus "activating" that counts toward the
+# device limit (a second code on the same Basic workspace -> 400 2022 "Exceeded max number of
+# devices"); a code with no --model returned expiryTime 7 days out. Person target not exercised.
 wxcli devices create-activation-code --person-id PERSON_ID --model "DMS Cisco 8845"
 
 # Modify device tags (add, remove, or replace)
+# Verified live 2026-10-13: `add` appends, `replace` overwrites the whole list, and `remove`
+# CLEARS EVERY TAG — its `value` is ignored (a remove with value ["b"] on [a,b,c] left []).
+# There is no way to remove a single tag; replace with the list you want to keep instead.
 wxcli devices update DEVICE_ID --op add --json-body '[{"op":"add","path":"tags","value":["floor-3","building-a"]}]'
 
 # Delete a device (with confirmation prompt)
@@ -501,7 +508,7 @@ Handles Calling-specific device operations: supported device catalog, device mem
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `compression` | `Optional[bool]` | `True` = minimize data use (`ON`), `False` = ignore (`OFF`) |
+| `compression` | `Optional[str]` | `"ON"` = minimize data use, `"OFF"` = ignore. Verified live 2026-10-13: GET returns the string `"ON"`/`"OFF"` and a PUT of JSON `true` returns 400 25024 "Invalid field value: compression" — send the strings |
 
 #### Background Images
 
@@ -545,7 +552,7 @@ Scope: `spark-admin:telephony_config_write`
 
 #### Device-Level Calling Settings
 
-Lists/updates MPP and ATA device-level settings. DECT devices are not supported. **9800-series phones (9811-9871) return 404** on these device-level settings endpoints — use Device Configurations (PhoneOS keys) for per-device config instead. However, 9800-series phones DO support person-level device settings (see below) — the response returns limited fields (e.g., `compression`). After updating, apply the changes (see "Apply Changes" above) to push to the device.
+Lists/updates MPP and ATA device-level settings. DECT devices are not supported. **9800-series phones (9811-9871) are rejected** on these device-level settings endpoints (HTTP 400, `errorCode 25417` "The device type does not support settings through Webex Calling" — verified live 2026-10-13 on a registered `Cisco 9861`, with and without `deviceModel`; older notes said 404) — use Device Configurations (PhoneOS keys) for per-device config instead. However, 9800-series phones DO support person-level device settings (see below) — the response returns limited fields (e.g., `compression`). After updating, apply the changes (see "Apply Changes" above) to push to the device.
 
 #### Person / Workspace Device Settings (Compression)
 
@@ -631,7 +638,7 @@ Manages dynamic device settings using a tag-based system with hierarchical inher
 
 Operations: list settings groups, get the validation schema, update per-device settings, and read settings at customer/device/location scope — see the CLI examples (§3.5), the per-device PSK section, and the Beta validation-schema endpoint below.
 
-> **Gotcha — `deviceModel` required for settings endpoints:** `GET/PUT .../devices/{id}/settings` requires the `deviceModel` query parameter. Omitting it returns an error.
+> **Gotcha — `deviceModel` on settings endpoints:** the spec lists `deviceModel` as a query parameter for `GET/PUT .../devices/{id}/settings` and earlier versions of this doc said omitting it returns an error. **Verified live 2026-10-13: it did not.** `GET .../devices/{id}/settings` with no `deviceModel` returned 200 and the full `customizations` object for a MAC-provisioned `DMS Cisco 8845`, identical to the call with `--device-model "DMS Cisco 8845"`. Keep passing it (it is harmless and may matter for other models), but do not treat its absence as the cause of a failure.
 
 > **Gotcha — Apply changes after updates:** After updating device settings, members, or layout, call `.../actions/applyChanges/invoke` to push the configuration to the physical device.
 
@@ -639,7 +646,7 @@ Operations: list settings groups, get the validation schema, update per-device s
 
 ### 3.5 CLI Examples
 
-Two CLI groups cover this API surface: `wxcli device-settings` (47 commands) and `wxcli device-dynamic-settings` (10 commands).
+Two CLI groups cover this API surface: `wxcli device-settings` (46 commands, counted from `--help` 2026-10-13) and `wxcli device-dynamic-settings` (10 commands).
 
 #### Device Members & Lines (`device-settings`)
 
@@ -647,7 +654,9 @@ Two CLI groups cover this API surface: `wxcli device-settings` (47 commands) and
 # List members (lines) on a device
 wxcli device-settings list DEVICE_ID
 
-# Get count of members on a device
+# Get count of AVAILABLE members (candidates that could be added) — NOT the current members.
+# Verified live 2026-10-13: on a device with 1 member this printed {"totalCount": 23} while
+# `device-settings list` showed the 1 member; it calls .../availableMembers/count.
 wxcli device-settings show DEVICE_ID
 
 # Search available members to add as shared lines
@@ -719,6 +728,21 @@ Consequences, each observed rather than inferred:
    appearance *rings* is *not* API-observable and was not tested.
 5. **Virtual lines are eligible members** — `list-available-members` returns
    entries with `"memberType": "VIRTUAL_LINE"` alongside `PEOPLE`.
+6. **`port` is an ordering hint, not a slot number — the server renumbers.**
+   Verified live 2026-10-13 on a `DMS Cisco 8845` (still `activating`): adding a
+   member with `"port": 5` stored port 2; with `lineWeight` 3 on port 2 the next
+   member (requested port 7) was stored at port 5 (each member consumes
+   `lineWeight` ports); and `[owner p1, X p9, Y p2]` stored Y at 2 and X at 3 —
+   members are sorted by requested port, then packed. Two members both asking for
+   port 1 returned 400 `25068` "1 port is already used". Read the stored port back
+   with `device-settings list` rather than trusting the one you sent.
+7. **An existing member cannot be edited in place; remove and re-add it.**
+   Verified live 2026-10-13: re-sending a current member with an unchanged body is a
+   no-op 200, but changing its `lineType` (PRIMARY to SHARED_CALL_APPEARANCE) or
+   `lineWeight` returned 400 `5665` "Can not find the endpoint". The same PUT with that
+   member omitted (200) and then added again with the new values worked. Moving the
+   primary owner is refused with 400 `25366` "Primary owner line can not be
+   reordered." A line added as `PRIMARY` on port 2 persisted as `PRIMARY` (point 3).
 
 `hotlineEnabled` and `allowCallDeclineEnabled` may be omitted; they default to
 `false` / `true`.
@@ -758,8 +782,16 @@ wxcli device-settings update-layout DEVICE_ID --json-body '{
   ]
 }'
 
-# Enable user reorder on a device layout
-wxcli device-settings update-layout DEVICE_ID --user-reorder-enabled
+# Enable user reorder on a device layout. Verified live 2026-10-13: the flag on its own
+# (`update-layout DEVICE_ID --user-reorder-enabled`) returns 400 25024 "Invalid field value:
+# layoutMode" — layoutMode must be in the body, so use --json-body:
+wxcli device-settings update-layout DEVICE_ID --json-body '{"layoutMode":"CUSTOM","userReorderEnabled":true}'
+
+# Reset a device to its default layout ({"layoutMode":"DEFAULT"} read back as DEFAULT live)
+wxcli device-settings update-layout DEVICE_ID --json-body '{"layoutMode":"DEFAULT"}'
+
+# NOTE: `list-layout` prints only the lineKeys array and drops layoutMode / userReorderEnabled /
+# kemKeys (CLI bug, live 2026-10-13); read GET .../devices/{id}/layout for the full object.
 ```
 
 #### Line Key Templates (`device-settings`)
@@ -771,7 +803,15 @@ wxcli device-settings list-line-key-templates
 # Get line key template details
 wxcli device-settings show-line-key-templates TEMPLATE_ID
 
-# Apply a line key template to devices
+# Preview first: with no scope this counts EVERY device of that model in the org
+# (live 2026-10-13: deviceCount 8 for a template whose model had 8 devices org-wide;
+# 1 once includeDeviceTags was added)
+wxcli device-settings preview-apply-line --action APPLY_TEMPLATE --template-id TEMPLATE_ID
+
+# Apply a line key template to devices. Unscoped it applies to every location, and the CLI
+# stops at a y/N prompt ("Aborted!" when not interactive) — add --force to skip it. Scope with
+# --json-body '{"action":"APPLY_TEMPLATE","templateId":"...","includeDeviceTags":["tag"]}'
+# (the job then showed updatedCount 1 and the device layout became CUSTOM with the template's keys)
 wxcli device-settings create-apply-line-key-template \
   --action APPLY_TEMPLATE --template-id TEMPLATE_ID
 
@@ -783,7 +823,11 @@ wxcli device-settings create-apply-line-key-template \
 #### MAC Validation (`device-settings`)
 
 ```bash
-# Validate MAC addresses (requires --json-body)
+# Validate MAC addresses (requires --json-body; -o table|json|text IS accepted).
+# Verified live 2026-10-13: when every MAC is fine the response is just {"status": "OK"} — no
+# macStatus array, so AVAILABLE is never printed on its own; with any problem the status is "ERRORS"
+# and ALL MACs are listed (AVAILABLE / UNAVAILABLE 5675 "MAC Address is in use" / DUPLICATE_IN_LIST
+# 5676 / INVALID 25220). In the raw example below, result.get("macStatus", []) is [] for an all-OK list.
 wxcli device-settings validate-a-list --json-body '{
   "macs": ["AABBCCDDEEFF", "112233445566", "INVALID"]
 }'
@@ -792,7 +836,14 @@ wxcli device-settings validate-a-list --json-body '{
 #### Dynamic Device Settings (`device-dynamic-settings`)
 
 ```bash
-# List supported devices for dynamic settings
+# NOTE (verified live 2026-10-13): --family-or-model-display-name takes a device FAMILY from the
+# settings-groups listing — MPP, ATA, Poly, Poly ATA, Yealink, Yealink DECT, SNOM, AudioCodes 4xxHD,
+# AudioCodes MP5xx, Voice Gateway — NOT a model name. "Cisco 8845", "DMS Cisco 8845", "8845" and
+# "Cisco 9861" all returned 400 25470 "familyOrModelDisplayName ... is not supported" on the
+# get-* commands and a silent empty list from list-settings-groups. Use "MPP" for the 8845.
+
+# List supported devices for dynamic settings (CLI bug: prints only the upgradeChannelList,
+# ["STABLE_DELAY","STABLE","PREVIEW"], not devices — see §5a)
 wxcli device-dynamic-settings list
 
 # Filter supported devices by type (e.g., MPP phones)
@@ -801,17 +852,17 @@ wxcli device-dynamic-settings list --type MPP
 # Get settings groups (tabs/groups structure)
 wxcli device-dynamic-settings list-settings-groups
 
-# Get settings groups for a specific device model
+# Get settings groups for a device family (174 groups for MPP)
 wxcli device-dynamic-settings list-settings-groups \
-  --family-or-model-display-name "Cisco 8845" --include-settings-type ALL
+  --family-or-model-display-name "MPP" --include-settings-type ALL
 
-# Get org-level (customer) dynamic settings for a device model
+# Get org-level (customer) dynamic settings for a device family
 wxcli device-dynamic-settings get-customer-device \
-  --family-or-model-display-name "Cisco 8845"
+  --family-or-model-display-name "MPP"
 
 # Get location-level dynamic settings
 wxcli device-dynamic-settings get-location-device LOCATION_ID \
-  --family-or-model-display-name "Cisco 8845"
+  --family-or-model-display-name "MPP"
 
 # Get dynamic settings for a specific device
 wxcli device-dynamic-settings get-device-dynamic DEVICE_ID
@@ -823,24 +874,24 @@ wxcli device-dynamic-settings get-device-dynamic DEVICE_ID
 
 PSK (Programmable Softkey) slots and softkey state lists are configured via the per-device dynamic settings endpoint. This is separate from the org/location/model-level dynamic settings hierarchy — it applies a specific key-value payload directly to one device.
 
-**Endpoint:**
-```
-PUT /telephony/config/devices/{device_id}/dynamicSettings
-```
+> **Verified live 2026-10-13 on a MAC-provisioned `DMS Cisco 8845` — the endpoint and body this section used to show do not work.** `PUT /telephony/config/devices/{device_id}/dynamicSettings` with `{"settings": [{"key": "softKeyLayout.psk.psk1", "value": "park"}]}` returns **204 and stores nothing** (the follow-up `get-device-dynamic` showed no device-level value). That endpoint takes `{"tags": [...]}` with the tag names from the validation schema. Two shapes work; both were SET, read back, then CLEARed/restored:
+>
+> **A. Nested keys on the device settings endpoint** — `softKeyLayout.psk.psk1` and `softKeyLayout.softKeyMenu.idleKeyList` are real paths under `customizations.mpp` of `PUT /telephony/config/devices/{device_id}/settings` (the `GET` of that endpoint lists `softKeyLayout.softKeyMenu.*KeyList`, `softKeyLayout.psk.psk1..` and read-only `softKeyMenuDefaults` / `pskDefaults`). This is the shape the key names below belong to. Read-back after the PUT showed `{"psk1": "fnc=sd;ext=1234"}` and `idleKeyList` `redial;newcall;cfwd`:
+> ```json
+> {"customEnabled": true, "customizations": {"mpp": {"softKeyLayout": {
+>   "psk": {"psk1": "fnc=sd;ext=1234"},
+>   "softKeyMenu": {"idleKeyList": "redial;newcall;cfwd"}}}}}
+> ```
+> **B. Tag form on `/dynamicSettings`** — `PUT /telephony/config/devices/{device_id}/dynamicSettings` (CLI: `wxcli device-dynamic-settings update DEVICE_ID --json-body ...`):
+> ```json
+> {"tags": [{"tag": "%DO_PSK_1%", "action": "SET", "value": "fnc=sd;ext=1234"},
+>           {"tag": "%IDLE_KEY_LIST%", "action": "SET", "value": "redial;newcall;cfwd"}]}
+> ```
+> `{"tag": "...", "action": "CLEAR"}` removes the device-level value. The `MPP` tags in the live validation schema are `%DO_PSK_1%`..`%DO_PSK_16%`, `%IDLE_KEY_LIST%`, `%DO_OFF_HOOK_KEY_LIST%`, `%DO_RINGING_KEY_LIST%`, `%DO_PROGRESSING_KEY_LIST%`, `%DO_CONNECTED_KEY_LIST%`, `%DO_HOLD_KEY_LIST%`, `%DO_SHARED_ACTIVE_KEY_LIST%`, `%DO_SHARED_HELD_KEY_LIST%`, `%DO_START-XFER_KEY_LIST%`, `%DO_START-CONF_KEY_LIST%`; only `%DO_PSK_1%` and `%IDLE_KEY_LIST%` were round-tripped.
+>
+> Shape A was sent with `customEnabled: true`; the test then restored `customEnabled: false`, `displayNameFormat`, `psk1` and `idleKeyList` to their prior values and read them back.
 
-**Body:**
-```json
-{
-  "settings": [
-    {"key": "softKeyLayout.psk.psk1", "value": "park"},
-    {"key": "softKeyLayout.psk.psk2", "value": "hold"},
-    {"key": "softKeyLayout.softKeyMenu.idleKeyList", "value": "redial;newcall;cfwd"},
-    {"key": "softKeyLayout.softKeyMenu.connectedKeyList", "value": "hold;endcall;xfer"}
-  ]
-}
-```
-
-**Key format:**
+**Key format (shape A — `customizations.mpp.softKeyLayout`, shown flattened):**
 - PSK slot: `softKeyLayout.psk.{slot}` where `{slot}` is the slot name **lowercased** (e.g., `PSK1` → `psk1`)
 - State key list: `softKeyLayout.softKeyMenu.{state}KeyList` where `{state}` is the Webex state name
 
@@ -865,7 +916,7 @@ PUT /telephony/config/devices/{device_id}/dynamicSettings
 
 > **Always call applyChanges after PUT dynamicSettings.** The config is not pushed to the physical device until `POST /telephony/config/devices/{device_id}/actions/applyChanges/invoke` is called.
 
-**wxcli:** `wxcli device-dynamic-settings` commands operate at org/location/model scope. Per-device PSK config must be done via `--json-body` with the raw HTTP pattern above.
+**wxcli:** `wxcli device-dynamic-settings update DEVICE_ID --json-body '{"tags": [...]}'` is the per-device writer (shape B; it targets `PUT /telephony/config/devices/{id}/dynamicSettings` — checked in the command source and exercised live 2026-10-13). Shape A has no dedicated flags: use `wxcli device-settings update-settings-devices DEVICE_ID --json-body '{...}'`. The earlier statement that per-device PSK config needs raw HTTP was stale.
 
 #### Beta: Dynamic Settings Validation Schema
 
@@ -914,7 +965,7 @@ Before attempting to read or change device-level settings, determine which API s
 **9800-series nuances:**
 - **Per-device config:** Device Configurations (PhoneOS keys) via `device-configurations` -- CONFIRMED working. Do not conflate with RoomOS; schemas differ.
 - **Line Key Templates:** 9800-series DOES support Line Key Templates (model string `"Cisco 9861"` etc.) via the same `device-settings` LKT endpoints as MPP. This is the one `device-settings` feature that works for 9800-series.
-- **Device-level settings:** `show-settings-devices` returns **404** for 9800-series -- CONFIRMED.
+- **Device-level settings:** `show-settings-devices` is rejected for 9800-series -- CONFIRMED rejected; re-measured live 2026-10-13 as HTTP **400** `errorCode 25417` "The device type does not support settings through Webex Calling" (earlier notes recorded 404).
 - **Person-level device settings:** `get-person-device-settings` works but returns **limited fields** (e.g., `compression`) -- CONFIRMED.
 
 #### Programmatic detection
@@ -1057,10 +1108,14 @@ members = result.get("members", [])
 #### Update device members
 
 ```python
+# Verified live 2026-10-13: this body as it used to read ({"lineType": "SHARED_LINE"} and no
+# lineWeight) returns 400 25008 "Missing Mandatory field name: members.lineWeight"; adding
+# lineWeight but keeping SHARED_LINE returns 400 25024 "Invalid field value: members.type".
+# All five fields are mandatory and the shared value is SHARED_CALL_APPEARANCE (see §3.5).
 body = {
     "members": [
-        {"id": person_id, "port": 1, "lineType": "PRIMARY", "primaryOwner": True},
-        {"id": shared_person_id, "port": 2, "lineType": "SHARED_LINE", "primaryOwner": False}
+        {"id": person_id, "port": 1, "lineType": "PRIMARY", "lineWeight": 1, "primaryOwner": True},
+        {"id": shared_person_id, "port": 2, "lineType": "SHARED_CALL_APPEARANCE", "lineWeight": 1, "primaryOwner": False}
     ]
 }
 api.session.rest_put(f"{BASE}/telephony/config/devices/{device_id}/members", json=body)
@@ -1081,15 +1136,16 @@ members = result.get("members", [])
 #### Count members / available members
 
 ```python
-# Count of current members (filtered)
+# Count of AVAILABLE members for this device (filtered) — not the device's current members
+# (verified live 2026-10-13: returned totalCount 19 on a 1-member device)
 result = api.session.rest_get(f"{BASE}/telephony/config/devices/{device_id}/availableMembers/count", params={
     "memberName": "Jane"
 })
-count = result.get("count", 0)
+count = result.get("totalCount", 0)   # key is totalCount, not count (verified live 2026-10-13)
 
 # Count of available members (org-wide, no device_id)
 result = api.session.rest_get(f"{BASE}/telephony/config/devices/availableMembers/count")
-count = result.get("count", 0)
+count = result.get("totalCount", 0)
 ```
 
 #### Apply changes (push config to device)
@@ -1103,7 +1159,7 @@ api.session.rest_post(f"{BASE}/telephony/config/devices/{device_id}/actions/appl
 
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/devices/{device_id}/settings", params={
-    "deviceModel": "DMS Cisco 8845"  # required
+    "deviceModel": "DMS Cisco 8845"  # optional in practice — live 2026-10-13 the call succeeded without it
 })
 # Returns: {customEnabled, customizations: {mpp: {...}, ata: {...}}}
 ```
@@ -1135,11 +1191,12 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/settings")
 ```python
 # Get
 result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/devices/settings")
-# Returns: {compression: true/false}
+# Returns: {compression: "ON"} or {compression: "OFF"}  (strings — verified live 2026-10-13)
 
-# Update
+# Update — "ON"/"OFF" strings. Proven live on the workspace twin of this endpoint (JSON boolean
+# -> 400 25024); the person PUT itself was not exercised (no person was modified).
 api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/devices/settings", json={
-    "compression": True
+    "compression": "ON"
 })
 ```
 
@@ -1149,9 +1206,9 @@ api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/devices/settin
 # Get
 result = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices/settings")
 
-# Update
+# Update — "ON"/"OFF" strings (verified live 2026-10-13: true -> 400 25024; "ON"/"OFF" -> 204 and read back)
 api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices/settings", json={
-    "compression": True
+    "compression": "ON"
 })
 ```
 
@@ -1165,8 +1222,12 @@ devices = result.get("devices", [])
 #### Get person hoteling settings
 
 ```python
-result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/devices/settings/hoteling")
-# Returns: {enabled, limitGuestUse, ...}
+# Verified live 2026-10-13: GET .../telephony/config/people/{id}/devices/settings/hoteling returns
+# 404 "No static resource" — the CLI uses that path only for the PUT (device-settings update-hoteling;
+# the PUT was not exercised on a person). Read it from
+# the classic path instead (user-settings show-hoteling):
+result = api.session.rest_get(f"{BASE}/people/{person_id}/features/hoteling")
+# Returns: {"enabled": false}
 ```
 
 #### List workspace devices
@@ -1179,7 +1240,10 @@ devices = result.get("devices", [])
 #### Modify workspace devices
 
 ```python
-body = {"devices": [{"activationId": activation_id, "model": "DMS Cisco 8845"}]}
+# Verified live 2026-10-13: this PUT sets workspace hoteling, not device membership. The body this
+# example used to show ({"devices": [{"activationId": ..., "model": ...}]}) returns 400 25008
+# "Missing Mandatory field name: enabled". Attach devices with POST /devices (MAC) or an activation code.
+body = {"enabled": True, "limitGuestUse": True, "guestHoursLimit": 12}
 api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/devices", json=body)
 ```
 
@@ -1370,18 +1434,18 @@ result = api.session.rest_get(f"{BASE}/telephony/config/devices/dectNetworks/sup
 
 1. **`{BASE}/devices` vs `{BASE}/telephony/config/devices`** — These are two different API surfaces. The former manages cloud device entities (CRUD, tags, activation). The latter manages Webex Calling config (members, settings, layout, line keys).
 2. **Device IDs differ between surfaces.** A device's `id` from `GET /devices` may differ from its telephony `callingDeviceId`. Use `callingDeviceId` for telephony config endpoints.
-3. **`deviceModel` query param is required** for `GET/PUT .../devices/{id}/settings`. Omitting it returns an error.
+3. **`deviceModel` query param is documented as required** for `GET/PUT .../devices/{id}/settings`, but a live GET without it returned 200 on a `DMS Cisco 8845` (2026-10-13). See the §3.4 gotcha.
 4. **Apply changes after settings updates.** After updating device settings, members, or layout, call `.../actions/applyChanges/invoke` to push the config to the physical device.
 5. **Background image upload is multipart.** The upload endpoint requires multipart form data, not JSON. Max 625 KB, `.jpeg` or `.png` only.
 6. **Tags PATCH uses `application/json-patch+json`** content type, not standard JSON. The `rest_patch` method handles this.
 7. **No auto-pagination.** Pass `max=1000` on list endpoints. The `rest_get` method does not auto-paginate like SDK generator methods do.
 8. **CTI Route Point protocol varies by device pool.** CTI Route Points require SCCP protocol on some device pools — SIP protocol assignment fails with "Device Protocol not valid" error. When creating CTI Route Points via AXL, try SCCP first if SIP fails, or verify the device pool's supported protocols before assignment.
 9. **Org/location device settings PUT affects all matching devices on next sync. No rollback.** The PUT to `/telephony/config/locations/{id}/devices/settings` immediately queues the settings for all devices at that location. There is no way to preview or roll back.
-10. **9800-series model string format differs from older MPP.** Older MPP phones use `"DMS Cisco 8845"` (with "DMS" prefix); 9800-series phones use `"Cisco 9861"` (no "DMS" prefix). Using the wrong format for Line Key Templates or device creation will fail. Check `list-supported-devices` output for the exact `model` string.
+10. **9800-series model string format differs from older MPP.** Older MPP phones use `"DMS Cisco 8845"` (with "DMS" prefix); 9800-series phones use `"Cisco 9861"` (no "DMS" prefix). Using the wrong format for Line Key Templates or device creation will fail. Read the exact `model` string from `GET /telephony/config/supportedDevices` (no `wxcli` command returns it: `device-settings list-supported-devices-dects` / `-dect-networks` return only the two DECT bases, and `device-dynamic-settings list` returns only the upgrade-channel list). Verified live 2026-10-13: `"DMS Cisco 8845"` and `"Cisco 9861"` are the catalog strings, and a line key template created with `"DMS Cisco 9861"` returned 400 25271 "The device type does not support line key management."
 12. **`device-settings update` members array requires `lineWeight` and `primaryOwner` on every entry — not shown in `--help`.** When updating device members via `wxcli device-settings update`, every member object in the `members` array must include `lineWeight` (int, number of lines for this member) and `primaryOwner` (bool). Omitting either field returns a 400 error. Neither field appears in the CLI `--help` output or the JSON body example. Surfaced during live testing 2026-04-15.
 
-13. **9800-series device settings are split across API surfaces.** Device-level settings (`show-settings-devices`) returns 404. Per-device config uses Device Configurations with **PhoneOS** keys — NOT RoomOS; 9800-series runs PhoneOS, which is RoomOS-derived but distinct. Person-level device settings (`get-person-device-settings`) works but returns limited fields (e.g., `compression`). Line Key Templates work normally via the `device-settings` LKT endpoints. Features that older docs describe as "MPP-only" (background images/wallpaper, line labels) also work on 9800-series via PhoneOS config keys (`User.Screen.CustomWallpaper.CustomWallpaperDownloadURL[N]`, `Phone.LineKeyLabel`, `Phone.LineKeySecondaryLabel`) — they just use a different API path. This makes 9800-series the only phone family that spans three API surfaces.
-12. **Maximum 5 devices per user.** Webex Calling enforces a hard cap of 5 devices per user across hardware phones (MPP/PhoneOS) and soft clients combined. Attempting to add a 6th device returns HTTP 400 with body message `"Phones cannot be added to this user"`. Applies to both `POST /devices` (MAC-based creation) and `POST /devices/activationCode` (activation-code flow). The limit is server-enforced and not configurable — no org-level override exists. Orphan devices left over from failed provisioning/migration runs still count against the quota; clean them up before retrying.
+13. **9800-series device settings are split across API surfaces.** Device-level settings (`show-settings-devices`) is rejected (400 `25417` live 2026-10-13; earlier notes said 404). Per-device config uses Device Configurations with **PhoneOS** keys — NOT RoomOS; 9800-series runs PhoneOS, which is RoomOS-derived but distinct. Person-level device settings (`get-person-device-settings`) works but returns limited fields (e.g., `compression`). Line Key Templates work normally via the `device-settings` LKT endpoints. Features that older docs describe as "MPP-only" (background images/wallpaper, line labels) also work on 9800-series via PhoneOS config keys (`User.Screen.CustomWallpaper.CustomWallpaperDownloadURL[N]`, `Phone.LineKeyLabel`, `Phone.LineKeySecondaryLabel`) — they just use a different API path. This makes 9800-series the only phone family that spans three API surfaces.
+12. **Maximum 5 devices per user.** Webex Calling enforces a hard cap of 5 devices per user across hardware phones (MPP/PhoneOS) and soft clients combined. Attempting to add a 6th device returns HTTP 400 with body message `"Phones cannot be added to this user"`. Applies to both `POST /devices` (MAC-based creation) and `POST /devices/activationCode` (activation-code flow). The limit is server-enforced and not configurable — no org-level override exists. Orphan devices left over from failed provisioning/migration runs still count against the quota; clean them up before retrying. Person case, verified live 2026-10-13: six `create-activation-code --person-id ... --model "DMS Cisco 8845"` calls for one user ALL returned a code, each created an `activating` device, and `show-count-devices` then reported `totalDeviceCount: 7` — the 5-device cap and the "Phones cannot be added to this user" error did NOT appear on the activation-code path in this org (MAC path for a person not exercised). Workspace case, verified live 2026-10-13: a Professional workspace accepted 5 devices by MAC and rejected the 6th, and a Basic workspace accepted 1 and rejected the 2nd, both with 400 `errorCode "2022"` `Exceeded max number of devices` — a different message from the person one above. `GET /telephony/config/people/{id}/devices` reported `maxDeviceCount: 34` for one person, which does not match a 5-device cap (what that field means was not determined). See [devices-workspaces.md](devices-workspaces.md) gotcha 12.
 
 ---
 
@@ -1432,6 +1496,8 @@ POST /v1/telephony/config/jobs/devices/dynamicDeviceSettings
 Body: `{"locationId": "", "tags": [{"familyOrModelDisplayName": "Cisco 9861", "tag": "%SOFTKEY_LAYOUT_PSK1%", "action": "SET", "value": "fnc=sd;ext=1234"}]}`
 
 **Constraint:** cannot run in parallel with callDeviceSettings or rebuildPhones on the same org.
+
+> **Unverified (job not run):** the body above was left as written. Checked live 2026-10-13 against `GET /telephony/config/devices/dynamicSettings/validationSchema` (3,435 tags): `%SOFTKEY_LAYOUT_PSK1%` does not exist in it (the MPP PSK tag is `%DO_PSK_1%`; see the per-device PSK section), and `Cisco 9861` is not a dynamic-settings family (families are MPP, ATA, Poly, Poly ATA, Yealink, Yealink DECT, SNOM, AudioCodes 4xxHD/MP5xx, Voice Gateway; the 9861 reports `WEBEX_DEVICE_CONFIGURATION`). Whether an unknown tag in a job is rejected, ignored, or listed in `.../errors` was not tested.
 
 ### Job Status & Errors
 

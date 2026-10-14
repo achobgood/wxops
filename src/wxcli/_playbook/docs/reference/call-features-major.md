@@ -40,8 +40,8 @@ Use an auto attendant when you need an IVR-style front door: "Press 1 for Sales,
 | `extension` | `str` | One of phone_number/extension | |
 | `business_schedule` | `str` | Yes | Name of business hours schedule |
 | `holiday_schedule` | `str` | No | Name of holiday schedule |
-| `business_hours_menu` | `AutoAttendantMenu` | Yes | Defaults to single key: 0 -> EXIT |
-| `after_hours_menu` | `AutoAttendantMenu` | Yes | Defaults to single key: 0 -> EXIT |
+| `business_hours_menu` | `AutoAttendantMenu` | Yes | No default: create without it is rejected `400 25008 "Missing Mandatory field name:  businessHoursMenu"`, and the CLI does **not** inject one — pass it via `--json-body`. Verified live 2026-10-13. |
+| `after_hours_menu` | `AutoAttendantMenu` | Yes | Same as `business_hours_menu`. Verified live 2026-10-13. |
 | `extension_dialing` | `Dialing` | No | `ENTERPRISE` or `GROUP` (default: ENTERPRISE) |
 | `name_dialing` | `Dialing` | No | `ENTERPRISE` or `GROUP` (default: ENTERPRISE) |
 | `language_code` | `str` | No | |
@@ -187,13 +187,12 @@ wxcli auto-attendant list --name "Main Menu"
 # Get details for a specific auto attendant (JSON output)
 wxcli auto-attendant show Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID
 
-# Create a minimal auto attendant (basic fields only)
-wxcli auto-attendant create Y2lzY29zcGFyazovL_LOC_ID \
-  --name "Main Menu" \
-  --extension "1000" \
-  --business-schedule "Business Hours"
+# NOTE: flags alone do NOT work. `auto-attendant create LOC --name ... --extension ... --business-schedule ...`
+# fails 400 25008 "Missing Mandatory field name:  businessHoursMenu" (the CLI sends no menus).
+# --business-schedule / businessSchedule must be the EXACT NAME of an existing schedule at that location
+# (list with `wxcli location-schedules list LOC_ID`). Verified live 2026-10-13.
 
-# Create with full menu configuration via --json-body
+# Create with the menus (minimum working body) via --json-body
 wxcli auto-attendant create Y2lzY29zcGFyazovL_LOC_ID --json-body '{
   "name": "Main Menu",
   "extension": "1000",
@@ -218,7 +217,9 @@ wxcli auto-attendant create Y2lzY29zcGFyazovL_LOC_ID --json-body '{
 wxcli auto-attendant update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID \
   --name "Updated Main Menu"
 
-# Update menu configuration via --json-body (required for menu changes)
+# Update menu configuration via --json-body (required for menu changes).
+# A menu you send REPLACES that whole menu: sending keys 1 and 0 removed a previously
+# configured key 2 (verified live 2026-10-13). Resend every key you want to keep.
 wxcli auto-attendant update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID --json-body '{
   "businessHoursMenu": {
     "greeting": "DEFAULT",
@@ -259,9 +260,9 @@ Use a call queue when callers should wait on hold until an agent is free (suppor
 | `name` | `str` | Yes | Unique name |
 | `phone_number` | `str` | One of phone_number/extension | |
 | `extension` | `str` | One of phone_number/extension | |
-| `agents` | `list[Agent]` | Yes | People, workspaces, or virtual lines |
-| `call_policies` | `CallQueueCallPolicies` | Yes | Routing type, policy, call bounce, distinctive ring |
-| `queue_settings` | `QueueSettings` | Yes | Queue size, overflow, announcements |
+| `agents` | `list[Agent]` | No | People, workspaces, or virtual lines. Live: a queue is created fine with no `agents` (verified 2026-10-13). |
+| `call_policies` | `CallQueueCallPolicies` | Yes | Only `callPolicies.policy` is required. Omitting `callPolicies` -> `400 25008 "Missing Mandatory field name:  callPolicies"`; `"callPolicies":{}` -> `400 25008 "...callPolicies.policy"`. `routingType` is optional (defaults to `PRIORITY_BASED`). The CLI flags (`--name`, `--extension`) cannot supply it — use `--json-body`. Verified live 2026-10-13. |
+| `queue_settings` | `QueueSettings` | No | Queue size, overflow, announcements. Live: omitted on create without error; server fills defaults (`queueSize` 0, overflow `PERFORM_BUSY_TREATMENT`). Verified live 2026-10-13. |
 | `enabled` | `bool` | No | |
 | `language_code` | `str` | No | |
 | `time_zone` | `str` | No | |
@@ -302,12 +303,14 @@ Use a call queue when callers should wait on hold until an agent is free (suppor
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
 | `enabled` (alias: `callBounceEnabled`) | `bool` | `True` | Bounce after max_rings |
-| `max_rings` (alias: `callBounceMaxRings`) | `int` | `5` | |
-| `agent_unavailable_enabled` | `bool` | `True` | Bounce if agent goes unavailable |
-| `alert_agent_enabled` | `bool` | `True` | Alert agent for long-held calls |
+| `max_rings` (alias: `callBounceMaxRings`) | `int` | `8` | |
+| `agent_unavailable_enabled` | `bool` | `False` | Bounce if agent goes unavailable |
+| `alert_agent_enabled` | `bool` | `False` | Alert agent for long-held calls |
 | `alert_agent_max_seconds` | `int` | `30` | |
 | `on_hold_enabled` | `bool` | `False` | Bounce calls on hold too long |
 | `on_hold_max_seconds` | `int` | `60` | |
+
+> **Verified live 2026-10-13:** the defaults above are what a queue created with only `callPolicies.policy` reads back (`callBounceEnabled` true, `callBounceMaxRings` 8, `agentUnavailableEnabled` false, `alertAgentEnabled` false, `alertAgentMaxSeconds` 30, `callBounceOnHoldEnabled` false, `callBounceOnHoldMaxSeconds` 60). An earlier version of this table listed `max_rings` 5 and `agent_unavailable_enabled`/`alert_agent_enabled` True, which came from the SDK model, not the server.
 
 ### Overflow Settings
 
@@ -426,6 +429,7 @@ These are additional routing policies that sit alongside the main queue configur
 - `business_hours_name` / `business_hours_level`: Schedule reference
 - `force_night_service_enabled`: Override business hours
 - Separate `audio_message_selection` / `audio_files` for NORMAL mode and `manual_audio_message_selection` / `manual_audio_files` for MANUAL mode
+- The PUT always needs `nightServiceEnabled`, and needs `action` when enabling: `update-night-service --night-service-enabled` alone fails `400 25008 "Missing required field: action"`, and `--action TRANSFER --transfer-phone-number ...` without the enabled flag fails `"Missing required field: nightServiceEnabled"`. Verified live 2026-10-13; `--night-service-enabled --action BUSY` and `--no-night-service-enabled` (each with `--verify`) both succeeded. A transfer destination reads back normalised (`+12094571613` -> `+1-2094571613`).
 
 #### Stranded Calls
 
@@ -578,10 +582,12 @@ wxcli call-queue list --name "Support Queue"
 # Get details for a specific call queue
 wxcli call-queue show Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
 
-# Create a basic call queue
+# NOTE: `call-queue create LOC --name "Support Queue" --extension 2000` (flags only) FAILS:
+#   Error: 400 25008 "Missing Mandatory field name:  callPolicies"
+# The smallest body that works is name + extension + callPolicies.policy:
 wxcli call-queue create Y2lzY29zcGFyazovL_LOC_ID \
-  --name "Support Queue" \
-  --extension "2000"
+  --json-body '{"name":"Support Queue","extension":"2000","callPolicies":{"policy":"CIRCULAR"}}'
+# (Verified live 2026-10-13.) The CLI auto-injects a default callPolicies for hunt-group, not for call-queue.
 
 # Create a call queue with agents and routing policy via --json-body
 wxcli call-queue create Y2lzY29zcGFyazovL_LOC_ID --json-body '{
@@ -607,7 +613,9 @@ wxcli call-queue create Y2lzY29zcGFyazovL_LOC_ID --json-body '{
 wxcli call-queue update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID \
   --name "Renamed Queue" --enabled
 
-# Update agents or complex settings via --json-body (partial update)
+# Update agents or complex settings via --json-body (partial update for everything EXCEPT `agents`:
+# the `agents` list is a FULL REPLACE -- sending 1 of 2 existing agents removed the other. Verified
+# live 2026-10-13. Resend every agent you want to keep; nested `queueSettings`/`callPolicies` merge.)
 wxcli call-queue update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID --json-body '{
   "agents": [
     {"id": "PERSON_ID_1"},
@@ -627,6 +635,11 @@ wxcli call-queue list-agents --queue-id Y2lzY29zcGFyazovL_QUEUE_ID
 wxcli call-queue show-call-forwarding Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
 
 # View holiday service settings
+# WARNING (CLI bug, verified live 2026-10-13): list-holiday-service, list-night-service,
+# list-forced-forward and list-stranded-calls print `[]` even though the API returns 200 with the
+# settings (they only look for an `audioFiles` key in a single-object response). `[]` does NOT mean
+# the service is off. Until fixed, read the state with raw HTTP (GET .../queues/{id}/nightService etc.);
+# `--verify` on the matching `update-*` command only confirms the fields you just sent.
 wxcli call-queue list-holiday-service Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_QUEUE_ID
 
 # View night service, stranded calls, forced forward
@@ -658,7 +671,7 @@ Use a hunt group when calls should ring agents directly without queuing (small t
 | `phone_number` | `str` | One of phone_number/extension | |
 | `extension` | `str` | One of phone_number/extension | |
 | `agents` | `list[Agent]` | No | Empty by default on creation |
-| `call_policies` | `HGCallPolicies` | No | Auto-defaulted to CIRCULAR if not provided |
+| `call_policies` | `HGCallPolicies` | No (CLI) / **Yes (raw API)** | Auto-defaulted to CIRCULAR if not provided -- **only by `wxcli hunt-group create`** (raw POST without it: `400 25008 "Missing Mandatory field name:  callPolicies"`, verified live 2026-10-13) (the CLI does this with `setdefault('callPolicies', ...)`; the call-queue command does not). Only `policy` is needed inside it: `{"callPolicies":{"policy":"CIRCULAR"}}` created a group live and the server filled in `noAnswer`. Verified live 2026-10-13. |
 | `enabled` | `bool` | No | |
 | `language_code` | `str` | No | |
 | `time_zone` | `str` | No | |
@@ -682,7 +695,7 @@ Use a hunt group when calls should ring agents directly without queuing (small t
 | Field | Type | Default | Notes |
 |-------|------|---------|-------|
 | `next_agent_enabled` | `bool` | `False` | Advance to next agent after rings |
-| `next_agent_rings` | `int` | `5` | Rings before advancing |
+| `next_agent_rings` | `int` | `5` (server) / `3` (`wxcli hunt-group create`) | Rings before advancing. Verified live 2026-10-13: a group created via `--json-body '{"callPolicies":{"policy":"REGULAR"}}'` (CLI default NOT injected) reads back `nextAgentEnabled` false, `nextAgentRings` 5, `numberOfRings` 15; a group created with only name/extension/enabled reads back `nextAgentEnabled` true, `nextAgentRings` 3 because the CLI injects `noAnswer` (`hunt_group.py` `body.setdefault('callPolicies', ...)`). |
 | `forward_enabled` | `bool` | `False` | Forward unanswered calls |
 | `destination` | `str` | None | Forward-to number |
 | `number_of_rings` | `int` | `15` | Rings before forwarding |
@@ -733,13 +746,14 @@ hg = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/huntGroup
 ```python
 body = {
     "name": "Sales Team",
-    "extension": "3000"
+    "extension": "3000",
+    "callPolicies": {"policy": "CIRCULAR"}      # REQUIRED on the raw API (see below)
 }
 result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/huntGroups", json=body)
 new_id = result.get("id")
 ```
 
-Required fields: `name`, `extension` (or `phoneNumber`). `callPolicies` defaults to `CIRCULAR` if not provided. Agents are optional at creation -- can be added later via update.
+Required fields: `name`, `extension` (or `phoneNumber`), `callPolicies.policy`. **The raw API does NOT default `callPolicies`:** a POST of `{"name","extension"}` returns `400 25008 "Missing Mandatory field name:  callPolicies"` (Verified live 2026-10-13, direct HTTP POST). The "defaults to CIRCULAR" behaviour belongs to `wxcli hunt-group create`, which injects a `callPolicies` before sending. Agents are optional at creation -- can be added later via update.
 
 **Update hunt group:**
 ```python
@@ -816,7 +830,8 @@ wxcli hunt-group create Y2lzY29zcGFyazovL_LOC_ID --json-body '{
 wxcli hunt-group update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_HG_ID \
   --name "Renamed Team" --enabled
 
-# Update agents via --json-body (partial update)
+# Update agents via --json-body (`agents` is a FULL REPLACE: omitted agents are removed; nested
+# `callPolicies` merges. Verified live 2026-10-13.)
 wxcli hunt-group update Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_HG_ID --json-body '{
   "agents": [
     {"id": "PERSON_ID_1"},
@@ -909,8 +924,11 @@ fwd = api.session.rest_get(
 # Update forwarding settings
 api.session.rest_put(
     f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding",
-    json={"always": {"enabled": True, "destination": "+15551234567"}}
+    json={"callForwarding": {"always": {"enabled": True, "destination": "+15551234567"}}}
 )
+# The "callForwarding" wrapper is REQUIRED. A body of {"always": {...}} returns 200 but is
+# silently ignored (verified live 2026-10-13 on auto attendant, call queue and hunt group:
+# the read-back stayed enabled=true after {"always": {"enabled": false}}).
 
 # Create selective forwarding rule
 rule_body = {
@@ -933,7 +951,7 @@ rule = api.session.rest_get(
 )
 api.session.rest_put(
     f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding/selectiveRules/{rule_id}",
-    json={"enabled": False}
+    json={"name": rule_name, "enabled": False}   # name is required on update (Verified live 2026-10-13: {"enabled": False} alone -> 400 25008 "Missing Mandatory field name:  name")
 )
 api.session.rest_delete(
     f"{BASE}/telephony/config/locations/{loc_id}/{feature}/{feature_id}/callForwarding/selectiveRules/{rule_id}"
@@ -965,11 +983,19 @@ wxcli hunt-group update-call-forwarding LOC_ID HG_ID --json-body '{
   "callForwarding": {"always": {"enabled": true, "destination": "+15551234567"}}
 }'
 
-# Create a selective forwarding rule
-wxcli auto-attendant create-selective-rules LOC_ID AA_ID \
-  --name "After Hours Rule" --enabled --business-schedule "Business Hours"
+# Create a selective forwarding rule. The flags-only form
+#   wxcli auto-attendant create-selective-rules LOC_ID AA_ID --name "After Hours Rule" --enabled --business-schedule "..."
+# FAILS 400 25008 "Missing Mandatory field name:  forwardTo" (forwardTo/callsFrom have no flags).
+# Use --json-body with forwardTo + callsFrom (Verified live 2026-10-13; schedule must be an existing name):
+wxcli auto-attendant create-selective-rules LOC_ID AA_ID --json-body '{
+  "name": "After Hours Rule", "enabled": true, "businessSchedule": "Business Hours",
+  "forwardTo": {"selection": "FORWARD_TO_SPECIFIED_NUMBER", "phoneNumber": "+15559876543"},
+  "callsFrom": {"selection": "ANY"}, "callsTo": {"selection": "ANY"}
+}'
 
 # Create a selective rule with full config via --json-body
+# (Verified live 2026-10-13 with businessSchedule in place of holidaySchedule. `"callsTo":{"selection":"ANY"}`
+# is accepted but reads back as `"callsTo":{"numbers":[]}` -- the server has no `selection` for callsTo.)
 wxcli call-queue create-selective-rules LOC_ID QUEUE_ID --json-body '{
   "name": "Holiday Redirect",
   "enabled": true,
@@ -981,7 +1007,9 @@ wxcli call-queue create-selective-rules LOC_ID QUEUE_ID --json-body '{
 
 # Get, update, and delete selective rules
 wxcli hunt-group show-selective-rules LOC_ID HG_ID RULE_ID
-wxcli hunt-group update-selective-rules LOC_ID HG_ID RULE_ID --json-body '{"enabled": false}'
+# `name` is required on every update (without it: 400 25008 "Missing Mandatory field name:  name");
+# other fields you omit (forwardTo, schedule) are preserved. Verified live 2026-10-13 (call queue).
+wxcli hunt-group update-selective-rules LOC_ID HG_ID RULE_ID --json-body '{"name": "After Hours Rule", "enabled": false}'
 wxcli hunt-group delete-selective-rules LOC_ID HG_ID RULE_ID --force
 
 # Switch to normal operating mode
@@ -990,8 +1018,11 @@ wxcli call-queue switch-mode-for LOC_ID QUEUE_ID
 wxcli hunt-group switch-mode-for LOC_ID HG_ID
 ```
 
-> **Unverified:** the `callForwarding` wrapper in the three `update-call-forwarding` bodies is
-> from the spec (it is required on the auto attendant), not a live call.
+> **Verified live 2026-10-13** (all three features: auto attendant, call queue, hunt group): the
+> `callForwarding` wrapper in the `update-call-forwarding` bodies is required. With the wrapper,
+> `{"callForwarding":{"always":{"enabled":true,"destination":"+12094571613"}}}` took effect on the
+> read-back (`show-call-forwarding`); without it, `{"always":{"enabled":false}}` returned
+> `{"status": "updated"}` and changed nothing. A 2xx here is not evidence the setting applied.
 
 ---
 
@@ -1087,13 +1118,13 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 10. **`wxcli auto-attendant update` option flags cover only scalar fields** -- the CLI `update` command takes `LOCATION_ID AUTO_ATTENDANT_ID` as positional arguments and accepts `--name`, `--phone-number`, `--extension`, `--first-name`, `--last-name`, `--language-code`, `--business-schedule`, `--holiday-schedule`, `--extension-dialing`, `--name-dialing`, `--time-zone`, `--dial-by-name`. There is no `--enabled` flag. Menu configuration (`businessHoursMenu`, `afterHoursMenu`) has no option flags -- pass it via `--json-body`, which the CLI sends verbatim as the PUT body to `telephony/config/locations/{locationId}/autoAttendants/{aaId}`. Raw HTTP is not required.
 
-11. **`keyConfigurations.value` is mandatory in PUT** -- even for actions that don't use a destination (`TRANSFER_TO_OPERATOR`, `REPEAT_MENU`, `NAME_DIALING`, `EXTENSION_DIALING`), the `value` field must be present. Use `""` (empty string) for these actions. Omitting `value` or sending `null` causes error `25008 Missing Mandatory field name: HoursMenu.keyConfigurations.value`.
+11. **`keyConfigurations.value` is optional for actions with no destination** (`TRANSFER_TO_OPERATOR`, `REPEAT_MENU`, `NAME_DIALING`, `EXTENSION_DIALING`, `EXIT`) -- omit it or send `""`; both are accepted (the server drops an empty `value` on read-back). Verified live 2026-10-13: a PUT whose keys 0-3 carried no `value` at all returned 200 and read back correctly. (An earlier version of this entry said `value` was mandatory; that did not reproduce. Sending `null` was not tested.) The error `25008 Missing Mandatory field name:  HoursMenu.keyConfigurations.value` is real, but in the live test it came from `TRANSFER_TO_MAILBOX` with `"value":""` -- see #12.
 
-12. **`TRANSFER_TO_MAILBOX` requires a non-empty `value`** -- empty string `""` is rejected. Use the target AA's own extension (e.g., `"8000"`) to route to the AA's own voicemail. This is the extension of the auto attendant whose mailbox should receive the call.
+12. **`TRANSFER_TO_MAILBOX` requires a non-empty `value`** -- empty string `""` is rejected with `25008 Missing Mandatory field name:  HoursMenu.keyConfigurations.value`. Use the target AA's own extension (e.g., `"8000"`) to route to the AA's own voicemail. This is the extension of the auto attendant whose mailbox should receive the call. Verified live 2026-10-13: `""` rejected; the AA's own extension (`9709`) accepted.
 
-13. **There is no `holidayMenu` field in the AA PUT body** -- the `holidayMenu` field is silently ignored by the API. The `afterHoursMenu` applies to both after-hours and holiday schedule periods. If you need different routing on holidays vs. after-hours, you need two separate auto attendants (one for after-hours, one for holidays).
+13. **There is no `holidayMenu` field in the AA PUT body** -- the `holidayMenu` field is silently ignored by the API (verified live 2026-10-13: PUT returned 200 and the read-back contains no `holiday` key). The `afterHoursMenu` applies to both after-hours and holiday schedule periods. If you need different routing on holidays vs. after-hours, you need two separate auto attendants (one for after-hours, one for holidays).
 
-14. **After-hours phone numbers are normalized on read-back** -- a number sent as `+19195559876` returns as `+1-9195559876` in GET responses. Do not use the GET value as input to a subsequent PUT; use the original format.
+14. **After-hours phone numbers are normalized on read-back** -- a number sent as `+19195559876` returns as `+1-9195559876` in GET responses. Do not use the GET value as input to a subsequent PUT; use the original format. Verified live 2026-10-13 for an AA menu key `value` (`+19195559876` -> `+1-9195559876`), a CQ `overflow.transferNumber`/forced-forward `transferPhoneNumber` (`+12094571613` -> `+1-2094571613`); a `callForwarding.always.destination` and a hunt-group `noAnswer.destination` were returned as sent.
 
 ---
 
@@ -1129,7 +1160,7 @@ When creating/updating, only `agent_id` is required. Set `weight` or `skill_leve
 
 2. **DND on a hunt group member skips them, not their voicemail.** If a member has DND enabled, the hunt group skips that member and moves to the next — it does NOT send the call to the member's personal voicemail. The HG's no-answer action only triggers after all members are exhausted.
 
-3. **Partial updates are safer than full-object PUTs.** For all three features (AA, CQ, HG), sending the full GET response back as a PUT body can trigger validation errors on read-only or computed fields (e.g., `callingLineIdPolicy=CUSTOM` without a phone number on CQ). Always send only the fields you want to change.
+3. **Partial updates are safer than full-object PUTs.** For all three features (AA, CQ, HG), sending the full GET response back as a PUT body can trigger validation errors on read-only or computed fields (e.g., `callingLineIdPolicy=CUSTOM` without a phone number on CQ). Always send only the fields you want to change. (Live 2026-10-13: a full `call-queue show` object PUT back unchanged succeeded twice, so the failure is not universal; the `callingLineIdPolicy=CUSTOM` 400 itself did not reproduce — `{"callingLineIdPolicy":"CUSTOM","callingLineIdPhoneNumber":"+12094571613"}` returned 200 and the queue still read back `LOCATION_NUMBER`. Partial updates remain the safe default.)
 
 2. **`--json-body` is required for nested settings.** The CLI generator skips deeply nested object/array body fields. Menu configurations (AA), queue settings with announcements (CQ), and call policies with no-answer/bounce config (HG) all require `--json-body '{ ... }'` instead of individual flags.
 

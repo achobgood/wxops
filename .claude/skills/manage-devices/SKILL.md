@@ -26,13 +26,13 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 3. Read `docs/reference/devices-workspaces.md` for workspace creation, workspace device assignment, workspace call settings
 
 **Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests. Common traps:
-- `validate-a-list` has NO `--macs` flag and NO `--output` flag — use `--json-body '{"macs":["..."]}'` (always outputs JSON)
+- `validate-a-list` has NO `--macs` flag — use `--json-body '{"macs":["..."]}'`. It DOES accept `-o table|json|text` (default json; checked with `--help` and run live 2026-10-13). When every MAC is fine the reply is just `{"status":"OK"}` with no per-MAC list.
 - `create-base-stations` has NO `--base-station-macs` flag — use `--json-body '{"baseStationMacs":["..."]}'`
 - Person-level hoteling is `wxcli device-settings update-hoteling` — NOT `wxcli user-call-settings` (that group does not exist in the CLI; the registered group is `user-settings`)
 - Hoteling read/write split: UPDATE is `device-settings update-hoteling`, but READ/VERIFY is `user-settings show-hoteling` — different groups! There is no `show-hoteling` in `device-settings`.
 - LKT delete is `wxcli device-settings delete TEMPLATE_ID` — NOT `delete-line-key-templates` (that command doesn't exist)
 - `create-apply-line-key-template` has named flags `--action` and `--template-id` — prefer these over `--json-body` for simple applies
-- `device-dynamic-settings get-customer-device` / `get-location-device` / `get-device-dynamic` are POST-under-the-hood (they call `.../actions/getSettings/invoke`). They take `--json-body '{"tags":["..."]}'` and have **NO `--output` flag** — do not append `-o json` to them
+- `device-dynamic-settings get-customer-device` / `get-location-device` / `get-device-dynamic` are POST-under-the-hood (they call `.../actions/getSettings/invoke`). They take `--json-body '{"tags":["..."]}'`. They DO accept `-o json` (`--help` lists `-o, --output`; `get-device-dynamic -o json --json-body ...` ran live 2026-10-13 — earlier versions of this skill said they had no `--output` flag)
 - `device-dynamic-settings update` (per-device) vs `create` (org/location bulk job) — `create` is the bulk writer despite the name; `update` targets a single DEVICE_ID
 - `workspace-locations` and `locations` share all 10 command names (list, create, show, update, delete, list-floors, create-floors, show-floors, update-floors, delete-floors). They are **different APIs on different endpoints** — see Step 6g before using either
 
@@ -102,14 +102,14 @@ Capture the `location_id` for the target location.
 
 2. Check the `product` field in the response. **Route based on model family and operation type:**
    - **9800-series** (product contains "9811", "9821", "9841", "9851", "9861", or "9871"):
-     - **Device-level settings** (`show-settings-devices`, `update-settings-devices`): These 404 on 9800-series. **Redirect to the `device-platform` skill** for PhoneOS config keys (ringtone, standby, display, wallpaper, line labels, etc.). NOTE: 9800-series runs PhoneOS, NOT RoomOS. PhoneOS is RoomOS-derived but distinct — do not call these "RoomOS keys" or call 9800 devices "RoomOS devices".
+     - **Device-level settings** (`show-settings-devices`, `update-settings-devices`): These are rejected on 9800-series (HTTP 400 `errorCode 25417` "The device type does not support settings through Webex Calling" — live 2026-10-13 on a registered Cisco 9861, with and without a model; earlier versions of this skill said 404). **Redirect to the `device-platform` skill** for PhoneOS config keys (ringtone, standby, display, wallpaper, line labels, etc.). NOTE: 9800-series runs PhoneOS, NOT RoomOS. PhoneOS is RoomOS-derived but distinct — do not call these "RoomOS keys" or call 9800 devices "RoomOS devices".
      - **Line Key Templates** (create, list, show, update, delete, apply): **Stay in this skill.** Works with model `"Cisco 98xx"`.
      - **Device member management** (list members, update members/ports): **Stay in this skill.** Works normally.
      - **Person-level device settings** (`show-settings-devices-3`): **Stay in this skill.** Works (limited fields).
    - **Room, Board, Desk series**: Redirect to `device-platform` skill for all configuration.
    - **MPP 68xx, 78xx, 88xx, ATA**: Continue with `device-settings` commands in this skill.
 
-**Why this matters:** The 9800-series phones are `productType: phone` but run PhoneOS (RoomOS-derived). Only device-level settings endpoints (`show-settings-devices`, `update-settings-devices`) fail on 9800-series with 404. Line key templates, member management, and person-level settings work fine through the telephony config API. Do not blanket-redirect all 9800-series operations — route by operation type.
+**Why this matters:** The 9800-series phones are `productType: phone` but run PhoneOS (RoomOS-derived). Only device-level settings endpoints (`show-settings-devices`, `update-settings-devices`) fail on 9800-series (400 `25417`). Line key templates, member management, and person-level settings work fine through the telephony config API. Do not blanket-redirect all 9800-series operations — route by operation type.
 
 See `docs/reference/devices-core.md` Section 5a (Device Settings API Router) for the full routing table.
 
@@ -152,7 +152,7 @@ wxcli numbers list --location-id LOCATION_ID --output json
 | Requirement | Details |
 |-------------|---------|
 | Location | Must exist |
-| Base station MAC addresses | Physical hardware MAC required |
+| Base station MAC addresses | Physical hardware MAC needed for a real base station to register. The API itself does not check: a made-up well-formed MAC was accepted with 201 (live 2026-10-13), so a typo will not be caught here. Deleting the DECT network also removed its base station. |
 | Dependency chain | Network --> Base Station(s) --> Handset(s). Cannot skip steps |
 
 ### 4h. Workspace device prerequisites
@@ -161,14 +161,15 @@ wxcli numbers list --location-id LOCATION_ID --output json
 |-------------|---------|
 | Workspace | Must be created first with Webex Calling enabled and a location assigned |
 | `location_id` and `supported_devices` | Immutable after creation -- set correctly on creation |
-| Hot-desk-only workspaces | Cannot have `phoneNumber`, `extension`, `calendar`, or `deviceHostedMeetings` set |
+| Hot-desk-only workspaces | Cannot have `phoneNumber`, `extension`, `calendar`, or `deviceHostedMeetings` set. "Hot desk only" comes from the `Webex Calling - Hot desk only` license, not from `hotdeskingStatus: on` (live 2026-10-13: `on` + extension + no license was accepted; the Hot desk only license + extension got 400 `[DIRECTORY_NUMBER]`) |
+| Device limit | A Basic workspace (auto-applied `Webex Calling - Workspaces` license) holds 1 phone; a workspace created with the Professional license holds 5 (400 `2022` beyond that). Pending activation codes count (live 2026-10-13) |
 
 ### 4i. Device settings prerequisites
 
 | Requirement | Details |
 |-------------|---------|
 | Line key template | Device model must match. Template applies org-wide or by location/tag filter |
-| Device settings GET/PUT | `deviceModel` parameter is required |
+| Device settings GET/PUT | `deviceModel` parameter is listed as required by the spec, but a live GET without it returned 200 for a DMS Cisco 8845 (2026-10-13); pass `--device-model` anyway |
 
 ### 4j. Hot desking prerequisites
 
@@ -220,8 +221,9 @@ Run the commands in order. For multi-step operations (e.g., workspace + device +
 
 Handle errors explicitly:
 - **401/403**: Token expired or insufficient scopes -- run `wxcli configure` to re-authenticate
-- **400 "MAC address unavailable"**: MAC already registered to another device -- check with `wxcli device-settings validate-a-list`
-- **400 "Model not supported"**: Use `wxcli device-settings list-supported-devices-dect-networks` or check supported catalog
+- **400 "MAC address unavailable"**: MAC already registered to another device -- check with `wxcli device-settings validate-a-list` (live 2026-10-13: a MAC in use came back as `UNAVAILABLE`, error 5675 "MAC Address is in use")
+- **400 "Model not supported"**: check the catalog with raw `GET /v1/telephony/config/supportedDevices` (136 models live 2026-10-13). No `wxcli` command returns it: `list-supported-devices-dect-networks` / `-dects` return only the two DECT bases, and `device-dynamic-settings list` returns only the upgrade-channel list.
+- **400 `2022` "Exceeded max number of devices"**: the workspace is full (Basic workspace = 1 device, Professional = 5; a pending activation-code device counts) -- delete a device or use a Professional license. See `docs/reference/devices-workspaces.md` gotcha 12.
 - **409**: Name or resource conflict -- ask user for alternate
 
 **Always call `apply-changes-for` after updating device settings, members, or layout** to push configuration to the physical device.
@@ -277,9 +279,11 @@ Activation codes provide a zero-touch provisioning workflow:
 2. **Code is communicated** to the on-site technician or end user
 3. **User enters code** on the phone's activation screen
 4. **Phone auto-registers** with Webex Calling, downloads config, and becomes operational
-5. **Code expires** after the configured period (typically 7 days)
+5. **Code expires** after the configured period. Live 2026-10-13 (workspace target): a code with `--model "DMS Cisco 8845"` expired 30 days out; a code with no `--model` (RoomOS) expired 7 days out.
 
 > **NOTE:** Activation codes for phones require a `model` parameter. RoomOS collaboration devices do not require a model.
+
+> **NOTE:** A phone activation code immediately creates a device record in `activating` state, and that record counts toward the workspace/person device limit (a second request on a full Basic workspace returned 400 `2022` "Exceeded max number of devices"). Deleting the workspace removed it; deleting an `activating` device on its own with `wxcli devices delete` was not tested.
 
 **Delete a device:**
 
@@ -295,7 +299,7 @@ wxcli devices delete DEVICE_ID
 wxcli devices update DEVICE_ID --op replace --path tags --value '["lobby","floor-2"]'
 ```
 
-`--op` is `add`, `remove`, or `replace`; `--path` only supports `tags`.
+`--op` is `add`, `remove`, or `replace`; `--path` only supports `tags`. Live 2026-10-13: `add` appends, `replace` overwrites the whole list, and **`remove` clears every tag** (its value is ignored — to drop one tag, `replace` with the tags you want to keep). `--verify` does not work with the `--op/--path/--value` form ("no request body to compare against"); read back with `wxcli devices show DEVICE_ID --fields tags`.
 
 > **NOTE:** Tag operations use JSON Patch format. The CLI handles this internally. Tags are useful for filtering devices in bulk operations (e.g., apply line key templates by tag).
 
@@ -516,7 +520,10 @@ wxcli device-settings list DEVICE_ID --output json
 wxcli device-settings list-available-members DEVICE_ID --output json
 
 # Update members (add shared line appearance)
-# IMPORTANT: every member entry MUST include lineWeight and primaryOwner — omitting either returns 400
+# IMPORTANT: every member entry MUST include lineWeight and primaryOwner — omitting either returns 400.
+# The shared value is SHARED_CALL_APPEARANCE ("SHARED_LINE" -> 400 25024). Re-confirmed live 2026-10-13
+# on a DMS Cisco 8845 with workspace members: 25008 without lineWeight, 25024 with SHARED_LINE, 200 with
+# the body below. (`device-settings show DEVICE_ID` prints the count of AVAILABLE members, not current ones.)
 wxcli device-settings update DEVICE_ID --json-body '{
   "members": [
     {"id": "PRIMARY_PERSON_ID", "port": 1, "lineType": "PRIMARY", "primaryOwner": true, "lineWeight": 1},
@@ -576,7 +583,13 @@ wxcli device-settings create --json-body '{
 # Preview how many devices would be affected
 wxcli device-settings preview-apply-line --action APPLY_TEMPLATE --template-id TEMPLATE_ID
 
-# Apply template to devices (has named flags — simpler than --json-body)
+# Apply template to devices (has named flags — simpler than --json-body).
+# DANGER: with only these flags it applies to EVERY device of that model in EVERY location
+# (live 2026-10-13: the preview above counted all 8 org devices of the model). It also stops at a
+# y/N prompt — "Aborted!" when run non-interactively — so scripted runs need --force. To limit the
+# blast radius, pass a scoped body: includeDeviceTags / locationIds, e.g.
+#   --force --json-body '{"action":"APPLY_TEMPLATE","templateId":"TEMPLATE_ID","includeDeviceTags":["tag"]}'
+# (a tag-scoped run updated exactly 1 device; the layout read back as CUSTOM with the template's keys)
 wxcli device-settings create-apply-line-key-template --action APPLY_TEMPLATE --template-id TEMPLATE_ID
 
 # Check apply job status
@@ -589,7 +602,7 @@ wxcli device-settings show-apply-line-key-template JOB_ID --output json
 | Type | Description |
 |------|-------------|
 | `PRIMARY_LINE` | User's primary line |
-| `SHARED_LINE` | Shared line appearance |
+| `SHARED_LINE` | Shared line appearance. Requires `sharedLineIndex` in the key (live 2026-10-13: without it 400 `25451` "Shared Line Index is required"; with it 200) |
 | `MONITOR` | BLF (busy lamp field) monitoring |
 | `CALL_PARK_EXTENSION` | Dedicated call park button |
 | `SPEED_DIAL` | Speed dial (requires label + value) |
@@ -603,7 +616,8 @@ wxcli device-settings show-apply-line-key-template JOB_ID --output json
 # Get current device layout
 wxcli device-settings list-layout DEVICE_ID --output json
 
-# Update layout
+# Update layout (layoutMode is required in the body even for a one-field change: `update-layout
+# DEVICE_ID --user-reorder-enabled` alone returned 400 25024 "Invalid field value: layoutMode", live 2026-10-13)
 wxcli device-settings update-layout DEVICE_ID --json-body '{
   "layoutMode": "CUSTOM",
   "lineKeys": [
@@ -611,6 +625,7 @@ wxcli device-settings update-layout DEVICE_ID --json-body '{
     {"lineKeyIndex": 2, "lineKeyType": "SPEED_DIAL", "lineKeyLabel": "Lobby", "lineKeyValue": "2000"}
   ]
 }'
+# list-layout prints only the lineKeys array (drops layoutMode/userReorderEnabled — CLI bug, live 2026-10-13)
 ```
 
 **Background images:**
@@ -664,6 +679,9 @@ wxcli hot-desk list --output json
 wxcli hot-desk list --person-id PERSON_ID --output json
 
 # List sessions for a specific workspace
+# (live 2026-10-13: with no active session this returned 404 "Session not found" instead of an
+# empty list, while the unfiltered `hot-desk list` returned []. A real session was not exercised —
+# it needs a guest signing in on a physical phone.)
 wxcli hot-desk list --workspace-id WORKSPACE_ID --output json
 
 # End a hot desk session
@@ -676,8 +694,9 @@ wxcli hot-desk delete SESSION_ID
 # View location-level voice portal hot desking settings
 wxcli hot-desking-portal show LOCATION_ID --output json
 
-# Update location-level settings
-wxcli hot-desking-portal update LOCATION_ID --json-body '{...}'
+# Update location-level settings (the only field is voicePortalHotDeskSignInEnabled; flag form:
+# --voice-portal-hot-desk-sign-in-enabled / --no-voice-portal-hot-desk-sign-in-enabled; --verify matched live 2026-10-13)
+wxcli hot-desking-portal update LOCATION_ID --json-body '{"voicePortalHotDeskSignInEnabled": true}'
 
 # View user-level guest hot desking settings
 wxcli hot-desking-portal show-guest PERSON_ID --output json
@@ -694,39 +713,45 @@ wxcli hot-desking-portal show-guest PERSON_ID --output json
 **Discover what a model supports first:**
 
 ```bash
-# Which devices support dynamic settings (filter by type, e.g. MPP)
+# "list" is a CLI bug: it prints only the upgrade-channel list ["STABLE_DELAY","STABLE","PREVIEW"],
+# not devices (live 2026-10-13, with or without --type). Use raw GET /v1/telephony/config/supportedDevices
+# to see each model's deviceSettingsConfiguration.
 wxcli device-dynamic-settings list --type MPP --output json
 
-# Which setting groups/tabs exist for a model
+# Which setting groups/tabs exist for a device FAMILY. The value must be a family — MPP, ATA, Poly,
+# Poly ATA, Yealink, Yealink DECT, SNOM, AudioCodes 4xxHD, AudioCodes MP5xx, Voice Gateway — not a
+# model: "Cisco 8845" returned an empty list here and 400 25470 on the get-* commands (live 2026-10-13).
 wxcli device-dynamic-settings list-settings-groups \
-  --family-or-model-display-name "Cisco 8845" --include-settings-type ALL --output json
+  --family-or-model-display-name "MPP" --include-settings-type ALL --output json
 ```
 
 **Read current settings at each scope:**
 
 ```bash
-# Org (customer) scope — NOTE: no --output flag on this command
-wxcli device-dynamic-settings get-customer-device --family-or-model-display-name "Cisco 8845"
+# Org (customer) scope
+wxcli device-dynamic-settings get-customer-device --family-or-model-display-name "MPP"
 
 # Location scope (LOCATION_ID is a positional arg)
-wxcli device-dynamic-settings get-location-device LOCATION_ID --family-or-model-display-name "Cisco 8845"
+wxcli device-dynamic-settings get-location-device LOCATION_ID --family-or-model-display-name "MPP"
 
 # Single device
 wxcli device-dynamic-settings get-device-dynamic DEVICE_ID
 ```
 
-> **NOTE:** These three `get-*` commands are POST requests to `.../actions/getSettings/invoke`. They accept `--json-body '{"tags":["..."]}'` to filter to specific tags and have **no `--output` flag** — adding `-o json` fails.
+> **NOTE:** These three `get-*` commands are POST requests to `.../actions/getSettings/invoke`. They accept `--json-body '{"tags":["..."]}'` to filter to specific tags and they do accept `-o json` (live 2026-10-13; an earlier version of this note said otherwise). On a device the reply lists every tag with its inherited `parentValue`/`parentLevel`, plus a `value` only where the device itself overrides it.
 
 **Write settings:**
 
 ```bash
-# One device
+# One device. action is SET (with value) or CLEAR; tag names come from the validation schema, e.g.
+# %DOSHORT_INTERDIGIT_TIMER%, %DO_PSK_1%, %IDLE_KEY_LIST% (SET then CLEAR round-tripped live 2026-10-13)
 wxcli device-dynamic-settings update DEVICE_ID \
-  --json-body '{"tags":[{"tag":"...","action":"...","value":"..."}]}'
+  --json-body '{"tags":[{"tag":"%DOSHORT_INTERDIGIT_TIMER%","action":"SET","value":"4"}]}'
 
 # Bulk across the org, or scoped to a location — returns a JOB_ID
+# (Unverified: the bulk job itself was not run live; familyOrModelDisplayName must be a family such as "MPP")
 wxcli device-dynamic-settings create --json-body '{
-  "tags": [{"familyOrModelDisplayName": "Cisco 8845", "tag": "...", "action": "...", "value": "..."}],
+  "tags": [{"familyOrModelDisplayName": "MPP", "tag": "...", "action": "...", "value": "..."}],
   "locationId": "LOCATION_ID"
 }'
 ```
@@ -757,6 +782,8 @@ Bulk writes are asynchronous — a returned JOB_ID does **not** mean the fleet i
 | Use for | Floors, lat/long geodata on legacy building records | Everything calling: users, numbers, devices, features |
 
 **Rule of thumb:** if the task involves calling — provisioning users, assigning numbers, creating devices or workspaces — you want `wxcli locations`. Only reach for `workspace-locations` to read/maintain legacy building records and floor lists.
+
+**They are not independent objects.** Live 2026-10-13: `workspace-locations create --display-name X ...` returned a `locationId` and `X` immediately appeared in `wxcli locations list` (not calling-enabled); `workspace-locations delete` removed it from both lists, and the existing locations (Site1 etc.) appear in both lists under the same UUID. So a "legacy building record" you create here is also a real Webex location — clean it up with the same care as one made with `locations create`.
 
 ```bash
 # List legacy workspace locations (filters differ from wxcli locations)
@@ -833,7 +860,7 @@ Next steps:
 8. **Workspace `location_id` and `supported_devices` are immutable.** Set correctly on creation; they cannot be changed afterward.
 9. **Deleting a workspace deletes all associated devices.** Those devices must be reactivated (new activation code or MAC re-provision) to be reused.
 10. **Hot-desk-only workspaces** cannot have `phoneNumber`, `extension`, `calendar`, or `deviceHostedMeetings` set. These cause errors if provided.
-11. **`deviceModel` is required for device settings GET/PUT.** Omitting it from `wxcli device-settings show-settings-devices` returns an error.
+11. **`deviceModel` is documented as required for device settings GET/PUT, but was not enforced live.** `wxcli device-settings show-settings-devices` without `--device-model` returned 200 for a DMS Cisco 8845 (2026-10-13). Pass it anyway.
 12. **Device IDs differ between API surfaces.** The `id` from `GET /devices` (cloud CRUD) may differ from the telephony `callingDeviceId`. Use the correct ID for each CLI group.
 13. **No API for auto-generated DECT access codes.** When `defaultAccessCodeEnabled` is `false`, per-handset codes are auto-generated but cannot be retrieved via API. Use Control Hub instead.
 14. **DECT handset Line 1 vs Line 2 member types.** Line 1 supports only PEOPLE and PLACE. Line 2 also supports VIRTUAL_LINE. Virtual lines cannot be the primary (line 1) member.
@@ -842,12 +869,13 @@ Next steps:
 17. **DECT network create response uses `dectNetworkId`, not `id`.** The CLI handles this, but if using raw HTTP, parse the correct key.
 18. **DECT is not supported for Webex for Government (FedRAMP).**
 19. **Workspace call settings mirror person call settings.** Use `wxcli workspace-settings` with the workspace ID. The sub-API is the same as person settings but workspace-scoped.
-20. **Maximum 5 devices per user (hardware + soft clients).** `POST /devices` and `POST /devices/activationCode` return HTTP 400 `"Phones cannot be added to this user"` on the 6th device. Server-enforced, not configurable. Orphan devices from prior failed attempts count against the cap — delete stale devices before retrying. See `docs/reference/devices-core.md` Gotcha #12.
-21. **Model string format differs by phone family.** Classic MPP phones use `"DMS Cisco 8845"` (with DMS prefix). 9800-series phones use `"Cisco 9861"` (no DMS prefix). Using the wrong format for device creation or line key templates will fail. Check `wxcli device-settings list-supported-devices-dects --output json` for exact model strings.
+20. **Maximum 5 devices per user (hardware + soft clients).** `POST /devices` and `POST /devices/activationCode` return HTTP 400 `"Phones cannot be added to this user"` on the 6th device. Server-enforced, not configurable. Orphan devices from prior failed attempts count against the cap — delete stale devices before retrying. See `docs/reference/devices-core.md` Gotcha #12. Live 2026-10-13: six activation codes for one person were all accepted (no 400, `totalDeviceCount` 7), so the cap was not enforced on that path in this org; the workspace limits (Basic 1, Professional 5) were.
+21. **Model string format differs by phone family.** Classic MPP phones use `"DMS Cisco 8845"` (with DMS prefix). 9800-series phones use `"Cisco 9861"` (no DMS prefix). Using the wrong format for device creation or line key templates will fail. Get the exact strings from raw `GET /v1/telephony/config/supportedDevices` — `list-supported-devices-dects` returns only the two DECT bases (live 2026-10-13). A line key template with `"DMS Cisco 9861"` returned 400 25271.
+21b. **MAC-create behaviours (live 2026-10-13, made-up MAC `02AA55330301`).** A MAC already on another device returns 400 `errorCode "2011"` "MAC Address is in use by another device"; repeating the same `devices create` for the same MAC and workspace returns the existing device (200) instead of an error; the display-name form `--model "Cisco 8845"` is accepted for an 8845 (stored as `DMS Cisco 8845`) so the DMS prefix is only mandatory where it is part of the catalog string; a nonexistent model returns 400 `2014` "Device model is not supported". `devices list`/`show` DO return `mac` for MAC-created devices (and for a registered phone) and return `null` for activation-code devices that have not registered yet. Deleting the workspace removed its device and freed the MAC (`validate-a-list` -> OK).
 22. **DECT display name character limits.** Network `displayName` is max 11 characters. Handset `customDisplayName` is 1-16 characters. Exceeding limits returns 400.
 23. **DECT access code must be unique within the location.** If two DECT networks at the same location share an access code, handsets may register with the wrong network.
 24. **`workspace-locations` is NOT `locations`.** Both groups expose the same 10 command names but hit different endpoints (`/v1/workspaceLocations` vs `/v1/locations`) and different objects. Anything calling-related (users, numbers, devices, features) uses `wxcli locations`. `workspace-locations` is the legacy Workspaces-API building record — use it only for floors or legacy geodata. See Step 6g.
-25. **`device-dynamic-settings get-*` commands have no `--output` flag.** `get-customer-device`, `get-location-device`, and `get-device-dynamic` are POST calls to `.../actions/getSettings/invoke`. Appending `-o json` fails. Filter with `--json-body '{"tags":["..."]}'`.
+25. **`device-dynamic-settings get-*` commands are POSTs.** `get-customer-device`, `get-location-device`, and `get-device-dynamic` call `.../actions/getSettings/invoke`. Filter with `--json-body '{"tags":["..."]}'`. They accept `-o json` (live 2026-10-13; this rule used to say they did not), and the family argument must be a family such as `MPP`, not `Cisco 8845`.
 26. **`device-dynamic-settings create` is the bulk writer, not a creator.** `create` pushes tag changes org-wide or per-location and returns a JOB_ID; `update` writes a single device. Bulk writes are async — poll `show JOB_ID` and check `list-errors JOB_ID` before reporting success.
 
 ---
@@ -860,9 +888,9 @@ These are the **exact group names** registered in `wxcli`. Do not use any other 
 |-----------|-----------|----------|
 | `wxcli devices` | `devices.py` | list, create, show, update, delete, create-activation-code |
 | `wxcli device-settings` | `device_settings.py` | 46 commands (members, LKT, layout, settings, hoteling, validation, background images, jobs) |
-| `wxcli dect-devices` | `dect_devices.py` | 23 commands (networks, base stations, handsets, bulk, associations, serviceability) |
+| `wxcli dect-devices` | `dect_devices.py` | 23 commands (networks, base stations, handsets, bulk, associations, serviceability). Deletes are `delete NETWORK`, `delete-location-base-stations-dect-networks LOCATION NETWORK BASE_STATION`, `delete-location-handsets-dect-networks LOCATION NETWORK HANDSET` (there is no `delete-handsets`/`delete-base-stations`; verified live 2026-10-13, handset then base station then network) |
 | `wxcli workspaces` | `workspaces.py` | list, create, show, update, delete, show-capabilities |
-| `wxcli workspace-settings` | `workspace_settings.py` | 60+ commands (call settings, monitoring, permissions, voicemail, recording) |
+| `wxcli workspace-settings` | `workspace_settings.py` | 103 commands (call settings, monitoring, permissions, voicemail, recording; counted from `--help` 2026-10-13). Several `list-*` commands print only part of the response — see `docs/reference/devices-workspaces.md` |
 | `wxcli device-configurations` | `device_configurations.py` | show, update (PhoneOS/RoomOS config keys) |
 | `wxcli device-dynamic-settings` | `device_dynamic_settings.py` | 10 commands (supported devices, settings groups, org/location/device reads, per-device update, bulk job create, job status, job errors) |
 | `wxcli workspace-locations` | `workspace_locations.py` | 10 commands (legacy workspace locations + floors CRUD) |

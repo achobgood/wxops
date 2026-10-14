@@ -20,7 +20,7 @@ argument-hint: [operation — e.g. "create location", "enable user", "assign lic
 # Provision Calling Workflow
 
 **Checkpoint — do NOT proceed until you can answer these:**
-1. Can `location_id` be changed after a calling license is assigned? (Answer: No — it is write-once. Wrong location = must remove and re-add calling license.)
+1. Can `location_id` be changed after a calling license is assigned? (Answer: No — it is write-once via `people update` / `licenses update`. Wrong location = run the Move Users job (`wxcli user-settings create-move-location`, see Operation D) or remove and re-add the calling license.)
 2. What case must `announcement_language` use? (Answer: lowercase only — `en_us` not `en_US`. Mixed case causes "Invalid Language Code" error.)
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
@@ -109,6 +109,7 @@ wxcli users show PERSON_ID --output json
 # Numbers must be added to location first via numbers-manage commands
 wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers": ["+15551234567"], "numberType": "DID"}'
 ```
+Verified live 2026-10-13 on the CC Bootcamp Sandbox: the body shape is accepted, but the add was refused — `404 "Location ... not found or PSTN for the location is not configured"` on a location with no PSTN, and `400 ERR.V.TRM.PSP61001 "Order creation failed on PSTN provider"` on Site1. `numbers validate-phone-numbers` said `Available` for the same numbers, so it does not predict this. Check PSTN is configured at the location before promising number adds. (Success path not exercised.)
 
 ## Step 5: Build deployment plan — [SHOW BEFORE EXECUTING]
 
@@ -142,16 +143,13 @@ Proceed? [wait for user confirmation]
 
 ### Operation A: Create a Location
 
-Required flags: `--name`, `--time-zone`, `--preferred-language`, `--announcement-language`. Address must go in `--json-body`.
+Required: name, time zone, preferred language, announcement language, and an address. There is no address flag, and `--json-body` **overrides** the other flags — so pass everything in the one JSON body. (Verified live 2026-10-13: flags plus an address-only `--json-body` fails `400 "location name cannot be null or empty"`.)
 
 ```bash
-wxcli locations create \
-  --name "San Jose Office" \
-  --time-zone "America/Los_Angeles" \
-  --preferred-language en_US \
-  --announcement-language en_us \
-  --json-body '{"address": {"address1": "123 Main St", "city": "San Jose", "state": "CA", "postalCode": "95113", "country": "US"}}'
+wxcli locations create --json-body '{"name":"San Jose Office","timeZone":"America/Los_Angeles","preferredLanguage":"en_US","announcementLanguage":"en_us","address":{"address1":"123 Main St","city":"San Jose","state":"CA","postalCode":"95113","country":"US"}}'
 ```
+
+Verified live 2026-10-13: returns `201` and the new location ID.
 
 ### Operation B: Enable Location for Calling
 
@@ -162,17 +160,12 @@ First, fetch the location details you'll need:
 wxcli locations show LOCATION_ID
 ```
 
-Then enable calling using those details:
+Then enable calling using those details. The `address` is **required** and there is no address flag, so use `--json-body` (verified live 2026-10-13: the flags-only form — and a JSON body without `address` — returned `400 "Validation failure"`; adding the `address` object returned `201`):
 ```bash
-wxcli location-settings create \
-  --id LOCATION_ID \
-  --name "San Jose Office" \
-  --time-zone "America/Los_Angeles" \
-  --preferred-language en_US \
-  --announcement-language en_us
+wxcli location-settings create --json-body '{"id":"LOCATION_ID","name":"San Jose Office","timeZone":"America/Los_Angeles","preferredLanguage":"en_US","announcementLanguage":"en_us","address":{"address1":"123 Main St","city":"San Jose","state":"CA","postalCode":"95113","country":"US"}}'
 ```
 
-**Important:** `announcement_language` must be lowercase (`en_us` not `en_US`) or the API rejects with "Invalid Language Code".
+**Important:** `announcement_language` must be lowercase (`en_us` not `en_US`) or the API rejects with "Invalid Language Code" (verified live 2026-10-13: `400 errorCode '25046', 'Invalid Language Code.: en_US'`). Note `wxcli locations show` does not return `announcementLanguage` at all, so read it from your own plan, not from the location.
 
 To confirm a language code before using it, list the announcement languages the org supports — the `code` field is the exact value to pass to `--announcement-language`, already lowercase:
 
@@ -182,7 +175,7 @@ wxcli calling-service list
 
 Verified live: returns 42 languages as `{"name": "Italian", "code": "it_it"}` pairs. See Operation G for the rest of the `calling-service` group.
 
-**Note:** Teardown of a calling-enabled location is fully API-driven — Control Hub is not required. Clear visible blockers, then disable calling with `wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name "NAME"`, poll `wxcli location-settings show-delete-calling-location JOB_ID` until `latestExecutionStatus: COMPLETED`, then `wxcli locations delete --force LOCATION_ID`. See the teardown skill for the full 409 decision tree.
+**Note:** Teardown of a calling-enabled location is fully API-driven — Control Hub is not required. Clear visible blockers, then disable calling with `wxcli location-settings create-delete-calling-location --location-id LOCATION_ID --location-name "NAME"`, poll `wxcli location-settings show-delete-calling-location JOB_ID` until `latestExecutionStatus: COMPLETED`, then `wxcli locations delete --force LOCATION_ID`. See the teardown skill for the full 409 decision tree. Verified live 2026-10-13: only one disable job can run per org at a time — a second `create-delete-calling-location` started before the first reached `COMPLETED` returned `409 "Customer has job of same type already running"` (`BATCH-1001004`); the CLI's "delete the dependents first" tip printed with it is misleading for this error.
 
 ### Operation C: Create a New User
 
@@ -193,7 +186,9 @@ wxcli users create \
   --json-body '{"emails":["jsmith@example.com"],"firstName":"John","lastName":"Smith","displayName":"John Smith"}'
 ```
 
-**Gotcha:** A POST that returns 400 may **still have created the person**. Always check with a GET before retrying:
+To create a calling user in one call (`licenses` + `locationId` + `extension` in the body) you **must** add `--calling-data true`; verified live 2026-10-13, the same body without it returns `400 "Calling flag not set"` (and creates nothing).
+
+**Gotcha:** A POST that returns 400 may **still have created the person**. Verified live 2026-10-13: a calling create with a `phoneNumbers` entry not in the location's inventory returned `400 "[Error 4250] ... phone number(s) not added"`, yet the person existed afterwards with licenses but no extension or location. Always check with a GET before retrying:
 ```bash
 wxcli users list --email jsmith@example.com --output json
 ```
@@ -227,7 +222,8 @@ wxcli licenses update --person-id PERSON_ID --json-body '{
 - `location_id` is **write-once** — can only be set on initial calling license assignment, cannot be changed after
 - `extension` value must NOT include the location routing prefix
 - Either `phone_number` or `extension` is mandatory for calling licenses
-- To move a user, remove calling license and re-add with new location
+- To move a user, use the Move Users job: `wxcli user-settings create-move-location --json-body '{"usersList":[{"locationId":"NEW_LOC","validate":true,"users":[{"userId":"PERSON_ID","extension":"1001"}]}]}'` (run with `"validate":true` first to see the `impacts`, then `false`), then poll `wxcli user-settings show-move-location JOB_ID` to `COMPLETED`. Verified live 2026-10-13: the job moved a calling user between two calling-enabled locations (`moved: 1, failed: 0`, new `locationId` and unchanged extension read back), whereas `wxcli people update PERSON_ID --display-name N --location-id NEW_LOC` fails `400 "Failed to update people. Delete Calling Location in request is invalid"`. Removing the calling license and re-adding it with the new location is the fallback, but removal clears the extension and location (verified live) and, per `admin-licensing.md`, the user's other calling settings.
+- An extension with no `locationId` is rejected: verified live 2026-10-13, `"properties":{"extension":"1004"}` on a user with no prior location returned `400 "Unable to find location."`. (If an earlier failed create already stamped a `locationId` on the person, the same call can succeed — read the person back before relying on it.)
 
 ### Operation E: Bulk Provision
 
@@ -320,7 +316,7 @@ wxcli data-policies show-data-policies LOCATION_ID
 ```
 Verified live: `{"useOrgDataRegionEnabled": true, "orgDataRegion": "US", "allowEditEnabled": true}`. A location inheriting the org's region still reports it under `orgDataRegion` — there is no separate `locationDataRegion` field until the location is set to its own region.
 
-**Write commands (not live-exercised — changes org/location config; flags confirmed from source):**
+**Write commands (verified live 2026-10-13: org no-op `update --org-data-region US` and a temp location's region set to CA then reset, each read back with `--verify`):**
 
 ```bash
 # Set the org-level storage region
@@ -333,6 +329,8 @@ wxcli data-policies update-data-policies LOCATION_ID --no-use-org-data-region-en
 ```
 
 Both writes also accept `--json-body` / `--generate-json-body` for the same fields (`{"orgDataRegion":"..."}` and `{"locationDataRegion":"...","useOrgDataRegionEnabled":true}` respectively).
+
+Verified live 2026-10-13: `--location-data-region CA` **alone does not switch the location off the org's region** — the read-back showed `"locationDataRegion":"CA","useOrgDataRegionEnabled":true`. Pass `--no-use-org-data-region-enabled` together with it to flip the flag to `false`. Switching back with `--use-org-data-region-enabled` leaves `locationDataRegion` in the response (it is not cleared), so a `locationDataRegion` field is not proof the location overrides the org.
 
 
 **Read the current org defaults (all read-only, safe to run during prerequisite checks):**
@@ -387,6 +385,10 @@ wxcli calling-service update-rules --json-body '{
 }'
 ```
 
+Verified live 2026-10-13 (round-trip of the org's current values, then a flip of `defaultVoicemailPinEnabled` to `true` with a `defaultVoicemailPin`, then restored): the write body takes `defaultVoicemailPinEnabled` at the **top level**, but `show-rules` returns it **nested** as `defaultVoicemailPinRules.defaultVoicemailPinEnabled` — so `--verify` reports a false mismatch (`now '<not present in read-back>'`) even when the write took. Read it back with `wxcli calling-service show-rules --fields "defaultVoicemailPinRules.defaultVoicemailPinEnabled"`. Likewise, every `update` here prints `{"status": "updated"}`, which proves only that the request was accepted.
+
+Verified live 2026-10-13 (change + restore on the sandbox): `calling-service update --message-expiry-enabled --number-of-days-for-message-expiry 30 --verify` took effect (`show` read back `true` / `30`) but `--verify` reported `numberOfDaysForMessageExpiry: sent '30', now 30` — a false mismatch, because the numeric flag is sent as the string `'30'` and read back as the number 30. Trust the `show` read-back. `update --no-message-expiry-enabled` alone works (it leaves `numberOfDaysForMessageExpiry` as is), and `update-settings --default-org-moh OPUS` / `LEGACY` verified clean.
+
 Read back after any write — every one of these is a `show` away:
 
 ```bash
@@ -413,8 +415,10 @@ wxcli locations show LOCATION_ID --output json
 
 ### Verify bulk:
 ```bash
-# List all users at a location
-wxcli users list --location-id LOCATION_ID --output json
+# List all users at a location -- --calling-data true is REQUIRED with --location-id
+# (verified live 2026-10-13: without it the call fails 400 "Calling flag not set"),
+# and --all so a count is not just page one
+wxcli users list --location-id LOCATION_ID --calling-data true --all --output json
 # Count results to confirm expected number of users provisioned
 ```
 
@@ -445,7 +449,7 @@ Next steps:
 
 2. **ALWAYS show plan before executing** — Present the deployment plan and wait for user confirmation. Never provision without approval.
 
-3. **`location_id` is write-once** — Can only be set when first assigning a calling license. Cannot be changed after. To move a user, remove calling license and re-add with new location.
+3. **`location_id` is write-once** — Can only be set when first assigning a calling license. Cannot be changed after (verified live 2026-10-13: `people update --location-id` returns `400 "Delete Calling Location in request is invalid"`). To move a user, use the Move Users job (Operation D) or remove the calling license and re-add it with the new location.
 
 4. **`announcement_language` must be lowercase** — `en_us` not `en_US`. The telephony `enable_for_calling` API rejects mixed case with "Invalid Language Code".
 
@@ -459,7 +463,7 @@ Next steps:
 
 9. **License IDs are org-specific base64 strings** — Never hardcode them. Always retrieve via `wxcli licenses list`.
 
-10. **Extension values must NOT include the routing prefix** — Set extension to `1001`. The work_extension in the response will include the prefix (e.g., `8001001`), but when writing, omit it. To check for extension conflicts before assigning, run `wxcli numbers list --location-id LOCATION_ID` and scan the extension column.
+10. **Extension values must NOT include the routing prefix** — Set extension to `1001`. When the location has a routing prefix, the work_extension in the response will include it (e.g., `8001001`); at a location with none (Site1 in the sandbox, verified live 2026-10-13) it reads back bare (`8892`). When writing, always omit it. To check for extension conflicts before assigning, run `wxcli numbers list --location-id LOCATION_ID` and scan the extension column.
 
 11. **Log all operations** — Print what you're about to do before each CLI command, and print the result after. This creates an audit trail for troubleshooting.
 
@@ -541,7 +545,7 @@ wxcli licenses list
 
 | | Method A: People API PUT | Method B: Licenses PATCH API |
 |---|---|---|
-| **CLI equivalent** | `wxcli users update` (modify user fields) | Raw HTTP PATCH `/licenses/users` (license assignment not in CLI yet) |
+| **CLI equivalent** | `wxcli users update` (modify user fields; `--display-name` is mandatory on every update) | `wxcli licenses update` (PATCH `/licenses/users`; verified live 2026-10-13 — 200, calling license + location + extension assigned and read back) |
 | **Best for** | Migrating existing users, changing multiple Person fields | Net-new provisioning, SCIM users, atomic license+location+extension |
 | **Gotcha** | Must GET full person first, include ALL fields in PUT | Requires extension or phone_number for calling licenses |
 | **Can combine add+remove** | Manually modify the licenses list | Yes, add + remove operations in same call |

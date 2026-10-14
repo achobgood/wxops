@@ -134,6 +134,8 @@ api.session.rest_put(url, json=body)
 
 **CLI**: `wxcli user-settings show-calling-behavior <personId>` / `update-calling-behavior <personId>`
 
+Verified live 2026-10-13 (`update-calling-behavior --behavior-type ... --verify` + raw read-back): `CALL_WITH_APP_REGISTERED_FOR_WEBEXCALLTEL`, `CALL_WITH_APP_REGISTERED_FOR_TEL` and `NATIVE_WEBEX_TEAMS_CALLING` were applied; `CALL_WITH_APP_REGISTERED_FOR_CISCOTEL` and `NATIVE_SIP_CALL_TO_UCM` returned 400 `[Error 25214] Requested calling behavior change is invalid: Missing required calling entitlement` (valid enum values — the org/user lacks the entitlement). A fresh user's read had no `behaviorType`, only `effectiveBehaviorType: NATIVE_WEBEX_TEAMS_CALLING`.
+
 ---
 
 ## 3. App Services
@@ -198,7 +200,9 @@ api.session.rest_put(url, json=body)
 
 Manages shared-line appearance (SLA) members on Webex Calling apps. Like hardware devices, applications support additional shared lines that can be monitored and utilized.
 
-**Body fields for updating members**: `memberId`, `port`, `primaryOwner`, `lineType`, `lineWeight`, `lineLabel`, `allowCallDeclineEnabled`. Pass an empty `members` list (or omit it) to clear all members.
+**Body fields for updating members**: `id`, `port`, `primaryOwner`, `lineType`, `lineWeight`, `lineLabel`, `allowCallDeclineEnabled`. Pass an empty `members` list (or omit it) to clear all members.
+
+Verified live 2026-10-13 (CLI, admin token): the member identifier in the PUT body is **`id`**, as `wxcli user-settings update-members-applications-1 --help` prints, not `memberId` — the `memberId` spelling above is the older SDK name and was not exercised. The PUT replaces the whole list and the list must still contain the primary owner: sending only a secondary member returned 400 `{"errorCode":25486,"message":"Only one member can be the primary owner."}`; sending the owner (`primaryOwner:true`, port 1) plus a second member (`primaryOwner:false`, port 2) succeeded and read back both. CLI mapping: the path above without an application id is `list-members-applications-1` / `update-members-applications-1` / `list-available-members-applications-1` / `show-count`; the commands without the `-1` suffix take an extra `APPLICATION_ID` positional (`/applications/{applicationId}/members`). The empty-list clear — Verified live 2026-10-13: `{"members":[]}` removed the secondary member but the person's own primary-owner entry stayed (`{}` also left it untouched), so "clear all members" means "clear all but the owner".
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
@@ -224,7 +228,7 @@ result = api.session.rest_get(url)
 url = f"{BASE}/telephony/config/people/{person_id}/applications/members"
 body = {
     "members": [
-        {"memberId": "<id>", "port": 1, "primaryOwner": True, "lineType": "SHARED_CALL_APPEARANCE", "lineWeight": 1}
+        {"id": "<id>", "port": 1, "primaryOwner": True, "lineType": "SHARED_CALL_APPEARANCE", "lineWeight": 1}  # "id", not "memberId" (400 25008 otherwise; Verified live 2026-10-13)
     ]
 }
 api.session.rest_put(url, json=body)
@@ -325,8 +329,11 @@ wxcli hot-desking-members list PERSON_ID --location-id LOCATION_ID --extension 2
 # What is configured today
 wxcli hot-desking-members list-members PERSON_ID -o json
 
-# Assign. The PUT REPLACES the whole list — send every member you want kept.
-wxcli hot-desking-members update PERSON_ID --verify --json-body '{"members":[{"id":"GUEST_PERSON_ID","port":0,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":0}]}'
+# Assign. The PUT REPLACES the whole list — send every member you want kept, INCLUDING the existing
+# primary owner entry (read it with list-members first). lineWeight must be 1-16.
+# Verified live 2026-10-13: a body that re-sends the owner (primaryOwner true, port 1, HOTDESKING_GUEST)
+# plus a second member (primaryOwner false, port 2, lineType SHARED_CALL_APPEARANCE, lineWeight 1) applied.
+wxcli hot-desking-members update PERSON_ID --verify --json-body '{"members":[{"id":"OWNER_PERSON_ID","port":1,"primaryOwner":true,"lineType":"HOTDESKING_GUEST","lineWeight":1,"allowCallDeclineEnabled":true},{"id":"MEMBER_PERSON_ID","port":2,"primaryOwner":false,"lineType":"SHARED_CALL_APPEARANCE","lineWeight":1}]}'
 ```
 
 Run `wxcli hot-desking-members update PERSON_ID --generate-json-body` for the full body skeleton (it adds `t38FaxCompressionEnabled`, `hotlineEnabled`, `hotlineDestination`, `allowCallDeclineEnabled`, `memberType`).
@@ -335,6 +342,8 @@ Run `wxcli hot-desking-members update PERSON_ID --generate-json-body` for the fu
 
 - **`list` and `list-members` answer different questions.** The bare `list` returns *available* members — candidates, not configuration. Reading it as "who is assigned" returns a plausible, wrong answer with exit 0. Use `list-members` for current state.
 - **The PUT is a whole-list replace, not an append.** Any member absent from the body is removed. Read `list-members` first and send back everything you intend to keep.
+- **Verified live 2026-10-13: the previous example in this section failed.** `"lineWeight":0` is rejected with 400 `{"errorCode":25085,"message":"members.lineWeight cannot be less than 1 or greater than 16 "}`; with `lineWeight` 1 and `primaryOwner:true` on a different person it is rejected with 400 `{"errorCode":25487,"message":"The primary owner cannot be changed."}` (the person's own entry is the primary owner).
+- **A second member with `lineType` `HOTDESKING_GUEST` returned 200 and was silently dropped** (read-back still had only the owner, `--verify` flagged the difference); the same member with `SHARED_CALL_APPEARANCE` persisted.
 - **A 2xx does not mean the members applied.** Pass `--verify` so the CLI re-reads and reports any field that did not take — the same caveat as `device-members` (see `docs/reference/devices-core.md`).
 
 ---
@@ -380,6 +389,8 @@ api.session.rest_put(url, json=body)
 ```
 
 **CLI**: `wxcli user-settings list-reception <personId>` / `update-reception <personId>`
+
+> **Not reproducible in the test sandbox — 2026-10-13:** `PUT people/{id}/features/reception` with `{"receptionEnabled":true}` (with or without `monitoredMembers`) returned **HTTP 400 with an empty body** for three different users; `{"receptionEnabled":false}` returned 204. The cause was not determined (possibly an entitlement the sandbox lacks), so the enable path and the `monitoredMembers` rules above are unverified. The CLI prints the failure as a bare `Error: ` with no message. `list-reception` prints only the `monitoredMembers` array (`[]`) and drops `receptionEnabled`.
 
 ---
 
@@ -452,7 +463,9 @@ api.session.rest_put(url, json=body)
 
 > **Gotcha**: Read and update use different URL prefixes. Read: `people/{id}/features/numbers`. Update: `telephony/config/people/{id}/numbers`.
 
-**CLI**: `wxcli user-settings list-numbers <personId>`
+**CLI**: `wxcli user-settings list-numbers <personId>` / `update-numbers <personId> --json-body '{...}'`
+
+Verified live 2026-10-13 (admin token, Site1 user): `update-numbers` ADD of an available number (`"primary":false,"action":"ADD","external":"+12094571629","ringPattern":"NORMAL"`) was read back by `GET people/{id}/features/numbers` as `{"primary":false,"directNumber":"+12094571629","ringPattern":"NORMAL"}`, and `"action":"DELETE"` removed it. The CLI `--help` example spells the number field `directNumber`; both `external` and `directNumber` were accepted for ADD and for DELETE. Candidate numbers come from `wxcli user-settings list-available-numbers-secondary PERSON_ID`. **CLI bug:** `list-numbers` prints only the `phoneNumbers` array and drops `distinctiveRingEnabled`.
 
 ### Gotchas
 
@@ -694,9 +707,9 @@ Scopes per the spec: `spark-admin:telephony_config_read` (GETs) and
 
 #### Gotchas
 
-- **Clearing the preferred endpoint needs a JSON `null`, which the flag cannot send.** The spec says "To clear the preferred answer endpoint, the `preferredAnswerEndpointId` must be set to null", and "omit to leave unchanged". `--preferred-answer-endpoint-id` is a plain string option in the generated code, so `--preferred-answer-endpoint-id null` would send the four-character string `"null"`. Use `--json-body '{"preferredAnswerEndpointId": null}'`. **Unverified:** the flag type is read from the generated `user-settings update-answer-settings` command; the server's response to the string form has not been observed.
-- **Two admin objects now hold the same preferred endpoint — change it in one place.** `update-preferred-answer-endpoint` and `update-answer-settings` both write `preferredAnswerEndpointId` for the same person. The spec does not say they are separate stores, so assume they are one value and read back with `show-answer-settings` after a write through either. Prefer `*-answer-settings` whenever auto answer is part of the change. **Unverified:** whether a write through one path is visible through the other has not been tested live.
-- **Auto answer may need a preferred endpoint to do anything.** The read-only `preferredAnswerEndpointRequired` flag means the entity "must have a preferred answer endpoint selected in order for a call to be auto-answered". When it reads `true`, check that `preferredAnswerEndpointId` is set before treating `autoAnswerEnabled: true` as working. **Unverified:** spec text only.
+- **Clearing the preferred endpoint needs a JSON `null`, which the flag cannot send.** The spec says "To clear the preferred answer endpoint, the `preferredAnswerEndpointId` must be set to null", and "omit to leave unchanged". `--preferred-answer-endpoint-id` is a plain string option in the generated code, so `--preferred-answer-endpoint-id null` would send the four-character string `"null"`. Use `--json-body '{"preferredAnswerEndpointId": null}'`. Verified live 2026-10-13 (person): `--preferred-answer-endpoint-id null` made the server answer **502** (`The server, while acting as a gateway or proxy, received an invalid response from the upstream server`) after the CLI's three automatic retries, exit 1; `--json-body '{"preferredAnswerEndpointId": null}'` cleared the endpoint (read-back omits the field; `--verify` reports `sent None, now '<not present in read-back>'`, which is the expected shape, not a failure).
+- **Two admin objects now hold the same preferred endpoint — change it in one place.** `update-preferred-answer-endpoint` and `update-answer-settings` both write `preferredAnswerEndpointId` for the same person. The spec does not say they are separate stores, so assume they are one value and read back with `show-answer-settings` after a write through either. Prefer `*-answer-settings` whenever auto answer is part of the change. Verified live 2026-10-13: a write through `update-preferred-answer-endpoint` was visible in `show-answer-settings` (`preferredAnswerEndpointId` set), so they are one value. `list-preferred-answer-endpoint` prints only the `endpoints` array and drops `preferredAnswerEndpointId` (CLI bug) — read the current value with `show-answer-settings`.
+- **Auto answer may need a preferred endpoint to do anything.** The read-only `preferredAnswerEndpointRequired` flag means the entity "must have a preferred answer endpoint selected in order for a call to be auto-answered". When it reads `true`, check that `preferredAnswerEndpointId` is set before treating `autoAnswerEnabled: true` as working. Verified live 2026-10-13 (person): the server accepts `autoAnswerEnabled: true` with no preferred endpoint set and `preferredAnswerEndpointRequired: true` — it does not reject or warn, so the dependency is behavioural, not validated. Whether calls are actually auto-answered was not tested (no live call).
 
 ---
 
@@ -733,7 +746,7 @@ Two sets of settings: one for person-level, one for org-level.
 
 ### Person-Level MS Teams Settings
 
-Retrieves and updates `HIDE_WEBEX_APP` and `PRESENCE_SYNC` settings for a person.
+Retrieves `HIDE_WEBEX_APP` and `PRESENCE_SYNC` settings for a person; only `HIDE_WEBEX_APP` can be written at person level.
 
 - **Read scope**: `spark-admin:telephony_config_read` (full or read-only admin)
 - **Read HTTP**: `GET telephony/config/people/{person_id}/settings/msTeams`
@@ -742,6 +755,8 @@ Retrieves and updates `HIDE_WEBEX_APP` and `PRESENCE_SYNC` settings for a person
 - **Write body**: `{"settingName": "<name>", "value": true/false}`
 
 Known setting names: `HIDE_WEBEX_APP`. Set `value` to `null` to delete the setting.
+
+Verified live 2026-10-13 (admin token): the person GET returns both settings with a `level` (`GLOBAL`/`ORGANIZATION` = inherited, `PEOPLE` = overridden here). `wxcli user-settings update-ms-teams PERSON_ID --setting-name HIDE_WEBEX_APP --value` read back `level: PEOPLE, value: true`; `--setting-name PRESENCE_SYNC` at person level is rejected with 400 `{"errorCode":25024,"message":"Invalid field value: settingName"}`. Writing `--no-value` leaves a `PEOPLE`-level override (value false) behind; to return to the inherited setting send raw `PUT telephony/config/people/{id}/settings/msTeams` with `{"settingName":"HIDE_WEBEX_APP","value":null}` (204, read-back `level: GLOBAL`) — the CLI `--value/--no-value` flag cannot send `null`.
 
 ### Org-Level MS Teams Settings
 
@@ -892,6 +907,11 @@ wxcli user-settings list-mode-management <personId>
 # Assign features to a user for mode management (max 50)
 wxcli user-settings update-mode-management <personId> --json-body '{"featureIds": ["<aa-id>", "<cq-id>"]}'
 
+# Verified live 2026-10-13: on an org with no mode-enabled AA/CQ/HG both lists return [] and
+# update-mode-management --json-body '{"featureIds":[]}' succeeds; an unknown id returns 400 "[Error 4008] User not found: <id>"
+# (misleading wording — it is a bad feature id, not a missing user). The user-side `mode-management list` returned 4008
+# for the admin token (Known Issue #3, confirmed).
+
 # Additional mode-management commands (org-level mode operations)
 wxcli mode-management list
 wxcli mode-management show <featureId>
@@ -967,6 +987,8 @@ body = {
 }
 api.session.rest_put(url, json=body)
 ```
+
+Verified live 2026-10-13 (admin token, Professional user): `GET`/`PUT telephony/config/people/{personId}/features/personalAssistant` work for an admin — the PUT body above returned 204 and read back with `transferNumber` normalised to `4085551234`; a fresh user reads `{"enabled": false, "presence": "NONE", "transferEnabled": false, "alerting": "NONE", "alertMeFirstNumberOfRings": 6}`. The admin CLI commands are `wxcli user-settings show-personal-assistant` / `update-personal-assistant` (present after the 2026-10-13 CLI regeneration; read confirmed on an existing user) — they were not in `--help` when the raw calls above were first run, which is why the raw form is what was exercised for the write; `my-call-settings show-personal-assistant` is the user-OAuth twin. The classic `people/{id}/features/personalAssistant` path returns 404.
 
 ---
 
@@ -1087,6 +1109,7 @@ result = api.session.rest_get(url)
 ### Gotchas
 
 - **`selected` value `NONE` only appears in reads.** The read response's `selected` field may return `NONE` (no ECBN source configured), but `NONE` is not a valid value to send when updating -- always send one of `DIRECT_LINE`, `LOCATION_ECBN`, or `LOCATION_MEMBER_NUMBER`.
+- **Verified live 2026-10-13 (admin token):** `GET`/`PUT telephony/config/people/{personId}/emergencyCallbackNumber` and `GET .../dependencies` all work (read returned `selected`, `directLineInfo`, `locationECBNInfo`, `locationMemberInfo`, plus `elinEnabled`/`elinForWebexAppEnabled`; dependencies returned `{"isLocationEcbnDefault": false, "isSelfEcbnDefault": false, "dependentMemberCount": 0}`). `{"selected":"NONE"}` is rejected with 400 `25100 The value for selected field is invalid`; `LOCATION_MEMBER_NUMBER` with a member lacking a number returns 400 `[Error 27402] ... does not have a valid phone number`; `DIRECT_LINE` was accepted (204) for a user with no direct number. The exercised calls were raw HTTP (no CLI command was listed at that moment); after the 2026-10-13 regeneration `wxcli emergency-services show-emergency-callback-number-people PERSON_ID` / `update-emergency-callback-number-people` exist and the read returned the same shape.
 - **Read-only admin may have write access.** The write-scope documentation lists "read-only administrator" as valid for updating ECBN, which is unusual -- most write operations require full or user admin.
 - **Check dependencies before changing ECBN.** Use the `dependencies` endpoint before modifying a person's ECBN. If the person is the location's default ECBN or is used by other members (`dependentMemberCount > 0`), changing their number could break emergency callback for multiple users.
 
@@ -1107,7 +1130,8 @@ BASE = "https://webexapis.com/v1"
 # Read monitoring settings
 url = f"{BASE}/people/{person_id}/features/monitoring"
 result = api.session.rest_get(url)
-# Returns: {"enableCallParkNotification": true, "monitoredElements": [...]}
+# Returns (Verified live 2026-10-13): {"callParkNotificationEnabled": true, "monitoredElements": [...], "availableEntriesCount": 49}
+# — the READ key is callParkNotificationEnabled; the PUT key below is enableCallParkNotification
 #
 # Each monitoredElements entry is WRAPPED in exactly one of member /
 # callparkextension / speedDial — it is NOT a flat object. Verified live
@@ -1197,7 +1221,7 @@ body = {
     "allowAutoAnswer": True,
     "connectionType": "TWO_WAY",  # ONE_WAY or TWO_WAY
     "accessType": "ALLOW_MEMBERS",  # ALLOW_MEMBERS or block pattern
-    "members": [{"id": "<member-id>"}]  # use --json-body for full control
+    "members": ["<member-id>"]  # flat ID strings; [{"id": ...}] objects return 400 25024 (Verified live 2026-10-13)
 }
 api.session.rest_put(url, json=body)
 ```
@@ -1211,7 +1235,9 @@ api.session.rest_put(url, json=body)
 wxcli user-settings list-push-to-talk <personId>
 
 # Update push-to-talk settings (use --json-body for member list and complex config)
-wxcli user-settings update-push-to-talk <personId> --json-body '{"allowAutoAnswer": true, "connectionType": "TWO_WAY", "accessType": "ALLOW_MEMBERS", "members": [{"id": "<member-id>"}]}'
+wxcli user-settings update-push-to-talk <personId> --json-body '{"allowAutoAnswer": true, "connectionType": "TWO_WAY", "accessType": "ALLOW_MEMBERS", "members": ["<member-id>"]}'
+# accessType is ALLOW_MEMBERS or BLOCK_MEMBERS. Verified live 2026-10-13: the object form members:[{"id":...}] (shown here before)
+# is rejected with 400 25024 Invalid field value: members; list-push-to-talk prints only the members array.
 ```
 
 ---
@@ -1226,7 +1252,7 @@ The following endpoints were discovered via live API probing. They all live unde
 GET /v1/telephony/config/people/{personId}/features/hotDesking/guest
 ```
 
-Returns hot desking guest configuration for a person. Likely controls whether a person can use hot desking as a guest on shared devices.
+Returns hot desking guest configuration for a person. Verified live 2026-10-13: the body is `{"voicePortalHotDeskSignInEnabled": true}` — i.e. whether the person may sign in to a hot desk device through the voice portal. (`GET .../dectNetworks` on a user with none returned `{"dectNetworks": []}`.)
 
 ### Agent Caller ID
 

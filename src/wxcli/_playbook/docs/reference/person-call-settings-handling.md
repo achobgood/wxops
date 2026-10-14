@@ -38,14 +38,14 @@ Person-level call handling settings control how incoming calls are routed, filte
 
 ## Admin vs User-Only Access
 
-Not all person call handling endpoints support admin-level access. Four features are **user-only** — they exist only at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. An admin cannot read or write these settings for another user.
+Not all person call handling endpoints support admin-level access. Some features are **user-only** — they exist only at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. An admin cannot read or write these settings for another user. (Simultaneous Ring is NOT one of them — Verified live 2026-10-13: it has an admin path, see §4.)
 
 | Feature | Admin Access | Admin REST Path | User REST Path |
 |---------|-------------|-----------------|----------------|
 | Call Forwarding | **Yes** | `/people/{id}/features/callForwarding` | `/people/me/features/callForwarding` |
 | Call Waiting | **Yes** | `/people/{id}/features/callWaiting` | `/people/me/features/callWaiting` |
 | Do Not Disturb | **Yes** | `/people/{id}/features/doNotDisturb` | `/people/me/features/doNotDisturb` |
-| Simultaneous Ring | **No — user-only** | N/A | `/telephony/config/people/me/settings/simultaneousRing` |
+| Simultaneous Ring | **Yes** (Verified live 2026-10-13) | `/telephony/config/people/{id}/simultaneousRing` | `/telephony/config/people/me/settings/simultaneousRing` |
 | Sequential Ring | **No — user-only** | N/A | `/telephony/config/people/me/settings/sequentialRing` |
 | Single Number Reach | **Yes** | `/telephony/config/people/{id}/singleNumberReach` | `/telephony/config/people/me/singleNumberReach` |
 | Selective Accept | **Yes** | `/telephony/config/people/{id}/selectiveAccept` | `/telephony/config/people/me/selectiveAccept` |
@@ -312,7 +312,7 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/doNotDisturb", json={
 
 ## 4. Simultaneous Ring
 
-> **Admin access: Not available.** This endpoint only exists at `/telephony/config/people/me/settings/simultaneousRing` (user-level OAuth). No admin-level path exists — `/telephony/config/people/{personId}/simultaneousRing` returns 404.
+> **Admin access: Available.** Verified live 2026-10-13: `GET /telephony/config/people/{personId}/simultaneousRing` returns 200 with an admin token (`{"enabled":false,"doNotRingIfOnCallEnabled":true,"phoneNumbers":[],"criteriasEnabled":false,"criteria":[]}`), and the `PUT` and criteria CRUD work too. The user-level path `/telephony/config/people/me/settings/simultaneousRing` also exists. (Sequential Ring, §5, is different: it really is user-only.)
 
 Ring the user's office phone and up to 10 additional phone numbers at the same time when an incoming call arrives. Supports schedule-based criteria to control when simultaneous ring is active.
 
@@ -343,7 +343,19 @@ Uses `ringEnabled` as the enabled attribute. See [Shared Criteria Model](#shared
 
 ### CLI Examples
 
-No dedicated CLI commands for Simultaneous Ring. Use Raw HTTP or the SDK.
+Verified live 2026-10-13 (admin token, `user-settings` group):
+
+```bash
+# Read — NOTE: prints [] even though the server returned an object (CLI bug, see Gotchas); use Raw HTTP to read
+wxcli user-settings list-simultaneous-ring PERSON_ID -o json
+# Update — every number needs answerConfirmationRequiredEnabled or the call fails with error 25008
+wxcli user-settings update-simultaneous-ring PERSON_ID --json-body '{"enabled":true,"phoneNumbers":[{"phoneNumber":"+15551234567","answerConfirmationRequiredEnabled":false}]}'
+# Criteria (schedule must already exist; scheduleLevel LOCATION uses a location schedule by name)
+wxcli user-settings create-criteria-simultaneous-ring PERSON_ID --json-body '{"scheduleName":"openHours","scheduleType":"businessHours","scheduleLevel":"LOCATION","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":false,"unavailableCallersEnabled":false,"ringEnabled":true}'
+wxcli user-settings show-criteria-simultaneous-ring PERSON_ID CRITERIA_ID -o json
+wxcli user-settings update-criteria-simultaneous-ring PERSON_ID CRITERIA_ID --json-body '{"ringEnabled":false}'
+wxcli user-settings delete-criteria-simultaneous-ring PERSON_ID CRITERIA_ID --force
+```
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
@@ -355,7 +367,7 @@ BASE = "https://webexapis.com/v1"
 
 # GET — read simultaneous ring settings
 result = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing")
-# Returns: {"enabled": true, "doNotRingIfOnCallEnabled": false, "phoneNumbers": [...], "criterias": [...]}
+# Returns (verified live 2026-10-13): {"enabled": true, "doNotRingIfOnCallEnabled": false, "phoneNumbers": [...], "criteriasEnabled": false, "criteria": [...]}
 
 # PUT — update simultaneous ring settings (criteria list excluded)
 api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/simultaneousRing", json={
@@ -379,7 +391,11 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneou
 
 ### Gotchas
 
-- **User-only endpoint.** No admin-level path exists. The paths `telephony/config/people/{personId}/simultaneousRing` and `people/{personId}/features/simultaneousRing` both return 404 with an admin token. Only `/telephony/config/people/me/settings/simultaneousRing` works, and it requires user-level OAuth.
+- **Admin path exists.** (Verified live 2026-10-13; an earlier version of this doc said "user-only, 404" — that was wrong.) `/telephony/config/people/{personId}/simultaneousRing` returns 200 for an admin token. `people/{personId}/features/simultaneousRing` was not tested.
+- **`answerConfirmationRequiredEnabled` is mandatory on every number.** Omitting it returns 400 `{"errorCode":25008,"message":"Missing Mandatory field name:  numbers.answerConfirmationEnabled"}` — the message names the field wrong; the wire name (and read-back) is `answerConfirmationRequiredEnabled`.
+- **The server normalises numbers:** sent `+15551234567`, read back `+1-5551234567`. Criteria `phoneNumbers` read back as `5551234567`.
+- **Criteria `scheduleName` must reference an existing schedule**, otherwise 400 `[Error 4167] The time schedule cannot be found`. `scheduleLevel` read back as `LOCATION` for a location schedule.
+- **CLI bug:** `wxcli user-settings list-simultaneous-ring` prints `[]` although the server returned the object above (same class as the outbound-billing-plan bug fixed under ADR-13). Read with Raw HTTP until fixed.
 - The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
 
 ---
@@ -496,7 +512,8 @@ Lists service and standard PSTN numbers at a location that are available for SNR
 ### CLI Examples
 
 ```bash
-# Read Single Number Reach settings for a person
+# Read Single Number Reach settings for a person (CLI bug, Verified 2026-10-13: prints [] when the person has no
+# numbers, dropping enabled/alertAll...; read GET telephony/config/people/{id}/singleNumberReach for the object)
 wxcli single-number-reach list-single-number-reach Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
 
 # Update top-level SNR settings (alert all numbers for click-to-dial)
@@ -504,8 +521,11 @@ wxcli single-number-reach update Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
   --alert-all-numbers-for-click-to-dial-calls-enabled
 
 # Create an SNR number entry
+# Use a real, dialable E.164 number: +12223334444 (area code 222 does not exist) was ACCEPTED by create,
+# then every GET of the person's singleNumberReach failed with 400 {"errorCode":25105,"message":"The number
+# is not E.164 format:+12223334444"} until the entry was deleted (Verified live 2026-10-13)
 wxcli single-number-reach create Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
-  --phone-number "+12223334444" --enabled --name "Mobile" \
+  --phone-number "+14085551234" --enabled --name "Mobile" \
   --answer-confirmation-enabled
 
 # Update an SNR number entry
@@ -604,9 +624,11 @@ wxcli user-settings update-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
 wxcli user-settings update-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --no-enabled
 
 # Create a selective accept criteria
+# Verified live 2026-10-13: --calls-from is REQUIRED (without it: "Error: Missing required fields: callsFrom", exit 1).
+# --schedule-level takes PEOPLE or GROUP here; scheduleName must be an existing schedule (GROUP = location schedule)
 wxcli user-settings create-criteria-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
-  --accept-enabled --schedule-name "Business Hours" \
-  --anonymous-callers-enabled --no-unavailable-callers-enabled
+  --calls-from ANY_PHONE_NUMBER --accept-enabled --schedule-name "openHours" \
+  --schedule-type businessHours --schedule-level GROUP
 
 # Read a specific criteria
 wxcli user-settings show-criteria-selective-accept Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 CRITERIA_ID
@@ -702,8 +724,11 @@ wxcli user-settings update-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM
 wxcli user-settings update-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --no-enabled
 
 # Create a selective forward criteria (forward external calls to voicemail)
+# Verified live 2026-10-13: --calls-from is REQUIRED; the forward-to number must be assigned to the person's
+# location (else 400 {"errorCode":25362,"message":"The forward to phone number is not assigned to the location:+18889990000"});
+# the selective-forward master switch cannot be enabled until a criteria exists (400 [Error 5023])
 wxcli user-settings create-criteria-selective-forward Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
-  --forward-to-phone-number "+18889990000" --send-to-voicemail-enabled \
+  --calls-from ANY_PHONE_NUMBER --forward-to-phone-number "+12094571629" --send-to-voicemail-enabled \
   --forward-enabled
 
 # Read a specific criteria
@@ -791,8 +816,9 @@ wxcli user-settings update-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0
 wxcli user-settings update-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 --no-enabled
 
 # Create a selective reject criteria (reject anonymous callers)
+# Verified live 2026-10-13: --calls-from is REQUIRED; with SELECT_PHONE_NUMBERS the numbers go in --json-body "phoneNumbers"
 wxcli user-settings create-criteria-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 \
-  --reject-enabled --anonymous-callers-enabled --no-unavailable-callers-enabled
+  --calls-from ANY_PHONE_NUMBER --reject-enabled --anonymous-callers-enabled --no-unavailable-callers-enabled
 
 # Read a specific criteria
 wxcli user-settings show-criteria-selective-reject Y2lzY29zcGFyazovL3VzL1BFT1BMRS8xMjM0 CRITERIA_ID
@@ -921,7 +947,7 @@ All schedule/caller-based features (Simultaneous Ring, Sequential Ring, Selectiv
 | `id` | `str` (optional) | Unique criteria ID (excluded from create/update payloads) |
 | `schedule_name` | `str` (optional) | Name of the schedule. Omit both `schedule_name` and `schedule_type` for all-hours/all-days |
 | `schedule_type` | `ScheduleType` (optional) | `businessHours` or `holidays` |
-| `schedule_level` | `SelectiveScheduleLevel` (optional) | `GROUP` or `GLOBAL` |
+| `schedule_level` | `SelectiveScheduleLevel` (optional) | `PEOPLE`, `GROUP` (a location schedule), `LOCATION` also accepted; `GLOBAL` rejected live 2026-10-13 |
 | `calls_from` | `SelectiveFrom` (optional) | Which callers trigger this criteria |
 | `anonymous_callers_enabled` | `bool` (optional) | Allow private/anonymous numbers (only when `calls_from=SELECT_PHONE_NUMBERS`) |
 | `unavailable_callers_enabled` | `bool` (optional) | Allow unavailable numbers (only when `calls_from=SELECT_PHONE_NUMBERS`) |
@@ -934,8 +960,8 @@ All schedule/caller-based features (Simultaneous Ring, Sequential Ring, Selectiv
 |-------|---------|
 | `ANY_PHONE_NUMBER` | All incoming numbers |
 | `SELECT_PHONE_NUMBERS` | Only specific numbers (use with `phone_numbers`, `anonymous_callers_enabled`, `unavailable_callers_enabled`) |
-| `ANY_INTERNAL` | Any internal number |
-| `ANY_EXTERNAL` | Any external number |
+| `ANY_INTERNAL` | Any internal number (Selective Forward only — Verified live 2026-10-13) |
+| `ANY_EXTERNAL` | Any external number (Selective Forward only — Verified live 2026-10-13) |
 
 ### `SelectiveCrit` (Summary Model)
 
@@ -999,12 +1025,17 @@ Some feature/selector combinations are remapped to different URL bases. For pers
 
 ## Gotchas (Cross-Cutting)
 
-- **Four features are user-only (no admin access):** Simultaneous Ring, Sequential Ring, Priority Alert, and Call Notify only exist at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. There is no admin-level path — an admin cannot read or write these settings for another user. All other call handling features in this doc support admin-level access.
+- **Three features are user-only (no admin access):** Sequential Ring, Priority Alert, and Call Notify only exist at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. There is no admin-level path — an admin cannot read or write these settings for another user (Verified live 2026-10-13: admin `GET .../people/{id}/sequentialRing`, `.../priorityAlert`, `.../callNotify` all 404 "No static resource"). **Simultaneous Ring is not on this list** — its admin path returns 200 (see §4). Related: Anonymous Call Reject has an admin person path too, see `person-call-settings-media.md` §4.
 - **Selective features remapped URLs:** Selective Accept, Selective Forward, and Selective Reject all use `telephony/config/people/{person_id}/` instead of `people/{person_id}/features/`. This remapping matters for raw HTTP and CLI usage.
 - **Enabled attribute naming varies by feature:** Each criteria-based feature uses a different REST field name for its enabled flag (`ringEnabled`, `acceptEnabled`, `forwardEnabled`, `rejectEnabled`, `notificationEnabled`). CLI `--json-body` and raw HTTP payloads must use these REST field names.
 - **Criteria are managed separately:** For all criteria-based features (Sim Ring, Sequential Ring, Selective Accept/Forward/Reject, Priority Alert), the `criteria` list in the top-level settings response is read-only. Create, update, and delete criteria via their dedicated CRUD endpoints.
-- **No CLI for Sim Ring, Sequential Ring, or Priority Alert:** These features do not have wxcli command groups. Use Raw HTTP or the SDK.
-- **Selective Forward uses `numbers` not `phoneNumbers`:** Unlike all other criteria-based features that use `phoneNumbers` for their number list, Selective Forward criteria use `numbers`.
+- **No person-level CLI for Sequential Ring or Priority Alert:** use Raw HTTP or the SDK (and these are user-only anyway). Simultaneous Ring does have `user-settings` commands (§4).
+- **Selective Forward number list — Verified live 2026-10-13:** a criteria POST accepts the number list under either `numbers` or `phoneNumbers` (both returned 201 and both read back as `phoneNumbers`, e.g. `["4085551234"]`). Use `phoneNumbers` for every criteria-based feature; the earlier "Selective Forward uses `numbers` not `phoneNumbers`" rule is not required.
+- **`callsFrom` values differ by feature — Verified live 2026-10-13:** `ANY_INTERNAL` and `ANY_EXTERNAL` are accepted only by Selective Forward criteria; Selective Accept and Selective Reject return 400 `25024 Invalid field value: callsFrom` for them (only `ANY_PHONE_NUMBER` / `SELECT_PHONE_NUMBERS`).
+- **`scheduleLevel` — Verified live 2026-10-13:** `PEOPLE`, `GROUP` and `LOCATION` are accepted (a location schedule shows as `GROUP`/`(Group)` on read-back); `GLOBAL` is rejected with 400 `25024 Invalid field value: scheduleLevel`. Sending `scheduleName` without `scheduleType` is also rejected (`25024 Invalid field value: scheduleType`).
+- **Creating the first criteria switches the feature on — Verified live 2026-10-13:** after a Selective Accept criteria was created, `GET .../selectiveAccept` read `"enabled": true` although it was `false` before. Disable explicitly (`update-selective-accept --no-enabled`) if you only wanted to stage the criteria.
+- **`list-*` CLI commands on single-object settings drop fields — Verified live 2026-10-13:** `user-settings list-selective-accept|forward|reject` print only the `criteria` array (and `[]` when empty, hiding `"enabled"`), `list-simultaneous-ring` prints `[]` for a populated object. The server returns 200 with the full object — read with Raw HTTP when you need the master `enabled` flag.
+- **Call Forwarding PUT merges, it does not replace — Verified live 2026-10-13 (person):** sending only `{"callForwarding":{"noAnswer":{...}}}` left the earlier `always` block untouched, and `{"businessContinuity":{...}}` alone worked. Inside a block you send, omitted booleans can reset (an omitted `ringReminderEnabled` went back to `false`) while an omitted `destination` was kept. Virtual lines are stricter — see `virtual-lines.md`.
 - **Nested settings require `--json-body` in CLI:** Call forwarding and other nested payloads cannot be expressed with simple CLI flags. Use `--json-body '{"key": {...}}'` for these.
 - **`400` / error `4003` "Unauthorized request: `<BroadWorksRequestName>`" means the TARGET USER is not calling-active — not that your request was malformed.** Measured 2026-08-01: four different person-setting reads on one user (`show-do-not-disturb`, `show-call-waiting`, `show-call-forwarding`, `show-voicemail`) all returned this, each naming its own internal BroadWorks request (`UserDoNotDisturbGetRequestWC`, `UserCallWaitingGetRequest17Sp4`, …). The user was invite-pending with no extension. Confirm with `wxcli people show <personId> --calling-data true` — no `extension` or `locationId` means no person setting will read or write until they are licensed and activated. Note this is **not** the 404 / error `4008` shape documented for the 19 user-only settings (Known Issue #4); a licensed-but-user-only endpoint returns `4008`, an unlicensed target returns `4003`. `wxcli` now prints this distinction as a tip on the error.
 

@@ -114,7 +114,7 @@ BASE = "https://webexapis.com/v1"
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/paging",
     params={"locationId": loc_id, "name": "Warehouse", "max": 1000})
-items = result["paging"]  # response key: "paging"
+items = result["locationPaging"]  # response key: "locationPaging" (NOT "paging"; Verified live 2026-10-13)
 # Each item: {id, name, extension, phoneNumber, enabled, locationId, locationName, routingPrefix, esn, tollFreeNumber}
 ```
 
@@ -160,7 +160,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/paging/{pag
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/paging/availableNumbers",
     params={"max": 1000})
-items = result["availableNumbers"]
+items = result["phoneNumbers"]  # response key: "phoneNumbers" (NOT "availableNumbers"; Verified live 2026-10-13)
 ```
 
 ### CLI Examples
@@ -178,11 +178,16 @@ wxcli paging-group show <loc_id> <pg_id>
 # Create a paging group
 wxcli paging-group create <loc_id> --name "Warehouse Page" --extension "8100"
 
+# Create with originators and targets in the same call (plain ID strings, NOT {"id": ...} objects).
+# Verified live 2026-10-13: read back showed the originator, target and originatorCallerIdEnabled=true.
+wxcli paging-group create <loc_id> --json-body '{"name":"Warehouse Page","extension":"8100","originatorCallerIdEnabled":true,"originators":["<person_id>"],"targets":["<person_id>"]}'
+
 # Update a paging group
 wxcli paging-group update <loc_id> <pg_id> --name "Updated Page"
 
-# Delete a paging group
-wxcli paging-group delete <loc_id> <pg_id>
+# Delete a paging group (--force is required in scripts; without it the command prompts
+# "Delete <id>? [y/N]" and, with no terminal, prints "Aborted!" and deletes nothing)
+wxcli paging-group delete --force <loc_id> <pg_id>
 
 # List available phone numbers for paging group assignment
 wxcli paging-group list-available-numbers <loc_id>
@@ -253,6 +258,9 @@ Call Parks themselves do not have phone numbers or extensions directly. They are
 - **Call Park Extensions**: Dedicated extensions for parking. Added via `call_park_extensions` field (list of IDs on create/update).
 - Use the Get Available Agents endpoint (see Raw HTTP) to discover eligible agents at a location.
 - Use the Get Available Recall Hunt Groups endpoint (see Raw HTTP) to discover hunt groups eligible as recall destinations.
+- **Recall hunt group IDs come back in a different encoding.** Verified live 2026-10-13: after setting `recall.huntGroupId` to a hunt group's own `id` (decodes to `ciscospark://us/HUNT_GROUP/<uuid>`), `call-park show` returned a different `huntGroupId` (decodes to `ciscospark://us/HUNT_GROUP/<base64 of "<broadworks-user>@<domain>">`) -- the same form `list-available-recall-hunt-groups` returns. Compare by `recall.huntGroupName`, not by ID, when checking which call parks reference a hunt group.
+- **Deleting a hunt group that a call park uses does not fail and does not leave a dangling reference.** Verified live 2026-10-13: `hunt-group delete` returned `deleted`, and the call park's `recall` read back as `{"option": "ALERT_PARKING_USER_ONLY"}` with no hunt group (the option had been `ALERT_PARKING_USER_FIRST_THEN_HUNT_GROUP`).
+- **`update` without `recall` can be refused while recall uses a hunt group.** A PUT carrying only `parkOnAgentsEnabled` against a park whose recall was `ALERT_PARKING_USER_FIRST_THEN_HUNT_GROUP` returned `400 9490 "Alternate Recall User is required when Recall To is set to Alternate User First then Parking User or Alternate User Only."` -- resend `recall` (with `huntGroupId`) in the body.
 
 ### Raw HTTP
 
@@ -287,8 +295,8 @@ body = {
     "name": "Lobby Park",
     "recall": {"option": "ALERT_PARKING_USER_ONLY"},  # required
     "parkOnAgentsEnabled": True,
-    "agents": [{"id": person_id}],
-    "callParkExtensions": [{"id": cpe_id}]
+    "agents": [person_id],               # plain ID strings -- [{"id": person_id}] returns 400 25024 "Invalid field value: agents"
+    "callParkExtensions": [cpe_id]       # plain ID strings (verified live 2026-10-13 via the CLI --json-body; the object form was not tried)
 }
 result = api.session.rest_post(f"{BASE}/telephony/config/locations/{loc_id}/callParks", json=body)
 park_id = result["id"]
@@ -313,7 +321,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/callParks/{
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callParks/availableUsers",
     params={"name": "John", "max": 1000})
-items = result["availableUsers"]  # response key: "availableUsers"
+items = result["agents"]  # response key: "agents" (NOT "availableUsers"; Verified live 2026-10-13)
 ```
 
 **Get Available Recall Hunt Groups:**
@@ -321,7 +329,7 @@ items = result["availableUsers"]  # response key: "availableUsers"
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callParks/availableRecallHuntGroups",
     params={"max": 1000})
-items = result["availableRecallHuntGroups"]
+items = result["huntGroups"]  # response key: "huntGroups" (NOT "availableRecallHuntGroups"; Verified live 2026-10-13)
 ```
 
 **Get Location Call Park Settings:**
@@ -335,7 +343,8 @@ result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callP
 
 ```python
 api.session.rest_put(f"{BASE}/telephony/config/locations/{loc_id}/callParks/settings",
-    json={"callParkSettings": {"recallTime": 60, "huntWaitTime": 60}})
+    json={"callParkSettings": {"ringPattern": "NORMAL", "recallTime": 60, "huntWaitTime": 60}})
+# ringPattern is required alongside the times (omitting it -> 400 25024 "Invalid field value: ringPattern").
 ```
 
 ### CLI Examples
@@ -347,14 +356,16 @@ wxcli call-park list <loc_id>
 # Get details for a call park
 wxcli call-park show <loc_id> <park_id>
 
-# Create a call park
-wxcli call-park create <loc_id> --name "Lobby Park" --json-body '{"recall": {"option": "ALERT_PARKING_USER_ONLY"}}'
+# Create a call park. --json-body REPLACES the other flags, so `name` must be inside the body.
+# Verified live 2026-10-13: `create <loc_id> --name "Lobby Park"` alone, `--name ... --json-body '{"recall":...}'`
+# and `--json-body '{"name":...}'` (no recall) ALL fail 400 25008 "message=Missing required field(s)."
+wxcli call-park create <loc_id> --json-body '{"name": "Lobby Park", "recall": {"option": "ALERT_PARKING_USER_ONLY"}}'
 
-# Update a call park
+# Update a call park (the ID changes if you rename it -- the response carries the new one)
 wxcli call-park update <loc_id> <park_id> --name "New Park Name"
 
 # Delete a call park
-wxcli call-park delete <loc_id> <park_id>
+wxcli call-park delete --force <loc_id> <park_id>
 
 # List available agents for call park
 wxcli call-park list-available-users <loc_id>
@@ -365,8 +376,10 @@ wxcli call-park list-available-recall-hunt-groups <loc_id>
 # Get location-level call park settings
 wxcli call-park show-settings <loc_id>
 
-# Update location-level call park settings
-wxcli call-park update-settings <loc_id> --json-body '{"callParkSettings": {"recallTime": 60}}'
+# Update location-level call park settings. callParkSettings is all-or-nothing: send ringPattern,
+# recallTime AND huntWaitTime. `{"callParkSettings": {"recallTime": 60}}` alone fails
+# 400 25024 "message=Invalid field value: ringPattern". Verified live 2026-10-13 (set 60, then restored 45).
+wxcli call-park update-settings <loc_id> --json-body '{"callParkSettings": {"ringPattern": "NORMAL", "recallTime": 60, "huntWaitTime": 45}}'
 ```
 
 ---
@@ -399,7 +412,7 @@ This is a lightweight model -- just a name and extension. The `CallParkExtension
 
 ### Member Management
 
-Call Park Extensions do not have members. They are simple extension holders assigned to Call Park groups (see the `call_park_extensions` field on `CallPark`).
+Call Park Extensions do not have members. They are simple extension holders assigned to Call Park groups (see the `call_park_extensions` field on `CallPark`). Verified live 2026-10-13: deleting a Call Park Extension that is still assigned to a call park succeeds (`deleted`) and the park's `callParkExtensions` then reads back empty -- there is no 409 guarding it.
 
 ### Raw HTTP
 
@@ -510,7 +523,9 @@ Call Pickup groups do not have their own phone numbers or extensions. They are g
 
 - **Agents**: People, workspaces, and virtual lines. Set via the `agents` field (list of IDs on create/update).
 - Use the Get Available Agents endpoint (see Raw HTTP) to discover eligible agents at a location that are not yet assigned to another pickup group. The API excludes already-assigned agents from the results.
-- A user can only belong to **one** call pickup group at a time. Attempting to add an already-assigned user returns error 4471: "User ... is already assigned to pickup group ...".
+- A user can only belong to **one** call pickup group at a time. Attempting to add an already-assigned user returns error 4471: "User ... is already assigned to pickup group ...". Verified live 2026-10-13 on `call-pickup update`: `[Error 4471] User ... is already assigned to pickup group zz-spot-2-pickup2.`
+- **An update that omits `agents` empties the group.** Verified live 2026-10-13: a pickup group holding one agent was sent `{"notificationType":"AUDIO_ONLY"}` and read back `agents: []` while `notificationType` changed. Always resend the full `agents` list (plain ID strings) with every `call-pickup update --json-body`. (Hunt group, call queue and paging group name-only updates, tested the same day, kept their agents/originators/targets.)
+- `notificationType` accepts `NONE`, `AUDIO_ONLY`, `VISUAL_ONLY`, `AUDIO_AND_VISUAL` (all four verified live 2026-10-13); other values, e.g. `BOTH`, fail `400 25024 "Invalid field value: notificationType"`.
 
 ### Raw HTTP
 
@@ -571,7 +586,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/callPickups
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/callPickups/availableUsers",
     params={"name": "Jane", "max": 1000})
-items = result["availableUsers"]  # response key: "availableUsers"
+items = result["agents"]  # response key: "agents" (NOT "availableUsers"; Verified live 2026-10-13)
 ```
 
 ### CLI Examples
@@ -590,7 +605,7 @@ wxcli call-pickup create <loc_id> --name "Sales Pickup"
 wxcli call-pickup update <loc_id> <pickup_id> --name "New Name"
 
 # Delete a call pickup group
-wxcli call-pickup delete <loc_id> <pickup_id>
+wxcli call-pickup delete --force <loc_id> <pickup_id>
 
 # List available agents for call pickup
 wxcli call-pickup list-available-users <loc_id>
@@ -763,16 +778,19 @@ api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGr
 **Get Available Phone Numbers:**
 
 ```python
-result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/availablePhoneNumbers",
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/availableNumbers",
     params={"max": 1000})
 items = result["phoneNumbers"]
+# The path ends in availableNumbers. An earlier version of this doc used availablePhoneNumbers, which
+# returns 404 {"errorCode":4008,"message":"[Error 4008] User not found: availablePhoneNumbers"}
+# (Verified live 2026-10-13; the CLI command list-available-numbers-voicemail-groups calls .../availableNumbers).
 ```
 
 **Get Fax Message Available Phone Numbers:**
 
 ```python
-result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/faxMessage/availablePhoneNumbers",
-    params={"max": 1000})
+result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/voicemailGroups/faxMessage/availableNumbers",
+    params={"max": 1000})   # availableNumbers, not availablePhoneNumbers (404). Verified live 2026-10-13.
 items = result["phoneNumbers"]
 ```
 
@@ -787,16 +805,19 @@ wxcli location-voicemail list --location-id <loc_id>
 # Get details for a voicemail group
 wxcli location-voicemail show-voicemail-groups <loc_id> <vg_id>
 
-# Create a voicemail group
-wxcli location-voicemail create <loc_id> --name "Support VM" --extension "8200" \
-  --json-body '{"passcode": "740384", "languageCode": "en_us", "messageStorage": {"storageType": "INTERNAL"}, "notifications": {"enabled": false}, "faxMessage": {"enabled": false}, "transferToNumber": {"enabled": false}, "emailCopyOfMessage": {"enabled": false}}'
+# Create a voicemail group. --json-body REPLACES the other flags, so name and extension go INSIDE the body
+# (verified live 2026-10-13: `--name ... --extension ... --json-body '{"passcode":...}'` fails 400 25008
+# "Missing Mandatory field name:  name"; flags only fails "...messageStorageType"; a body without
+# `notifications` fails "...notifications").
+wxcli location-voicemail create <loc_id> \
+  --json-body '{"name": "Support VM", "extension": "8200", "passcode": "740384", "languageCode": "en_us", "messageStorage": {"storageType": "INTERNAL"}, "notifications": {"enabled": false}, "faxMessage": {"enabled": false}, "transferToNumber": {"enabled": false}, "emailCopyOfMessage": {"enabled": false}}'
 
 # Update a voicemail group
 wxcli location-voicemail update-voicemail-groups <loc_id> <vg_id> \
   --name "New Name"
 
 # Delete a voicemail group
-wxcli location-voicemail delete <loc_id> <vg_id>
+wxcli location-voicemail delete --force <loc_id> <vg_id>
 
 # List available phone numbers for voicemail group assignment
 wxcli location-voicemail list-available-numbers-voicemail-groups <loc_id>
@@ -1105,11 +1126,18 @@ result = api.session.rest_get(f"{BASE}/telephony/config/operatingModes/{mode_id}
 body = {
     "name": "Business Hours",
     "type": "SAME_HOURS_DAILY",       # SAME_HOURS_DAILY | DIFFERENT_HOURS_DAILY | HOLIDAY
-    "level": "ORGANIZATION",           # required: must be ORGANIZATION
-    "locationId": loc_id               # optional: scope to a location
+    "level": "ORGANIZATION",           # ORGANIZATION, or LOCATION together with locationId (both Verified live 2026-10-13)
+    # REQUIRED for SAME_HOURS_DAILY -- without it: 400 25024 "Invalid field value: sameHoursDaily: at least one
+    # enabled with allDayEnabled or Start & End time must be configured." (DIFFERENT_HOURS_DAILY: the
+    # differentHoursDaily block is the analogue -- not tested). HOLIDAY needs "holidays": [...] instead.
+    "sameHoursDaily": {"mondayToFriday": {"enabled": True, "allDayEnabled": True},
+                       "saturdayToSunday": {"enabled": False}}
 }
 result = api.session.rest_post(f"{BASE}/telephony/config/operatingModes/", json=body)
 mode_id = result["id"]
+# HOLIDAY type: create fails 400 25008 "Missing required field: holidays" unless the body carries at least
+# one holiday, e.g. "holidays": [{"name": "Xmas", "allDayEnabled": True, "startDate": "2026-12-25", "endDate": "2026-12-25"}]
+# (Verified live 2026-10-13); more holidays are then added with the Create Holiday call below.
 ```
 
 **Update Operating Mode:**
@@ -1157,7 +1185,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/operatingModes/{mode_id}/holid
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/operatingModes/availableOperatingModes",
     params={"max": 1000})
-items = result["availableOperatingModes"]
+items = result["operatingModes"]  # response key: "operatingModes" (NOT "availableOperatingModes"; Verified live 2026-10-13)
 ```
 
 **Get Operating Mode Call Forward Available Numbers:**
@@ -1166,7 +1194,7 @@ items = result["availableOperatingModes"]
 result = api.session.rest_get(
     f"{BASE}/telephony/config/locations/{loc_id}/operatingModes/callForwarding/availableNumbers",
     params={"max": 1000})
-items = result["availableNumbers"]
+items = result["phoneNumbers"]  # response key: "phoneNumbers" (NOT "availableNumbers"; Verified live 2026-10-13)
 ```
 
 ### CLI Examples
@@ -1181,8 +1209,13 @@ wxcli operating-modes list --limit-to-location-id <loc_id>
 # Get details for an operating mode
 wxcli operating-modes show <mode_id>
 
-# Create an operating mode
-wxcli operating-modes create --name "Business Hours" --type "SAME_HOURS_DAILY" --level "ORGANIZATION"
+# Create an operating mode. The flags-only form
+#   wxcli operating-modes create --name "Business Hours" --type SAME_HOURS_DAILY --level ORGANIZATION
+# FAILS 400 25024 "sameHoursDaily: at least one enabled with allDayEnabled or Start & End time must be configured"
+# (and --type HOLIDAY fails 400 25008 "Missing required field: holidays"). Pass the hours/holidays in --json-body
+# (Verified live 2026-10-13):
+wxcli operating-modes create --json-body '{"name": "Business Hours", "type": "SAME_HOURS_DAILY", "level": "ORGANIZATION", "sameHoursDaily": {"mondayToFriday": {"enabled": true, "allDayEnabled": true}, "saturdayToSunday": {"enabled": false}}}'
+wxcli operating-modes create --json-body '{"name": "Closures", "type": "HOLIDAY", "level": "ORGANIZATION", "holidays": [{"name": "Christmas 2026", "allDayEnabled": true, "startDate": "2026-12-25", "endDate": "2026-12-25"}]}'
 
 # Update an operating mode
 wxcli operating-modes update <mode_id> --name "Updated Hours"
@@ -1197,9 +1230,10 @@ wxcli operating-modes create-holidays <mode_id> \
 # Get holiday details
 wxcli operating-modes show-holidays <mode_id> <holiday_id>
 
-# Update a holiday
+# Update a holiday. --all-day-enabled is required for a same-day holiday: without it the call fails
+# 400 4195 "The start date and time must be before the end date and time." (Verified live 2026-10-13)
 wxcli operating-modes update-holidays <mode_id> <holiday_id> \
-  --name "New Year" --start-date "2027-01-01" --end-date "2027-01-01"
+  --name "New Year" --all-day-enabled --start-date "2027-01-01" --end-date "2027-01-01"
 
 # Delete a holiday
 wxcli operating-modes delete-holidays <mode_id> <holiday_id>
@@ -1213,9 +1247,9 @@ wxcli operating-modes list-available-numbers <loc_id>
 
 ### Gotchas
 
-- OM create requires `level=ORGANIZATION` -- other values fail.
-- `type` must be one of: `SAME_HOURS_DAILY`, `DIFFERENT_HOURS_DAILY`, `HOLIDAY`.
-- `sameHoursDaily` needs actual `DaySchedule` hours configured to take effect.
+- `level=ORGANIZATION` works; **`level=LOCATION` with `locationId` also works** (Verified live 2026-10-13: both created). An earlier version of this doc said other values fail.
+- `type` must be one of: `SAME_HOURS_DAILY`, `DIFFERENT_HOURS_DAILY`, `HOLIDAY` (the CLI `--help` also lists `NONE`; not tried).
+- `sameHoursDaily` must carry at least one enabled day-range (`allDayEnabled` or start+end time) **at create time** -- omitting it is a 400 25024, not just an inert mode. A `HOLIDAY` mode must be created with at least one entry in `holidays`.
 - Holiday create uses `startDate`/`endDate` fields (not `date`), plus `allDayEnabled`.
 - Holidays can only be added to `HOLIDAY` type operating modes.
 
@@ -1303,8 +1337,16 @@ wxcli call-recording list-call-recording
 wxcli call-recording show-call-recording <job_id>
 ```
 
-> **Unverified:** the compliance-announcement and vendor bodies above are from the spec, not a
-> live call. Compliance announcements have no single `enabled` switch: inbound and outbound
+> **Verified live 2026-10-13:** the org-level compliance-announcement body
+> (`{"inboundPSTNCallsEnabled": true, "outboundPSTNCallsEnabled": true}`) and the location-level body
+> (`{"useOrgSettingsEnabled": false, "inboundPSTNCallsEnabled": true, "outboundPSTNCallsEnabled": true}`) each
+> applied (`--verify` matched every sent field and the read-back changed), and were then restored to the
+> original values (`false`/`false`, location `useOrgSettingsEnabled: true`) with identical read-back.
+> `list-vendors <loc_id>`, `show-vendors`, `list` and `list-call-recording` read fine.
+>
+> **Unverified:** the vendor bodies above (`update-vendor-call-recording`, `update-terms-of-service`) are
+> from the spec, not a live call -- changing the recording vendor is an org-wide change and was not tried.
+> Compliance announcements have no single `enabled` switch: inbound and outbound
 > PSTN announcements are separate toggles, and a location follows the org settings until
 > `useOrgSettingsEnabled` is `false`. The location vendor body names the vendor in `id`;
 > `orgDefaultEnabled: true` keeps the org's default vendor instead.
@@ -1380,17 +1422,22 @@ api.session.rest_delete(f"{BASE}/telephony/config/locations/{loc_id}/announcemen
 
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/announcements/usage")
-items = result["usage"]
+# Flat object, no "usage" key (Verified live 2026-10-13):
+# {"totalFileSizeUsedKB": 0, "maxAudioFileSizeAllowedKB": 9600, "maxVideoFileSizeAllowedKB": 12000, "totalFileSizeLimitMB": 5000}
 ```
 
 **Get Repository Usage** (location-level):
 
 ```python
 result = api.session.rest_get(f"{BASE}/telephony/config/locations/{loc_id}/announcements/usage")
-items = result["usage"]
+# Same flat shape as the org call (Verified live 2026-10-13); totalFileSizeLimitMB is 1000 at location level.
 ```
 
 **Note**: Announcement upload (create) is exposed by the CLI -- use `wxcli announcements create` (org level) or `wxcli announcements create-announcements LOCATION_ID` (location level). Both take `--name`, `--file-uri`, `--file-name`, and `--is-text-to-speech`/`--no-is-text-to-speech`.
+
+**`--file-uri` is a Calling Media File Service reference, NOT an arbitrary https URL.** Verified live 2026-10-13: `--file-uri https://example.com/welcome.wav` and `--file-uri https://www.kozco.com/tech/piano2.wav` (a real, reachable WAV, HTTP 200) both fail `400 27917 "Error retrieving announcement file from Calling Media File Service ... No static resource api/v1/www.kozco.com/tech/piano2.wav"` -- the scheme is dropped and the rest is looked up as a media-service path. The URI that works is the `cmf://customers/<orgUuid>/media/tmp/<uuid>` value returned as `fileUri` by `wxcli announcements tts-status TTS_ID` (generate with `tts-generate`; voice IDs and `--language-code` come from `tts-voices`, and the code is lower-case, e.g. `en_us` -- `en_US` fails `400 1014 "requested language is not supported for this customer"`). That `cmf://` URI was accepted by both `announcements create` (org) and `announcements create-announcements LOCATION_ID` (location), and re-used for an `update`.
+
+**Update needs all three fields.** `announcements update` / `update-announcements` return `400 25008 "Missing Mandatory field name:  fileName"` for a name-only body and `"... fileUri"` for name+fileName, even though `--help` marks all three optional: send `name`, `fileName` and `fileUri` together. Omitting `--is-text-to-speech` on update stores the announcement as non-TTS (the TTS text/voice metadata is dropped). Verified live 2026-10-13.
 
 #### Playlists
 
@@ -1412,8 +1459,11 @@ result = api.session.rest_get(f"{BASE}/telephony/config/announcements/playlists/
 
 ```python
 result = api.session.rest_post(f"{BASE}/telephony/config/announcements/playlists",
-    json={"name": "Hold Music"})
+    json={"name": "Hold Music", "announcementIds": [announcement_id]})
 playlist_id = result["id"]
+# At least one announcement is REQUIRED: {"name": "Hold Music"} alone -> 400 25008 "Missing Mandatory field
+# name:  announcements". Each file must be >= 5 s (shorter -> 400 6536 "Duration is too short for use with
+# Music On Hold"). Verified live 2026-10-13 with TTS-generated announcements.
 ```
 
 **Update Playlist:**
@@ -1458,11 +1508,12 @@ wxcli announcements show-announcements-config <ann_id>
 # Get location-level announcement details
 wxcli announcements show-announcements-locations <loc_id> <ann_id>
 
-# Update an org-level announcement
-wxcli announcements update <ann_id> --json-body '{"name": "Updated Greeting"}'
+# Update an org-level announcement. name + fileName + fileUri are ALL required (a name-only body fails
+# 400 25008 "Missing Mandatory field name:  fileName"; Verified live 2026-10-13)
+wxcli announcements update <ann_id> --json-body '{"name": "Updated Greeting", "fileName": "greeting.wav", "fileUri": "cmf://customers/<org>/media/tmp/<id>"}'
 
-# Update a location-level announcement
-wxcli announcements update-announcements <loc_id> <ann_id> --json-body '{"name": "Updated"}'
+# Update a location-level announcement (same three required fields)
+wxcli announcements update-announcements <loc_id> <ann_id> --json-body '{"name": "Updated", "fileName": "greeting.wav", "fileUri": "cmf://customers/<org>/media/tmp/<id>"}'
 
 # Delete an org-level announcement
 wxcli announcements delete <ann_id>
@@ -1486,8 +1537,9 @@ wxcli announcement-playlists list
 # Get playlist details
 wxcli announcement-playlists show <playlist_id>
 
-# Create a playlist
-wxcli announcement-playlists create --name "Hold Music"
+# Create a playlist. `create --name "Hold Music"` (flag only) FAILS 400 25008 "Missing Mandatory field name:
+# announcements" -- announcementIds go in --json-body (Verified live 2026-10-13):
+wxcli announcement-playlists create --json-body '{"name": "Hold Music", "announcementIds": ["<ann_id>"]}'
 
 # Update a playlist
 wxcli announcement-playlists update <playlist_id> --name "Updated Playlist"
@@ -1570,13 +1622,16 @@ api.session.rest_delete(
 result = api.session.rest_get(
     f"{BASE}/telephony/config/locations/{loc_id}/singleNumberReach/availableNumbers",
     params={"max": 1000})
-items = result["availableNumbers"]
+items = result["phoneNumbers"]  # response key: "phoneNumbers" (NOT "availableNumbers"; Verified live 2026-10-13)
 ```
 
 ### CLI Examples
 
 ```bash
-# Get single number reach settings for a person
+# Get single number reach settings for a person.
+# CLI limitation (verified live 2026-10-13): this prints ONLY the `numbers` array. The raw GET returns
+# {"enabled": true, "alertAllNumbersForClickToDialCallsEnabled": false, "numbers": [...]}, but the CLI drops
+# `enabled` and `alertAllNumbersForClickToDialCallsEnabled`, so a person with no numbers prints `[]`.
 wxcli single-number-reach list-single-number-reach <person_id>
 
 # Create a single number reach number for a person
@@ -1642,7 +1697,7 @@ body = {
     "firstName": "Lobby",
     "lastName": "Directory",
     "extension": "9000",
-    "phoneNumber": "+14155551000",   # optional
+    "phoneNumber": "+14155551000",   # REQUIRED -- omitted: 400 25008 "Missing fields: externalNumber" (Verified live 2026-10-13)
     "locationId": loc_id             # optional
 }
 result = api.session.rest_post(f"{BASE}/telephony/config/virtualExtensions", json=body)
@@ -1704,8 +1759,10 @@ result = api.session.rest_get(f"{BASE}/telephony/config/virtualExtensionRanges/{
 
 ```python
 result = api.session.rest_post(f"{BASE}/telephony/config/virtualExtensionRanges",
-    json={"name": "Sales Range", "prefix": "90", "locationId": loc_id})
+    json={"name": "Sales Range", "prefix": "+1415555", "locationId": loc_id})
 range_id = result["id"]
+# `prefix` must be E.164 (leading "+"): "90" / "91" / "79" -> 400 27860 "Virtual On-Net Extension Range Prefix
+# is not E.164: 90." `+1415555` created and read back unchanged. Verified live 2026-10-13. A name-only update works.
 ```
 
 **Update Virtual Extension Range:**
@@ -1740,8 +1797,10 @@ wxcli virtual-extensions list --location-id <loc_id>
 # Get details for a virtual extension
 wxcli virtual-extensions show <ext_id>
 
-# Create a virtual extension
-wxcli virtual-extensions create --display-name "Lobby Directory" --extension "9000" --location-id <loc_id>
+# Create a virtual extension. --phone-number is REQUIRED: without it the CLI stops with
+# "Missing required fields: phoneNumber" and the raw API returns 400 25008 "Missing fields: externalNumber"
+# (Verified live 2026-10-13; created with +14155551000, then deleted).
+wxcli virtual-extensions create --display-name "Lobby Directory" --phone-number "+14155551000" --extension "9000" --location-id <loc_id>
 
 # Update a virtual extension
 wxcli virtual-extensions update <ext_id> --display-name "New Name"
@@ -1768,12 +1827,13 @@ wxcli virtual-extensions list-virtual-extension-ranges --location-id <loc_id>
 # Get details for a virtual extension range
 wxcli virtual-extensions show-virtual-extension-ranges <range_id>
 
-# Create a virtual extension range
-wxcli virtual-extensions create-virtual-extension-ranges --name "Sales Range" --prefix "90" --location-id <loc_id>
+# Create a virtual extension range (prefix must be E.164 -- "90" fails 400 27860; Verified live 2026-10-13)
+wxcli virtual-extensions create-virtual-extension-ranges --name "Sales Range" --prefix "+1415555" --location-id <loc_id>
 
-# Update a virtual extension range
+# Update a virtual extension range (prefix must be E.164 here too: "91" -> 400 27860; the E.164 body below
+# with "action": "REPLACE" updated the range and read back prefix +1415556. Verified live 2026-10-13)
 wxcli virtual-extensions update-virtual-extension-ranges <range_id> \
-  --json-body '{"name": "Updated Range", "prefix": "91", "action": "REPLACE"}'
+  --json-body '{"name": "Updated Range", "prefix": "+1415556", "action": "REPLACE"}'
 
 # Delete a virtual extension range
 wxcli virtual-extensions delete-virtual-extension-ranges <range_id>
@@ -1867,17 +1927,19 @@ Customer Assist ─────── Call Queues (screen pop, recording, wrap-u
 
 ## Gotchas (Cross-Cutting)
 
-- **ID instability**: Call Park and Call Pickup IDs change when the entity name is modified. Always re-fetch the ID after a name update.
-- **Agent format differs by feature type** : Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets` and `originators` as plain string arrays. Using `[{"id": ...}]` for pickup or paging returns 400 "Invalid field value: agents/targets". Reads always return full agent objects regardless.
-- **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but **Call Parks and Call Pickups require `locationId`** for list operations. `wxcli call-park list` without a location argument returns empty. Must enumerate per-location during cleanup.
+- **ID instability**: Call Park and Call Pickup IDs change when the entity name is modified. Always re-fetch the ID after a name update. Verified live 2026-10-13: `call-park update --name` and `call-pickup update --name` each returned a new `id` (the update response carries it), and `--verify` on a renamed call park then prints `[Error 4395] The Call Park group does not exist: <old name>` because it re-reads the old ID.
+- **Agent format differs by feature type** : Hunt Groups and Call Queues take `agents` as `[{"id": "person_id"}]` (array of objects). Call Pickups take `agents` as `["person_id"]` (plain string array). Paging Groups take `targets` and `originators` as plain string arrays, and so do Call Parks (`agents`, `callParkExtensions`). Using `[{"id": ...}]` for pickup, paging or call park returns 400 "Invalid field value: agents/targets" (error 25024; each of the three re-verified live 2026-10-13). Reads always return full agent objects regardless.
+- **Location-scoped features listed org-wide**: Paging Groups and Voicemail Groups can be listed org-wide (no `locationId` required), but **Call Parks and Call Pickups require `locationId`** for list operations. `wxcli call-park list` / `call-pickup list` without a location argument exit 1 with `Error: Missing argument 'location_id'.` (they do not return an empty list; verified live 2026-10-13). Must enumerate per-location during cleanup.
 - **Nested settings require `--json-body`**: Features with complex nested body fields (voicemail group create, call park recall, screen pop, wrap-up settings) need `--json-body` in the CLI because the generator skips deeply nested object/array fields.
-- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The create body must use camelCase keys; use `--json-body` via the CLI.
+- **Voicemail Group create is strict**: Requires 7+ fields (name, extension, passcode, languageCode, messageStorage, notifications, faxMessage, transferToNumber, emailCopyOfMessage). The create body must use camelCase keys; use `--json-body` via the CLI, and put **all** fields in it (name and extension included) because `--json-body` overrides the flags. The CLI does not fill in `messageStorage`/`notifications`/`faxMessage`/`transferToNumber`/`emailCopyOfMessage` for you: flags-only create fails `400 25008 "...Missing Mandatory field name:  messageStorageType"`, and a body without `notifications` fails `"...Missing Mandatory field name:  notifications"`. `passcode` as a string (`"740384"`) is accepted. Verified live 2026-10-13.
 - **Customer Assist requires licensing**: Screen pop, queue recording, and wrap-up reasons require Customer Assist licensing. Call queues must exist before configuring these features. Error 28018 ("CX Essentials is not enabled for this Call center") means the target queue is not a Customer Assist queue.
-- **CX queue creation requires `callPolicies`**: Creating a Customer Assist queue without `callPolicies` in the request body returns 400. Use `--json-body` with at minimum `{"callPolicies":{"policy":"SIMULTANEOUS"}}`.
+- **CX queue creation requires `callPolicies`**: Creating a Customer Assist queue without `callPolicies` in the request body returns 400. Use `--json-body` with at minimum `{"callPolicies":{"policy":"SIMULTANEOUS"}}`. (Verified live 2026-10-13: `call-queue create LOC --name X --has-cx-essentials true --json-body '{"name":"X","extension":"NNNN","callPolicies":{"policy":"SIMULTANEOUS"}}'` created a queue that `call-queue list --has-cx-essentials true` showed with `hasCxEssentials: true` and the default list did not; the same `callPolicies` requirement applies to ordinary queues, so it is not CX-specific.)
 - **CX queues hidden from default list**: `wxcli call-queue list` does not show Customer Assist queues. Pass `--has-cx-essentials true` to see them.
-- **Supervisor delete returns 204 but persists**: `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor.
+- **Supervisor delete returns 204 but persists**: `delete-supervisors-config-1 --has-cx-essentials true` gets 204 from the API but the supervisor remains. Workaround: use `update-supervisors` with `action: DELETE` on each agent — removing the last agent auto-removes the supervisor. Live check 2026-10-13 on a **non-Customer-Assist** supervisor (this org has no Customer Assist licence, so the CX case below could not be run): `delete-supervisors-config-1 --force SUPERVISOR_ID` returned `deleted` **and the supervisor really disappeared** from `list-supervisors`, and `update-supervisors` with `{"agents":[{"id":...,"action":"DELETE"}]}` on the last agent also removed the supervisor. So the "204 but persists" behaviour is, at most, specific to Customer Assist supervisors.
+  > **Unverified:** the Customer Assist (`--has-cx-essentials true`) supervisor delete behaviour above was not re-run -- no Customer Assist licensed users exist in the sandbox (`list-available-supervisors --has-cx-essentials true` returned `[]`).
 - **Call Park requires recall**: Creating a Call Park without a `recall` option (e.g., `ALERT_PARKING_USER_ONLY`) will be rejected by the API.
-- **Announcement upload takes a file URI, not a local file**: `wxcli announcements create` (org) and `wxcli announcements create-announcements LOCATION_ID` (location) send a JSON body with `fileUri`/`fileName` -- the file must already be reachable at a URI. There is no local-file upload flag.
+- **Announcement upload takes a file URI, not a local file**: `wxcli announcements create` (org) and `wxcli announcements create-announcements LOCATION_ID` (location) send a JSON body with `fileUri`/`fileName`. There is no local-file upload flag, **and the URI is not fetched from the open web**: a public `https://` WAV is rejected `400 27917` (Verified live 2026-10-13). Use the `cmf://customers/<org>/media/tmp/<id>` `fileUri` returned by `wxcli announcements tts-status` (see the Announcements section above).
+- **CLI delete examples in this doc may omit `--force`.** Every `delete` / `delete-*` command prompts `Delete <id>? [y/N]` and, with no terminal, prints `Aborted!` and deletes nothing (exit 1) -- verified live 2026-10-13 on `paging-group delete`, `single-number-reach delete` and `location-call-handling update-access-codes`. Add `--force` in scripts and agent runs.
 - **CallPickupGroup AXL creation with members fails on CUCM 15.0.** The `addCallPickupGroup` AXL operation with `<members>` containing `<directoryNumber>` elements fails with a null priority foreign key constraint (`pickupgroupmember.priority`). Workaround: create the pickup group empty, then add members via `updateLine` with `callPickupGroupName` on each member DN. Verified on CUCM 15.0.1.13901(2).
 - **No native PagingGroup AXL object type.** CUCM does not expose paging groups through AXL (`listPagingGroup`/`getPagingGroup` do not exist). Paging requires third-party systems (InformaCast, Cisco Paging Server). The migration pipeline's `CanonicalPagingGroup` type exists for manual/CSV import but cannot be auto-extracted from CUCM.
 

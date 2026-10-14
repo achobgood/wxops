@@ -157,7 +157,7 @@ Controls what types of outbound calls a person can place, with per-call-type act
 
 #### `CallingPermissions` (model)
 
-One `Optional[CallTypePermission]` field for each call type (e.g., `internal_call`, `local`, `toll_free`, `national`, `international`, etc.). Extra/unknown call types are allowed and auto-parsed.
+One `Optional[CallTypePermission]` field for each call type (e.g., `internal_call`, `local`, `toll_free`, `national`, `international`, etc.). Verified live 2026-10-13: a person read returns 13 entries — `INTERNAL_CALL, TOLL_FREE, NATIONAL, INTERNATIONAL, OPERATOR_ASSISTED, CHARGEABLE_DIRECTORY_ASSISTED, SPECIAL_SERVICES_I, SPECIAL_SERVICES_II, PREMIUM_SERVICES_I, PREMIUM_SERVICES_II, CASUAL, URL_DIALING, UNKNOWN` (no `LOCAL`/`TOLL`); `INTERNATIONAL` and both `PREMIUM_SERVICES_*` came back `BLOCK` with `isCallTypeRestrictionEnabled: true` on a default user. Extra/unknown call types are allowed and auto-parsed.
 
 #### `OutgoingPermissions` (model)
 
@@ -215,12 +215,12 @@ One `Optional[CallTypePermission]` field for each call type (e.g., `internal_cal
 |-----------|--------|----------|
 | Read outgoing permissions | GET | `people/{personId}/features/outgoingPermission` |
 | Update outgoing permissions | PUT | `people/{personId}/features/outgoingPermission` |
-| Read transfer numbers | GET | `people/{personId}/features/outgoingPermission/autoTransferNumbers` |
-| Update transfer numbers | PUT | `people/{personId}/features/outgoingPermission/autoTransferNumbers` |
-| Read access codes | GET | `people/{personId}/features/outgoingPermission/accessCodes` |
-| Create access code | POST | `people/{personId}/features/outgoingPermission/accessCodes` |
-| Modify access codes | PUT | `people/{personId}/features/outgoingPermission/accessCodes` |
-| Delete all access codes | DELETE | `people/{personId}/features/outgoingPermission/accessCodes` |
+| Read transfer numbers | GET | `telephony/config/people/{personId}/outgoingPermission/autoTransferNumbers` |
+| Update transfer numbers | PUT | `telephony/config/people/{personId}/outgoingPermission/autoTransferNumbers` |
+| Read access codes | GET | `telephony/config/people/{personId}/outgoingPermission/accessCodes` |
+| Create access code | POST | `telephony/config/people/{personId}/outgoingPermission/accessCodes` |
+| Modify access codes | PUT | `telephony/config/people/{personId}/outgoingPermission/accessCodes` |
+| Delete all access codes | DELETE | `telephony/config/people/{personId}/outgoingPermission/accessCodes` |
 | List digit patterns | GET | `telephony/config/people/{personId}/outgoingPermission/digitPatterns` |
 | Create digit pattern | POST | `telephony/config/people/{personId}/outgoingPermission/digitPatterns` |
 | Get digit pattern | GET | `telephony/config/people/{personId}/outgoingPermission/digitPatterns/{digitPatternId}` |
@@ -229,7 +229,7 @@ One `Optional[CallTypePermission]` field for each call type (e.g., `internal_cal
 | Delete all digit patterns | DELETE | `telephony/config/people/{personId}/outgoingPermission/digitPatterns` |
 | Update category control | PUT | `telephony/config/people/{personId}/outgoingPermission/digitPatterns` |
 
-> **Note:** Main outgoing permissions and transfer numbers/access codes use the `people/{personId}/features/...` base path. Digit patterns use the `telephony/config/people/{personId}/...` base path. The transfer numbers endpoint path is `autoTransferNumbers` (not `transferNumbers`).
+> **Note:** Only the main outgoing permissions use the `people/{personId}/features/...` base path. Transfer numbers, access codes and digit patterns all use `telephony/config/people/{personId}/outgoingPermission/...`. **Verified live 2026-10-13:** `GET people/{personId}/features/outgoingPermission/autoTransferNumbers` and `.../accessCodes` return 404 "No static resource"; the `telephony/config/people/...` forms return 200 (and `wxcli ... --verify` re-reads that URL). The transfer numbers endpoint path is `autoTransferNumbers` (not `transferNumbers`).
 
 ```python
 from wxcli.auth import get_api
@@ -256,8 +256,8 @@ body = {
 api.session.rest_put(f"{BASE}/people/{person_id}/features/outgoingPermission", json=body)
 
 # Read/update transfer numbers
-xfer = api.session.rest_get(f"{BASE}/people/{person_id}/features/outgoingPermission/autoTransferNumbers")
-api.session.rest_put(f"{BASE}/people/{person_id}/features/outgoingPermission/autoTransferNumbers", json={
+xfer = api.session.rest_get(f"{BASE}/telephony/config/people/{person_id}/outgoingPermission/autoTransferNumbers")
+api.session.rest_put(f"{BASE}/telephony/config/people/{person_id}/outgoingPermission/autoTransferNumbers", json={
     "useCustomTransferNumbers": True,
     "autoTransferNumber1": "+15551234567"
 })
@@ -274,7 +274,7 @@ api.session.rest_post(
 )
 ```
 
-**CLI commands:** `show-outgoing-permission`, `update-outgoing-permission`
+**CLI commands:** `list-outgoing-permission`, `update-outgoing-permission` (Verified live 2026-10-13: there is no `show-outgoing-permission` — the read command is `list-outgoing-permission`, and it prints only the `callingPermissions` array, dropping `useCustomEnabled`/`useCustomPermissions`; read those flags with Raw HTTP `GET people/{personId}/features/outgoingPermission`)
 
 ### CLI Examples
 
@@ -315,7 +315,9 @@ wxcli user-settings create-access-codes Y2lzY29...personId \
   --code "1234" --description "Conference room auth code"
 
 # Modify access codes (e.g., toggle custom codes, delete specific codes)
-wxcli user-settings update-access-codes Y2lzY29...personId \
+# Verified live 2026-10-13: this PUT only deletes, prompts for confirmation unless --force is passed, and
+# rejects an empty deleteCodes list with 400 [Error 6004] OCI XML Request validation error
+wxcli user-settings update-access-codes Y2lzY29...personId --force \
   --json-body '{"useCustomAccessCodes": true, "deleteCodes": ["1234"]}'
 
 # Delete all access codes for a person
@@ -393,6 +395,8 @@ All fields are `Optional[FeatureAccessLevel]`:
 |-------|------|-------------|
 | `user_org_settings_permission_enabled` | `Optional[bool]` | Whether org-level settings apply to this user |
 | `user_settings_permissions` | `Optional[FeatureAccessSettings]` | Per-user feature access overrides |
+
+> **Not working as documented — Verified live 2026-10-13:** both `GET https://webexapis.com/v1/telephony/config/featureAccessCodes` and `GET https://webexapis.com/v1/telephony/config/people/{personId}/featureAccessCodes` return **404** `{"message":"No static resource hydra/v1/telephony/config/featureAccessCodes."}` with an admin full-admin token. In addition, `specs/webex-cloud-calling.json` defines the `UserSettingsPermissionsGet/Put` schemas but no path that uses them. Treat every endpoint in this section as **unconfirmed**; the real path was not found (not searched beyond the two documented URLs). The PUT body and reset action below were therefore not run.
 
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
@@ -635,8 +639,8 @@ Two different base paths are used:
 
 | Operation | Method | Endpoint |
 |-----------|--------|----------|
-| Read alert settings | GET | `telephony/config/people/{personId}/executive/alertSettings` |
-| Update alert settings | PUT | `telephony/config/people/{personId}/executive/alertSettings` |
+| Read alert settings | GET | `telephony/config/people/{personId}/executive/alert` (Verified live 2026-10-13; `.../executive/alertSettings` returns 404) |
+| Update alert settings | PUT | `telephony/config/people/{personId}/executive/alert` |
 | List assigned assistants | GET | `telephony/config/people/{personId}/executive/assignedAssistants` |
 | Update assigned assistants | PUT | `telephony/config/people/{personId}/executive/assignedAssistants` |
 | List available assistants | GET | `telephony/config/people/{personId}/executive/availableAssistants` |
@@ -667,12 +671,12 @@ api.session.rest_put(f"{BASE}/people/{person_id}/features/executiveAssistant",
 # --- Executive Detailed Settings (telephony/config path) ---
 # Read alert settings
 alert = api.session.rest_get(
-    f"{BASE}/telephony/config/people/{person_id}/executive/alertSettings"
+    f"{BASE}/telephony/config/people/{person_id}/executive/alert"
 )
 
 # Update alert settings
 api.session.rest_put(
-    f"{BASE}/telephony/config/people/{person_id}/executive/alertSettings",
+    f"{BASE}/telephony/config/people/{person_id}/executive/alert",
     json={
         "alertingMode": "SEQUENTIAL",
         "nextAssistantNumberOfRings": 4,
@@ -699,7 +703,7 @@ screening = api.session.rest_get(
 )
 ```
 
-> **Unverified:** the assigned-assistants body (`assistantIds`) is from the spec, not a live call.
+> **Verified live 2026-10-13:** the assigned-assistants body is `{"assistantIds": ["<person id>"]}`; `{"assistantIds": null}` removes every assistant (read-back `{"assistants": []}`), and setting the executive to `UNASSIGNED` clears the assistant's `executive/assistant` list (read-back `{"forwardFilteredCallsEnabled": false, "executives": []}`) while the assistant's own type stays `EXECUTIVE_ASSISTANT` until you set it to `UNASSIGNED` too. `wxcli user-settings list-call-filtering PERSON_ID` prints `[]` although `GET .../executive/callFiltering` returns `{"enabled": false, "filterType": "ALL_CALLS", "criteria": []}` (CLI drops the object).
 
 **CLI commands:** `show-executive-assistant`, `update-executive-assistant`
 **CLI commands (self):** `list-assigned-assistants`, `update-assigned-assistants`, `list-available-assistants`, `show-assistant`, `update-assistant`
@@ -785,8 +789,7 @@ wxcli user-settings update-screening Y2lzY29...execPersonId \
 wxcli user-settings update-screening Y2lzY29...execPersonId --no-enabled
 ```
 
-> **Unverified:** the `update-assigned-assistants` body is from the spec, not a live call: a
-> flat `assistantIds` list of person ids (not `assistants: [{id}]`); `null` removes them all.
+Verified live 2026-10-13 (Grace as EXECUTIVE, Dev as EXECUTIVE_ASSISTANT): the `update-assigned-assistants` body is a flat `assistantIds` list of person ids; `list-assigned-assistants` read it back and `list-assistant` on the assistant showed the executive with `optInEnabled: true`; `{"assistantIds": null}` removed them all (read-back `[]`). `show-alert`/`show-screening`/`update-alert`/`update-screening` worked as documented, but every executive command (`show-alert`, `show-screening`, `list-assigned-assistants`, `list-call-filtering`) returns 400 `[Error 4410] Service is not assigned to this subscriber: Executive` until the person is first set to `EXECUTIVE`. `--verify` reports numeric flags such as `--next-assistant-number-of-rings 4` as differing (`sent '4', now 4`) because the CLI sends them as strings; the write still took.
 
 ---
 
@@ -811,14 +814,16 @@ Controls Connected Line Identification Privacy on redirected calls.
 ### Raw HTTP
 <!-- Updated by playbook session 2026-03-18 -->
 
+> **Verified live 2026-10-13:** the workspace path is `telephony/config/workspaces/{workspaceId}/callPolicies` (GET 200 / PUT via `wxcli workspace-settings update-call-policies --verify` matched). The previously documented `workspaces/{workspaceId}/features/callPolicies` returns 404 (`No static resource`). The person-level admin 404 below was also reproduced for `telephony/config/people/{id}/callPolicies`.
+
 > **WARNING: No admin-level person endpoint exists.** The path `people/{personId}/features/callPolicies` returns 404 for persons. Only the workspace admin path and the self-service `/me` path work.
 
 **Base URL:** `https://webexapis.com/v1`
 
 | Operation | Method | Endpoint | Token Type |
 |-----------|--------|----------|------------|
-| Read (workspace) | GET | `workspaces/{workspaceId}/features/callPolicies` | Admin |
-| Update (workspace) | PUT | `workspaces/{workspaceId}/features/callPolicies` | Admin |
+| Read (workspace) | GET | `telephony/config/workspaces/{workspaceId}/callPolicies` | Admin |
+| Update (workspace) | PUT | `telephony/config/workspaces/{workspaceId}/callPolicies` | Admin |
 | Read (self) | GET | `telephony/config/people/me/settings/callPolicies` | User (calling-licensed) |
 | Update (self) | PUT | `telephony/config/people/me/settings/callPolicies` | User (calling-licensed) |
 
@@ -828,11 +833,11 @@ api = get_api()
 BASE = "https://webexapis.com/v1"
 
 # Read call policy for a workspace (admin token)
-result = api.session.rest_get(f"{BASE}/workspaces/{workspace_id}/features/callPolicies")
+result = api.session.rest_get(f"{BASE}/telephony/config/workspaces/{workspace_id}/callPolicies")
 # Returns: {"connectedLineIdPrivacyOnRedirectedCalls": "NO_PRIVACY"|"PRIVACY_FOR_EXTERNAL_CALLS"|"PRIVACY_FOR_ALL_CALLS"}
 
 # Update call policy for a workspace (admin token)
-api.session.rest_put(f"{BASE}/workspaces/{workspace_id}/features/callPolicies",
+api.session.rest_put(f"{BASE}/telephony/config/workspaces/{workspace_id}/callPolicies",
                      json={"connectedLineIdPrivacyOnRedirectedCalls": "PRIVACY_FOR_EXTERNAL_CALLS"})
 
 # Read call policy for self (calling-licensed user token, spark:telephony_config_read scope)
