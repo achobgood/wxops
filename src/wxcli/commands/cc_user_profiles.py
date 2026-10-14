@@ -372,6 +372,9 @@ def list_acl(
     names: str = typer.Option(None, "--names", help="Default all resources are returned in the ACL. If you want to filter the ACL by specific resources, provide a comma-separated list of resource names to filter the ACL. Ex: /url?names=site,team"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get specific User Profile ACL by ID.\n\n\b\nExample: wxcli cc-user-profiles list-acl ID"""

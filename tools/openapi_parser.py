@@ -494,14 +494,22 @@ def extract_response_list_key(op: dict, spec: dict) -> str | None:
 
     if not array_props:
         return None
-    if len(array_props) == 1:
-        return array_props[0]
+    # Several arrays: the key is the array of RECORDS. A paging-metadata array
+    # (SCIM `schemas`) is never it, and an array of objects beats an array of
+    # scalars. `device-dynamic-settings list` (supportedDevices) declares
+    # `upgradeChannelList` (strings) before `devices` (objects) and extracted
+    # the strings; `archive-users list` extracted `schemas`, not `Resources`
+    # (drift check 31). Only then do `required`, then spec order, decide.
+    pool = [n for n in array_props if n not in _LIST_ENVELOPE_KEYS] or array_props
+    pool = [n for n in pool if _array_of_objects(spec, props[n])] or pool
+    if len(pool) == 1:
+        return pool[0]
 
     # Multiple arrays: prefer required ones
-    required_arrays = [p for p in array_props if p in required]
+    required_arrays = [p for p in pool if p in required]
     if required_arrays:
         return required_arrays[0]
-    return array_props[0]
+    return pool[0]
 
 
 def _resolve_schema_node(spec: dict, schema: dict, depth: int = 0) -> dict:
@@ -797,6 +805,73 @@ def _declares_single_object(op: dict, spec: dict) -> bool:
     return True
 
 
+# Properties a genuine collection carries beside its array: paging metadata,
+# never data. Measured over the list-shaped 200s of the tracked specs
+# (2026-10-13): CC `meta`, the bulk-export page fields, SCIM, the totals the
+# runtime's `_body_says_more` reads, and the `start`/`limit` window echo of
+# `/contacts/organizations/{orgId}/contacts/search`. Mirrored by
+# tools/drift_check._LIST_ENVELOPE_KEYS, which gates the same decision.
+_LIST_ENVELOPE_KEYS = frozenset({
+    "meta", "totalResources", "pageSize", "pageNumber", "rel", "totalResults",
+    "itemsPerPage", "startIndex", "schemas", "total", "totalCount",
+    "totalRecords", "count", "pageInfo", "paging", "links", "_links",
+    "start", "limit"})
+
+
+def _array_of_objects(spec: dict, node) -> bool:
+    """True when `node` is an array whose items are declared objects."""
+    node = _safe_resolve(spec, node)
+    if node is None:
+        return False
+    items = _safe_resolve(spec, node.get("items"))
+    if not items:
+        return False
+    return (items.get("type") == "object" or isinstance(items.get("properties"), dict)
+            or isinstance(items.get("allOf"), list))
+
+
+def _drops_object_fields(op: dict, spec: dict) -> bool:
+    """True when the list extractor would throw part of the 200 away: in every
+    media type the 200 declares, an object whose properties, paging metadata
+    (_LIST_ENVELOPE_KEYS) aside, are something other than exactly one array —
+    one array plus a scalar sibling, or two arrays.
+
+    `detect_command_type` calls a GET a list as soon as its 200 declares ANY
+    array, so a settings object that carries one rendered through
+    `result.get("<array>", …)`: `call-queue list-night-service` printed `[]`
+    for the whole night-service object, and `user-settings list-privacy`
+    dropped every privacy switch (live, 2026-10-13). The caller applies this
+    only to an endpoint that declares no paging, because a paged endpoint is a
+    collection by declaration and keeps `--all`. Any doubt — a bare array, no
+    content, a schema with no properties, an unresolvable `$ref` (on the
+    response, the schema or a property), or one media type that is a clean
+    collection — returns False, so a list is never re-rendered on a guess.
+    """
+    responses = op.get("responses")
+    if not isinstance(responses, dict):
+        return False
+    resp = _safe_resolve(spec, responses.get("200"))
+    content = resp.get("content") if resp else None
+    if not isinstance(content, dict) or not content:
+        return False
+    for media in content.values():
+        if not isinstance(media, dict):
+            return False
+        schema = _safe_resolve(spec, media.get("schema"))
+        if schema is None or _may_be_array(spec, schema):
+            return False
+        props = _declared_props(spec, schema)
+        if not props:
+            return False
+        data = {n: p for n, p in props.items() if n not in _LIST_ENVELOPE_KEYS}
+        if any(_safe_resolve(spec, p) is None for p in data.values()):
+            return False
+        arrays = [n for n, p in data.items() if _may_be_array(spec, p)]
+        if len(data) == len(arrays) <= 1:
+            return False        # a pure collection (or envelope only)
+    return True
+
+
 def parse_operation(
     method: str,
     path: str,
@@ -910,8 +985,10 @@ def parse_tag(
     seen_types: dict[str, int] = {}
     # (endpoint, is_primary) in spec order; names are derived in a later pass.
     pending: list[tuple[Endpoint, bool]] = []
-    # id()s of list-classified GETs whose response is one flat object
-    # (_declares_single_object); re-rendered as `show` after naming.
+    # id()s of list-classified GETs whose response is one object — flat
+    # (_declares_single_object), or, on an endpoint that declares no paging,
+    # one the list extractor would truncate (_drops_object_fields, drift
+    # check 31); re-rendered as `show` after naming.
     single_object_lists: set[int] = set()
 
     for path, path_obj in spec.get("paths", {}).items():
@@ -966,7 +1043,10 @@ def parse_tag(
                 op = {**op, "parameters": merged}
 
             ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params)
-            if ep.command_type == "list" and _declares_single_object(op, spec):
+            if ep.command_type == "list" and (
+                    _declares_single_object(op, spec)
+                    or (not ep.paginates and ep.pagination_style == "none"
+                        and _drops_object_fields(op, spec))):
                 single_object_lists.add(id(ep))
             endpoints.append(ep)
             pending.append((ep, op_tags[0] == tag))

@@ -41,11 +41,11 @@ def cmd_list(
         if limit > 0 and not all_pages:
             result = api.session.rest_get(url, params=params)
             result = result or {}
-            items = result.get("upgradeChannelList", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+            items = result.get("devices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             if "max" not in params:
                 params["max"] = 1000
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="upgradeChannelList"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="devices"))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -58,11 +58,11 @@ def cmd_list(
 def list_settings_groups(
     family_or_model_display_name: str = typer.Option(None, "--family-or-model-display-name", help="Device family or model display name to filter the `settingsGroups`."),
     include_settings_type: str = typer.Option(None, "--include-settings-type", help="Choices: TABS, GROUPS, ALL"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Settings Groups."""
@@ -73,23 +73,16 @@ def list_settings_groups(
         params["familyOrModelDisplayName"] = family_or_model_display_name
     if include_settings_type is not None:
         params["includeSettingsType"] = include_settings_type
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
     org_id = get_org_id()
     if org_id is not None:
         params["orgId"] = org_id
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("settingsGroups", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Friendly Name', 'friendlyName'), ('Path', 'path'), ('Tab', 'tab'), ('Family Or Model Display Name', 'familyOrModelDisplayName')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 

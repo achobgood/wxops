@@ -40,7 +40,7 @@ def cmd_list(
     except httpx.HTTPError as e:
         handle_network_error(e)
     result = result or []
-    items = result.get("schemas", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[("ID", "id"), ("Name", "name")], limit=limit)
+    items = result.get("Resources", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('User Name', 'userName'), ('Organization', 'organization')], limit=limit)
 
 

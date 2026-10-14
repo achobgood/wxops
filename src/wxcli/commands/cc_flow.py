@@ -78,11 +78,11 @@ def list_activity_choices(
     validate: str = typer.Option(None, "--validate", help="When `true` and `search` is supplied, performs a point-lookup of the single value in `search` (matched against the choice's `value`/ID) instead of filtering."),
     parent_value: str = typer.Option(None, "--parent-value", help="Parent input value for a cascading/dynamic input (for example, the selected `channelType`)."),
     parent_input_name: str = typer.Option(None, "--parent-input-name", help="Parent input name for a cascading/dynamic input. Required when `parentValue` is provided."),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Activity Input Choices.\n\nNOTE: a dependent input (e.g. queue-contact destination) returns 400 'requires a parent value' unless you pass its parent too: --parent-input-name channelType --parent-value TELEPHONY. The parent's own values come from this command on the parent input. Verified live 2026-10-13.\n\n\b\nExample: wxcli cc-flow list-activity-choices PROJECT_ID queue-contact channelType"""
@@ -99,31 +99,24 @@ def list_activity_choices(
         params["parentValue"] = parent_value
     if parent_input_name is not None:
         params["parentInputName"] = parent_input_name
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("choices", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Name', 'name'), ('Value', 'value')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
 @app.command("list-event-specifications", short_help="List Event Specifications.")
 def list_event_specifications(
     project_id: str = typer.Argument(help="24-char hex id"),
-    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
-    offset: int = typer.Option(0, "--offset", help="Start offset"),
-    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Event Specifications.\n\n\b\nExample: wxcli cc-flow list-event-specifications PROJECT_ID"""
@@ -131,21 +124,13 @@ def list_event_specifications(
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
     url = f"{cc_base_url}/{org_id}/project/{project_id}/v2/event-specifications"
-    params = {}
-    if limit > 0:
-        params["max"] = limit
-    if offset > 0:
-        params["start"] = offset
-    result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
         handle_network_error(e)
-    result = result or []
-    items = result.get("specifications", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Event Specification Name', 'eventSpecificationName'), ('Event Source Name', 'eventSourceName'), ('Event Classification Name', 'eventClassificationName')], limit=limit)
+    emit(result, output=output, fields=fields)
 
 
 
@@ -705,6 +690,9 @@ def list_validate(
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
+    offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
+    all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Validate an Existing Flow or Subflow Draft.\n\n\b\nExample: wxcli cc-flow list-validate PROJECT_ID FLOW_ID"""

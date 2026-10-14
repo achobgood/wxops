@@ -121,6 +121,41 @@ class TestGenerateTag:
         assert "things.py" in captured.out
 
 
+class TestTablelessOverrideGuard:
+    """A table override on a command that renders no list is inert:
+    `_render_show_command` reads no columns and no list key. Drift check 31
+    (2026-10-13) re-rendered 107 list GETs as single-object reads and silently
+    retired 11 table_columns entries that way; the generator now refuses one."""
+
+    COLS = [["ID", "id"]]
+
+    @pytest.mark.parametrize("family,cmd", [
+        ("table_columns", "show"),
+        ("table_columns", "show-settings"),     # settings-get
+        ("response_list_keys", "show"),
+    ])
+    def test_override_on_a_single_object_read_fails(self, spec, tmp_path,
+                                                     capsys, family, cmd):
+        value = self.COLS if family == "table_columns" else "items"
+        overrides = {"omit_query_params": ["orgId"],
+                     "_tag_ovr:Things": {family: {cmd: value}}}
+        with pytest.raises(SystemExit) as exc:
+            generate_tag("Things", spec, overrides, tmp_path, True, set())
+        assert exc.value.code == 1
+        err = capsys.readouterr().err
+        assert f"{family} in tag 'Things'" in err and "render no list" in err
+        assert cmd in err
+
+    def test_override_on_a_list_passes(self, spec, tmp_path):
+        """Control: the same entry on a list command is accepted."""
+        overrides = {"omit_query_params": ["orgId"],
+                     "_tag_ovr:Things": {"table_columns": {
+                         "list": self.COLS, "list-tags": self.COLS}}}
+        _, _, count = generate_tag("Things", spec, overrides, tmp_path, True,
+                                   set())
+        assert count > 0
+
+
 # ── main() via monkeypatch (in-process, so coverage tracks it) ───────────────
 
 
