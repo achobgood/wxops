@@ -1,10 +1,10 @@
 {
-  "date": "2026-10-12",
-  "outcome": "specs-only",
-  "sha": "dd4462bab85b119d4e6e215da5e6dc017b95b06f",
-  "version": null,
+  "date": "2026-10-19",
+  "outcome": "released",
+  "sha": "fea5d5a9f67a0ed5a969b81542d1c0162dee59cb",
+  "version": "v1.10.2",
   "groups": 192,
-  "commands": 2157,
+  "commands": 2165,
   "issue": null,
-  "notes": "Quiet week. update-specs: 1 of 7 specs updated (webex-cloud-calling.json, 776 -> 776 paths, +37/-3 lines) — purely additive response-schema fields: transcriptLanguage on the converged-recording object and a nested location{id,name} on the Customer Assist available-agent object, plus the matching example payloads. No paths, operations, arguments or ID kinds changed, so regeneration produced no CLI diff and the spec snapshot refresh recorded 0 structural, 0 ID-kind, 0 prose deltas; sync_classify verdict=none (added=0 removed=0 retargeted=0, groups +0/-0), so specs only, no version bump and no release. No MOVED lines from the name-lock refresh and no registry change, so rules A/B/C never triggered and no doc or routing work was owed. Pass bar clean on the first attempt, zero repairs: sync_guard 0 forbidden edits, drift_check --enforce result PASS (192 command sets / 2157 commands / 1987 non-skipped spec ops, 0 moved 0 removed 0 groups gone 0 unlocked), 4427 passed / 6 skipped, assemble.py idempotent (no _playbook diff), sync_classify --fail-on-human exit 0."
+  "notes": "update-specs: 2 of 7 specs updated. webex-cloud-calling.json gained one path (776 -> 777): PUT /telephony/config/locations/{locationId}/dectNetworks/{dectNetworkId}/debugLevel, which regenerated as `wxcli dect-devices update-debug-level` (--debug-level STANDARD|DEBUG, --json-body, --generate-json-body) in the existing dect-devices group. webex-contact-center.json held at 356 paths with description-only changes. Snapshot refresh recorded 1 structural (the new DECT operation), 0 ID-kind flips and 23 prose deltas (1 calling: the DECT network update description; 22 contact-center: agent activities/statistics/buddyList/reload/login/logout/session-state and the monitor family, 12 of them constraint_changed), which regenerated as help-text-only diffs in cc_agents.py and cc_call_monitoring.py. sync_classify verdict=patch (added=1 removed=0 retargeted=0, groups +0/-0). No MOVED lines from the name-lock refresh (3 additive lock entries) and no _registry.py change, so rules A/B/C never triggered: no new group to route, no reference-doc section owed, and drift check 20 stayed at 0. Pass bar clean on the first attempt, zero repairs: sync_guard 0 forbidden edits, drift_check --enforce result PASS (192 command sets / 2165 commands / 1992 non-skipped spec ops, 0 moved 0 removed 0 groups gone 0 unlocked, checks 23-33 all 0), 5054 passed / 6 skipped, assemble.py idempotent (no _playbook diff), sync_classify --fail-on-human exit 0. Released v1.10.2."
 }

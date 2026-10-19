@@ -16,7 +16,7 @@ _BODY_SKELETON_CREATE = '{"id":"...","monitorType":"...","taskId":"...","queueId
 @app.command("create", short_help="Create Monitoring Request.")
 def create(
     id_param: str = typer.Option(None, "--id", help="(required) The id represents the unique request id with which the Monitoring Request will be created, maximum length 36 characters."),
-    monitor_type: str = typer.Option(None, "--monitor-type", help="(required) It represents the type of the monitoring request. It can to be ```midcall```, ```adhoc``` and ```continuous```"),
+    monitor_type: str = typer.Option(None, "--monitor-type", help="(required) It represents the type of the monitoring request. Only allowed type is ```midcall```"),
     task_id: str = typer.Option(None, "--task-id", help="The unique ID representing the task that needs to be monitored. Mandatory for ```midcall``` type."),
     tracking_id: str = typer.Option(None, "--tracking-id", help="An unique id to keep a track of events occurring during the call"),
     invisible_mode: bool = typer.Option(None, "--invisible-mode/--no-invisible-mode", help="This allows the supervisor to obfuscate their details from Team Performance Widget panel. Set ```true``` inorder to activate this mode"),

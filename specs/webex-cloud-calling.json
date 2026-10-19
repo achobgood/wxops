@@ -189,6 +189,8 @@
                       "numberOfBaseStations": 2,
                       "numberOfHandsetsAssigned": 5,
                       "numberOfLines": 2,
+                      "debugLevel": "STANDARD",
+                      "serviceabilityPasswordEnabled": true,
                       "location": {
                         "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4Mjg5NzIyLTFiODAtNDFiNy05Njc4LTBlNzdhZThjMTA5OA",
                         "name": "Cisco-HQ"
@@ -304,6 +306,8 @@
                   "numberOfBaseStations": 2,
                   "numberOfHandsetsAssigned": 5,
                   "numberOfLines": 2,
+                  "debugLevel": "STANDARD",
+                  "serviceabilityPasswordEnabled": true,
                   "location": {
                     "id": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4Mjg5NzIyLTFiODAtNDFiNy05Njc4LTBlNzdhZThjMTA5OA",
                     "name": "Cisco-HQ"
@@ -451,7 +455,7 @@
         },
         "summary": "Update DECT Network",
         "operationId": "Update DECT Network",
-        "description": "Update the details of a DECT network.\n\nDECT Networks provide roaming voice services via base stations and wireless handsets. A DECT network can be provisioned up to 1000 lines across up to 254 base stations.\n\nThis API requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "description": "Update the details of a DECT network. `debugLevel` will not be supported in this API; use Update DECT Network Debug Level API for changing the debug level.\n\nDECT Networks provide roaming voice services via base stations and wireless handsets. A DECT network can be provisioned up to 1000 lines across up to 254 base stations.\n\nThis API requires a full or read-only administrator auth token with a scope of `spark-admin:telephony_config_write`.",
         "tags": [
           "DECT Devices Settings"
         ],
@@ -592,6 +596,112 @@
             }
           }
         ]
+      }
+    },
+    "/telephony/config/locations/{locationId}/dectNetworks/{dectNetworkId}/debugLevel": {
+      "put": {
+        "responses": {
+          "204": {
+            "description": "No Content",
+            "headers": {},
+            "content": {}
+          },
+          "400": {
+            "description": "Bad Request: The request was invalid or cannot be otherwise served. An accompanying error message will explain further."
+          },
+          "401": {
+            "description": "Unauthorized: Authentication credentials were missing or incorrect."
+          },
+          "403": {
+            "description": "Forbidden: The request is understood, but it has been refused or access is not allowed."
+          },
+          "404": {
+            "description": "Not Found: The URI requested is invalid or the resource requested, such as a user, does not exist. Also returned when the requested format is not supported by the requested method."
+          },
+          "405": {
+            "description": "Method Not Allowed: The request was made to a resource using an HTTP request method that is not supported."
+          },
+          "409": {
+            "description": "Conflict: The request could not be processed because it conflicts with some established rule of the system. For example, a person may not be added to a room more than once."
+          },
+          "410": {
+            "description": "Gone: The requested resource is no longer available."
+          },
+          "415": {
+            "description": "Unsupported Media Type: The request was made to a resource without specifying a media type or used a media type that is not supported."
+          },
+          "423": {
+            "description": "Locked: The requested resource is temporarily unavailable. A Retry-After header may be present that specifies how many seconds you need to wait before attempting the request again."
+          },
+          "428": {
+            "description": "Precondition Required: File(s) cannot be scanned for malware and need to be force downloaded."
+          },
+          "429": {
+            "description": "Too Many Requests: Too many requests have been sent in a given amount of time and the request has been rate limited. A Retry-After header should be present that specifies how many seconds you need to wait before a successful request can be made."
+          },
+          "500": {
+            "description": "Internal Server Error: Something went wrong on the server. If the issue persists, feel free to contact the [Webex Developer Support team](/explore/support)."
+          },
+          "502": {
+            "description": "Bad Gateway: The server received an invalid response from an upstream server while processing the request. Try again later."
+          },
+          "503": {
+            "description": "Service Unavailable: Server is overloaded with requests. Try again later."
+          },
+          "504": {
+            "description": "Gateway Timeout: An upstream server failed to respond on time. If your query uses max parameter, please try to reduce it."
+          }
+        },
+        "summary": "Update DECT Network Debug Level",
+        "operationId": "Update DECT Network Debug Level",
+        "description": "Update the debug level for a DECT network.\n\nThe debug level controls the verbosity of logging for the DECT network. Setting it to `DEBUG` enables detailed diagnostic logging, while `STANDARD` provides normal operational logging.\n\nThis API requires a full or location administrator auth token with a scope of `spark-admin:telephony_config_write`.",
+        "tags": [
+          "DECT Devices Settings"
+        ],
+        "parameters": [
+          {
+            "name": "locationId",
+            "in": "path",
+            "description": "Location containing the DECT network.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OL2E4Mjg5NzIyLTFiODAtNDFiNy05Njc4LTBlNzdhZThjMTA5OA",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dectNetworkId",
+            "in": "path",
+            "description": "Update debug level for the specified DECT network.",
+            "required": true,
+            "example": "Y2lzY29zcGFyazovL3VzL0RFQ1RfREVWX05FVC9iNWNhZWVkMi0yYTJlLTQ0NTQtYjU3Yy1jMWFhMTk4MTBiMDk",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "orgId",
+            "in": "query",
+            "description": "Organization containing the DECT network.",
+            "example": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi85NmFiYzJhYS0zZGNjLTExZTUtYTE1Mi1mZTM0ODE5Y2RjOWE",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "debugLevel": "DEBUG"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DECTNetworkDebugLevelUpdate"
+              }
+            }
+          },
+          "required": true
+        }
       }
     },
     "/telephony/config/locations/{locationId}/dectNetworks/{dectNetworkId}/baseStations": {
@@ -145448,6 +145558,8 @@
           "numberOfBaseStations",
           "numberOfHandsetsAssigned",
           "numberOfLines",
+          "debugLevel",
+          "serviceabilityPasswordEnabled",
           "location"
         ],
         "properties": {
@@ -145500,6 +145612,15 @@
             "example": 2,
             "description": "Number of lines in the DECT network."
           },
+          "debugLevel": {
+            "$ref": "#/components/schemas/DebugLevel",
+            "description": "Debug level for the DECT network. Controls the verbosity of logging."
+          },
+          "serviceabilityPasswordEnabled": {
+            "type": "boolean",
+            "example": true,
+            "description": "Indicates whether serviceability password is enabled for the DECT network. When enabled, allows access to advanced diagnostic and troubleshooting features on DECT base stations."
+          },
           "location": {
             "$ref": "#/components/schemas/location",
             "description": "Location of the DECT network."
@@ -145513,6 +145634,26 @@
           "DMS Cisco DBS110"
         ],
         "description": " * `DMS Cisco DBS210` - Cisco DBS210 base station model.\n * `DMS Cisco DBS110` - Cisco DBS110 base station model.\n"
+      },
+      "DebugLevel": {
+        "type": "string",
+        "enum": [
+          "STANDARD",
+          "DEBUG"
+        ],
+        "description": " * `STANDARD` - Standard logging level for normal operations.\n * `DEBUG` - Debug logging level for detailed diagnostic information.\n"
+      },
+      "DECTNetworkDebugLevelUpdate": {
+        "type": "object",
+        "required": [
+          "debugLevel"
+        ],
+        "properties": {
+          "debugLevel": {
+            "$ref": "#/components/schemas/DebugLevel",
+            "description": "Debug level for the DECT network. Set to `STANDARD` for normal operational logging or `DEBUG` for detailed diagnostic logging."
+          }
+        }
       },
       "DECTNetworkPatch": {
         "type": "object",
