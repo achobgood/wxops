@@ -28,10 +28,21 @@ def test_curated_settings_has_wxcli_perms_only():
     # permissionDecision "allow" for the playbook agents), so the entry is not
     # needed to keep the builder unprompted — it only suppressed the gate's
     # reason for existing. Shipping both is the contradiction this pins shut.
-    assert curated["permissions"]["allow"] == ["Bash(which:*)"]
-    assert "Bash(wxcli:*)" not in curated["permissions"]["allow"]
-    assert "env" not in curated
-    assert set(curated.keys()) == {"permissions", "hooks"}
+    # Plan 2 Task 12 added wxcc's 14 Skill(...) and 12 wxcc-flow-builder allows; no
+    # Bash(...) entry beyond `which` may appear (Bash(wxcc-flow:*) is gone for good).
+    allow = curated["permissions"]["allow"]
+    assert [a for a in allow if a.startswith("Bash(")] == ["Bash(which:*)"]
+    # Plan 5 (P5-14) adds the 9 Supabase allows; the server itself is switched off.
+    assert all(a.startswith(("Bash(which", "Skill(", "mcp__wxcc-flow-builder__",
+                             "mcp__supabase__")) for a in allow)
+    assert "Bash(wxcli:*)" not in allow
+    # Plan 5 (P5-17): the one shipped env var turns agent teams OFF. With teams
+    # on, a named spawn becomes a teammate whose hook agent_type is its name, so
+    # the safety gate could not tell the builder from an impostor. Nothing else.
+    assert curated["env"] == {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "0"}
+    assert set(curated.keys()) == {"env", "permissions", "hooks", "enabledMcpjsonServers",
+                                   "disabledMcpjsonServers"}
+    assert curated["disabledMcpjsonServers"] == ["supabase"]
 
     # The SessionStart hook is deliberate (326a0ab): it checks PyPI for a newer
     # wxcli. The original ban here was on a *git-fetch* hook, from when updates
@@ -49,10 +60,12 @@ def test_curated_settings_has_wxcli_perms_only():
     # The gate must be wired to the path assemble() writes it to, or it is a
     # settings entry pointing at nothing — a no-op gate that reads as a gate.
     pre = hooks["PreToolUse"]
-    assert [e["matcher"] for e in pre] == ["Bash"]
+    # Plan 5 (open question 2): the same gate also judges the Flow Store MCP
+    # server's tools, so its flow writes run only inside the builder.
+    assert [e["matcher"] for e in pre] == ["Bash", "mcp__wxcc-flow-builder__.*"]
     assert [h["command"] for e in pre for h in e["hooks"]] == [
         'sh "$CLAUDE_PROJECT_DIR/.claude/hooks/wxcli-gate.sh"'
-    ]
+    ] * 2
 
     # Applies to EVERY bundled hook command, not just SessionStart: a customer
     # folder has no clone, so a git-fetching hook could never work there.
@@ -102,8 +115,8 @@ def fake_repo(tmp_path):
     repo = tmp_path / "repo"
     tracked = {
         "CLAUDE.md": "# Playbook\n",
-        ".claude/agents/wxc-calling-builder.md":
-            "---\nname: wxc-calling-builder\ndescription: Build Webex.\n"
+        ".claude/agents/wxops.md":
+            "---\nname: wxops\ndescription: Build Webex.\n"
             "model: sonnet\n---\nbody uses `/agents`.\n",
         ".claude/skills/provision-calling/SKILL.md": "skill\n",
         ".claude/skills/reporting/references/cdr.md": "nested\n",
@@ -270,12 +283,12 @@ def test_ref_audit_catches_a_file_that_was_never_bundled(tmp_path):
     so it passed, and so did the tests and the wheel smoke test."""
     A = _load_assemble()
     bundle = tmp_path / "b"
-    _write(bundle, ".claude/agents/wxc-calling-builder.md",
+    _write(bundle, ".claude/agents/wxops.md",
            "Use the template at `docs/templates/deployment-plan.md`.\n")
 
     assert A.audit_bundle(bundle) == []                  # the denylist is blind
     got = A.audit_missing_references(bundle)
-    assert (".claude/agents/wxc-calling-builder.md", 1,
+    assert (".claude/agents/wxops.md", 1,
             "docs/templates/deployment-plan.md") in got
 
     _write(bundle, "docs/templates/deployment-plan.md", "# Plan\n")
@@ -308,7 +321,7 @@ def test_ref_audit_exempts_write_targets_but_still_audits_around_them(tmp_path):
     itself keeps the rest of the tree audited."""
     A = _load_assemble()
     bundle = tmp_path / "b"
-    _write(bundle, ".claude/agents/wxc-calling-builder.md",
+    _write(bundle, ".claude/agents/wxops.md",
            "Check `docs/plans/` for existing plans.\n"
            "State lives at `docs/plans/session-state.md`.\n"
            "But `docs/plans/some-real-doc.md` is a READ that must resolve.\n")
@@ -410,16 +423,16 @@ def test_shipped_bundle_has_no_dangling_references(tmp_path):
 def test_phrase_map_rewrites_claude_isms_ordered():
     A = _load_assemble()
     src = (
-        "Use `/agents` and select **wxc-calling-builder**.\n"
+        "Use `/agents` and select **wxops**.\n"
         "Then use SendMessage for follow-ups. See /query-live.\n"
-        "Builder lives at .claude/agents/wxc-calling-builder.md and "
+        "Builder lives at .claude/agents/wxops.md and "
         "skills at .claude/skills/. Edit .claude/settings.json.\n"
         "This is a Claude Code playbook. See CLAUDE.md.\n"
     )
     out = A.apply_phrase_map(src)
     assert "SendMessage" not in out
-    assert ".claude/agents/wxc-calling-builder.md" not in out
-    assert ".codex/agents/wxc-calling-builder.toml" in out    # specific rule before generic
+    assert ".claude/agents/wxops.md" not in out
+    assert ".codex/agents/wxops.toml" in out    # specific rule before generic
     assert ".codex/skills/" in out
     assert ".codex/config.toml" in out                         # settings.json → config.toml
     assert "Claude Code" not in out and "Codex" in out
@@ -432,8 +445,8 @@ def test_phrase_map_slash_commands_do_not_corrupt_paths():
     assert "the `query-live` skill" in A.apply_phrase_map("Use `/query-live` now.")
     assert A.apply_phrase_map("`.claude/skills/query-live/` row") == "`.codex/skills/query-live/` row"
     assert A.apply_phrase_map("`.claude/skills/cucm-migrate/`") == "`.codex/skills/cucm-migrate/`"
-    assert "the agents catalog" not in A.apply_phrase_map(".claude/agents/wxc-calling-builder.md")
-    assert A.apply_phrase_map(".claude/agents/wxc-calling-builder.md") == ".codex/agents/wxc-calling-builder.toml"
+    assert "the agents catalog" not in A.apply_phrase_map(".claude/agents/wxops.md")
+    assert A.apply_phrase_map(".claude/agents/wxops.md") == ".codex/agents/wxops.toml"
 
 
 def test_replace_sections_swaps_body_and_fails_on_missing_anchor():
@@ -454,13 +467,13 @@ def test_md_agent_to_toml_maps_model_and_wraps_body():
     import tomllib
     A = _load_assemble()
     md = (
-        "---\nname: wxc-calling-builder\n"
+        "---\nname: wxops\n"
         "description: |\n  Build Webex Calling.\n"
         "tools: Read, Bash\nmodel: sonnet\n---\n"
         "You are the builder. Use /agents to start.\n"
     )
     data = tomllib.loads(A.md_agent_to_toml(md))
-    assert data["name"] == "wxc-calling-builder"
+    assert data["name"] == "wxops"
     assert data["description"].strip() == "Build Webex Calling."
     assert data["model_reasoning_effort"] == "medium"
     assert data["sandbox_mode"] == "workspace-write"
@@ -479,15 +492,17 @@ def test_assemble_codex_generates_tree_agents_and_config(fake_repo, tmp_path):
     (bundle / "CLAUDE.md").write_text(
         "# Playbook\n\n## Mandatory Grounding Rule\n"
         "Never answer any question about Webex Calling from training data alone.\n\n"
+        "## Quick Start\nold\n\n"
         "### Agent Invocation Pattern\nold\n\n"
         "### Agent Model Selection\nold\n\n"
+        "### Inline IDs in Commands\nold\n\n"
         "### Agent Orchestration — Long-Running Work & Silence Detection\nold\n\n"
         "## Next\ntail\n"
     )
     A.assemble_codex(bundle)
     assert (bundle / ".codex/skills/provision-calling/SKILL.md").exists()
     assert not (bundle / ".codex/docs").exists()               # docs NOT duplicated into .codex
-    tomllib.loads((bundle / ".codex/agents/wxc-calling-builder.toml").read_text())
+    tomllib.loads((bundle / ".codex/agents/wxops.toml").read_text())
     agents_md = (bundle / "AGENTS.md").read_text()
     assert A.GROUNDING_MARKER in agents_md
     assert "Codex orchestrates subagents itself" in agents_md  # overlay section applied
@@ -513,8 +528,10 @@ def test_codex_gate_is_armed_by_hooks_json_not_just_described(fake_repo, tmp_pat
     (bundle / "CLAUDE.md").write_text(
         "# Playbook\n\n## Mandatory Grounding Rule\n"
         "Never answer any question about Webex Calling from training data alone.\n\n"
+        "## Quick Start\nold\n\n"
         "### Agent Invocation Pattern\nold\n\n"
         "### Agent Model Selection\nold\n\n"
+        "### Inline IDs in Commands\nold\n\n"
         "### Agent Orchestration — Long-Running Work & Silence Detection\nold\n\n"
         "## Next\ntail\n"
     )
@@ -565,7 +582,7 @@ def test_codex_agent_name_validation_rejects_silently_ignored_names():
     build is the only place that mistake is visible to us."""
     mod = _load_assemble()
 
-    for good in ("wxc-calling-builder", "migration-advisor", "a1", "a-b-c"):
+    for good in ("wxops", "migration-advisor", "a1", "a-b-c"):
         assert mod._validate_codex_agent_name(good) == good
 
     # Underscores were what 0.144.1 needed and are NOT in 0.147's rule; the
@@ -583,4 +600,50 @@ def test_shipped_agents_pass_codex_name_validation():
     for p in sorted((REPO_ROOT / ".claude" / "agents").glob("*.md")):
         fm, _ = mod._split_frontmatter(p.read_text())
         names.append(mod._validate_codex_agent_name(fm["name"].strip()))
-    assert "wxc-calling-builder" in names
+    assert "wxops" in names
+
+
+def test_include_paths_ship_wxcc_doc_dirs():
+    A = _load_assemble()
+    assert {"docs/playbooks", "docs/examples"} <= set(A.INCLUDE_PATHS)
+
+
+_LOCAL_EVIDENCE = (
+    [f"docs/tests/findings/{n}-findings.md" for n in (
+        "digital-inbound-agent", "inbound-sms", "inbound-voice",
+        "multi-channel-routing", "outbound-apple-messages", "outbound-email",
+        "outbound-rcs", "outbound-sms", "outbound-whatsapp", "sequential-dialing",
+        "skill-build-scripted-fulfillment", "webex-calling-paging",
+        "webhook-triggers")]
+    + ["docs/plans/2026-07-25-documentation-remediation-backlog.md",
+       "docs/plans/2026-07-25-findings-corpus-audit.md",
+       "docs/plans/2026-07-25-webex-connect-doc-audit.md",
+       "docs/plans/2026-07-27-reference-sweep-triage-ledger.md",
+       "docs/plans/spec-a-voice-nodes-reference.md"])
+
+
+def test_ref_exempt_local_evidence_is_exact(tmp_path):
+    A = _load_assemble()
+    assert len(_LOCAL_EVIDENCE) == 18
+    bundle = tmp_path / "b"
+    _write(bundle, "docs/reference/x.md",
+           "".join(f"See `{t}`.\n" for t in _LOCAL_EVIDENCE))
+    assert A.audit_missing_references(bundle) == []
+    _write(bundle, "docs/reference/y.md",
+           "See `docs/tests/findings/not-a-file.md`.\n"
+           "See `docs/tests/run-all.sh`.\n"
+           "See `docs/plans/other.md`.\n")
+    got = A.audit_missing_references(bundle)
+    assert sorted(r for _, _, r in got) == [
+        "docs/plans/other.md", "docs/tests/findings/not-a-file.md",
+        "docs/tests/run-all.sh"]
+    assert all(f == "docs/reference/y.md" for f, _, _ in got)
+
+
+def test_plan4_exemptions_removed():
+    A = _load_assemble()
+    for target in (".claude/rules/doc-placement.md",
+                   ".claude/skills/design-flow/reference.md",
+                   ".claude/skills/build-spec-diagram/reference.md"):
+        assert target not in A.REF_EXEMPT
+    assert not hasattr(A, "_PLAN4_REASON")

@@ -37,3 +37,10 @@ def test_keywords_and_classifiers():
     assert "License :: OSI Approved :: Apache Software License" in classifiers
     assert any(c.startswith("Programming Language :: Python :: 3.11") for c in classifiers)
     assert "Environment :: Console" in classifiers
+
+
+def test_only_the_wxcli_console_script():
+    # Guard against a returning `wxcc-flow` / `wxcc-toolkit` alias (spec §10.3).
+    proj = _project()
+    assert proj["scripts"] == {"wxcli": "wxcli.main:app"}, proj["scripts"]
+    assert proj["requires-python"] == ">=3.11"

@@ -1,7 +1,7 @@
 # Deployment Plan: [OBJECTIVE_SUMMARY]
 
 Created: [YYYY-MM-DD]
-Agent: wxc-calling-builder
+Agent: wxops
 Saved to: `docs/plans/[YYYY-MM-DD]-[descriptive-name].md`
 
 ---

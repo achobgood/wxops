@@ -203,6 +203,8 @@ Controls routing of calls to unknown extensions (2-6 digits) to a premises PBX v
 
 **Scope:** `spark-admin:telephony_config_write`
 
+Turning on `enableUnknownExtensionRoutePolicy` without `unknownExtensionRouteIdentity` in the same body is refused: 400 `27344` "Unknown extension premises route identity need to be configured..." (first seen 2026-03-18; verified live again 2026-10-13, `configure-features` SKILL). Send both together, as the second example below does.
+
 #### CLI Examples
 
 ```bash

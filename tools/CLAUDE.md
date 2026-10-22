@@ -38,7 +38,7 @@ python3.14 tools/postman_spec_diff.py \
     --skip-tags tools/field_overrides.yaml
 ```
 
-Postman fork IDs (wxcli-dev):
+Postman fork IDs (wxcli-dev; forked from Cisco's public workspace `https://www.postman.com/webexdev/webex-public-workspace-beta/`, noted 2026-03-17; the maintainer supplies the Postman API key each time):
 - Cloud Calling: `15086833-e014a019-ecc3-4140-ab56-f2e9ccf7f95b`
 - Admin: `15086833-5c8bec2d-afcd-4f60-a0ca-cf3bfc798755`
 - Device: `15086833-6e026ee0-1f83-4d2b-bba6-b481ab62d0b6`
@@ -59,11 +59,12 @@ Mock server URLs (public, no auth required — return saved response examples):
 ## Generator Rules
 
 - **Never hand-edit generated files.** Fix bugs by updating `tools/field_overrides.yaml` and regenerating.
-- **Never create new hand-written command files** unless adding functionality that the generator cannot produce (e.g., multi-step workflows, file downloads). The legacy trio is fully retired (2026-07-01: `locations.py`/`numbers.py` turned out to be generator output on disk; 2026-07-02: `licenses.py` consolidated into the generated `licenses` group per S3.1, with a one-release `licenses-api` alias). `users.py` was retired and replaced with an alias to the generated `people` command group. `converged_recordings_export.py` is a deliberate hand-written extension that registers `download` and `export` commands onto the generated `converged-recordings` group via a `register(app)` pattern. For simple CRUD commands, use the generator. If a generated command needs custom behavior, use `field_overrides.yaml`.
-- **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`.
+- **Never create new hand-written command files** unless adding functionality that the generator cannot produce (e.g., multi-step workflows, file downloads). The legacy trio is fully retired (2026-07-01: `locations.py`/`numbers.py` turned out to be generator output on disk; 2026-07-02: `licenses.py` consolidated into the generated `licenses` group per S3.1, with a one-release `licenses-api` alias). `users.py` was retired and replaced with an alias to the generated `people` command group. `converged_recordings_export.py` is a deliberate hand-written extension that registers `download` and `export` commands onto the generated `converged-recordings` group via a `register(app)` pattern. It is one of three, all declared in `_lazy.GROUP_EXTENSIONS` (`(group, module)` pairs; each module's `register(app)` adds its `@app.command`s to the generated group's Typer app, so `wxcli cc-flow show-node-template` lives beside the generated `cc-flow` commands without the generator knowing about it): `cc_flow_authoring.py` (`cc-flow show-node-template`, `show-starter-flow`, `list-connectors`, ported from wxcc-flow's `schema`, `template` and `connectors`) and `cc_functions_test.py` (`cc-functions test`, whose operation left the spec upstream; `keep_endpoints` carries it with a dated reason). Add a fourth only for what the generator cannot produce, and add its pair to `GROUP_EXTENSIONS` (`tools/drift_check.py` `parse_extensions` reads that list, so the gate sees the extension commands as part of their group). For simple CRUD commands, use the generator. If a generated command needs custom behavior, use `field_overrides.yaml`.
+- **`auto_inject_from_config`** — `field_overrides.yaml` supports an `auto_inject_from_config: ["orgId"]` key per endpoint. Parameters listed here are omitted from `--help` and injected automatically from the saved config at runtime. This replaces the older `omit_query_params` approach for `orgId`. **The two injection paths differ, and the difference was a live bug (fixed 2026-07-24, `b4e22de`):** a path parameter renders `resolve_org_id(api.session)`, which falls back to `/people/me` when nothing is saved; a query parameter renders `get_org_id()`, which reads the saved config only and returns `None`. `configure` used to save an org only for partner tokens, so on a single-org token the operations that mark `orgId` **required in the query** failed with `Required request parameter 'orgId' for method parameter type String is not present` — 11 in the tracked specs then: `GET /adminAudit/events`, `GET /admin/securityAudit/events` and 9 Video Mesh reads. The fix is in the config layer, not the generator: `configure` now saves the single org it already fetched while validating the token (only when none is configured, so a partner selection is never overwritten). Switching the ~816 query sites to `resolve_org_id()` would add a `/people/me` request to nearly every command to fix 11; do not. Same day: bare `switch-org` now saves on a single-org token (it used to do nothing), and on a multi-org token it prompts, so a script or agent always passes the ID (`switch-org <orgId>`).
+- **`python3.14` is a convention, not a requirement of the generator** (measured 2026-08-05): every `tools/` and `src/` file compiles on 3.11–3.14, and a clone installed under 3.12 regenerated all nine specs byte-identical to the 3.14 run. The generator's output depends only on the specs, the overrides and the generator source: repeated runs with different hash seeds and on two Python versions agree. (Bare `python3` is still wrong: it is Apple's 3.9, `.claude/rules/repo-development.md`.)
 - **Field `--help` text is truncated in exactly ONE place — do not add a second.** A field's `help=` string is the spec's field description, bounded only by `command_renderer._clean_desc` (collapses whitespace, truncates on a word boundary at a 300-char cap, never mid-token). `openapi_parser.py` must keep the **full** description — it previously sliced to 120 chars mid-word *on top of* the renderer's 60-char slice, so descriptions were double-truncated and routinely lost their trailing `Default: X` clause, and near-identical flags on large groups became indistinguishable (five `call-queue` tone toggles all ended `...plays a tone to agents when a`). Fixed in `chore(generator): keep full field descriptions in --help`. If help lines ever need shortening again, change the cap in `_clean_desc` only.
 - **Spec files:** 9 tracked OpenAPI 3.0 specs in `specs/` — all regenerated by `spec_sync.py`: `webex-cloud-calling.json`, `webex-admin.json`, `webex-device.json`, `webex-messaging.json`, `webex-meetings.json`, `webex-contact-center.json`, `webex-ucm.json`, `webex-broadworks.json`, `webex-wholesale.json`. `update-specs.py` pulls upstream refreshes for the first 7 only.
-- **Retired spec — `webex-flow-store.json` (WxCC Flow Store, `fs-*` groups), 2026-10-13, ADR-11 in `docs/architecture/02-decisions.md`.** Its default host was Cisco's integration environment (production tokens get 401 `FAIL_VALIDATE_TOKEN`) and the "production" host does not resolve. The spec is deleted, never downloaded by `update-specs.py`, and stays in `.gitignore` so a stale copy cannot be committed. **What keeps it out:** `command_renderer.SPEC_PRODUCT` deliberately has no entry for it, so a copy dropped back into `specs/` makes every regen raise `UnknownSpecProductError` and fails `tests/test_command_naming_residue.py`. Do not add it back, not even as `None`. The supported flow surface is `cc-flow` (+ `cc-legacy-flows` export), both on the Contact Center API host. Of the CC spec's own Flow Store tags, `Templates` stays in `skip_tags`; **`Activities` and `Events` were carved out the same day** (ADR-11 amendment) because they are served by the CC host and work with a production token — they render into `cc-flow` via a per-spec `tag_merge` (`list-activities`, `show-activity`, `list-activity-choices`, `list-event-specifications`), with a `command_name_overrides` swap that keeps `list`/`show` on the flow operations. `tests/test_generate_commands.py::TestActivityCatalogCarveOut` pins the exact operationIds in those two tags: an upstream addition fails CI — verify it live (read-only) before widening the pin.
+- **Retired spec — `webex-flow-store.json` (WxCC Flow Store, `fs-*` groups), 2026-10-13, ADR-11 in `docs/architecture/02-decisions.md`.** Its default host was Cisco's integration environment (production tokens get 401 `FAIL_VALIDATE_TOKEN`) and the "production" host does not resolve. The spec is deleted, never downloaded by `update-specs.py`, and stays in `.gitignore` so a stale copy cannot be committed. **What keeps it out:** `command_renderer.SPEC_PRODUCT` deliberately has no entry for it, so a copy dropped back into `specs/` makes every regen raise `UnknownSpecProductError` and fails `tests/test_command_naming_residue.py`. Do not add it back, not even as `None`. The supported flow surface is `cc-flow` (+ `cc-legacy-flows` export), both on the Contact Center API host. Of the CC spec's own Flow Store tags, `Templates` stays in `skip_tags`; **`Activities` and `Events` were carved out the same day** (ADR-11 amendment) because they are served by the CC host and work with a production token — they render into `cc-flow` via a per-spec `tag_merge` (`list-activities`, `show-activity`, `list-activity-choices`, `list-event-specifications`), with a `command_name_overrides` swap that keeps `list`/`show` on the flow operations. `tests/test_generate_commands.py::TestActivityCatalogCarveOut` pins the exact operationIds in those two tags: an upstream addition fails CI — verify it live (read-only) before widening the pin. **The Flow Store returned in Plan 2 as eight further groups from its own spec (`webex-cc-flow-store.json`, from a production-reachable host); see ADR-19 and § Flow Store spec below.** `webex-flow-store.json` stays forbidden.
 - **Pull updated specs:** `python3.14 tools/update-specs.py` — downloads latest from GitHub, reports diffs. BroadWorks and Wholesale are excluded.
 - **Tag collision (retired 2026-07-01):** CC Site/Data Sources collisions are resolved by per-spec `cli_name_overrides`; regen order no longer matters for them (see known issue #17).
 - **Multi-tagged ops render into every tag they carry.** Dedup is per-tag, so an op legitimately tagged twice (the 3 `hotDesking/members` ops are both `Features: Hot Desking Members` and `User Call Settings`) appears in both groups. Two guards make that safe — do not remove either without reading known issue #22:
@@ -115,7 +116,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-33 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-34 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -350,6 +351,44 @@ the spec is often wrong against live behaviour (2026-10-13: the FlowV2 import sh
 `cc-dial-number create` needing `location`/`regionId`), and an unattended edit "to match the
 spec" can silently replace a live-verified example (`docs/spec-sync-contract.md` §6).
 
+**GATED SINCE 2026-10-19 — check 34 (Plan 2 Task 18).** wxcc's own gate
+(`wxcc/tools/generator/drift_check.py`) had checks 0-5. Four needed no port (the Plan 2
+carry-over table: 0 is check 8, 1 is check 1, 4 is check 3, and 3 is not needed because
+nothing is promoted to the root and the registration parser covers extension commands). wxcc's
+check 2 ("every URL a generated module calls maps to a spec operation") needed none either, and
+that was measured, not assumed: an invented `POST …/flows:nope` planted in `cc_flow_store.py`
+made check 1 print `AHEAD POST /{}/project/{}/flows:nope (cc-flow-store map-variables)` (the
+before/after is in `docs/merge/plan-2-decisions.md`, Task 18). wxcc's check 5 became check 34.
+Like checks 23-33 it has no ack, allowlist or exemption key.
+
+- **[34] (i) A `wxcc-flow <word>` or `wxcc-toolkit <word>` command in a scanned doc.** Same
+  file set (`SCAN_PATTERNS`) and the same `code_spans` reader as check 2: fenced lines and
+  inline code count, prose and fenced shell comments do not. The word must start with a letter
+  (`LEGACY_CLI_TOKEN`), so `--version`, `<command>`, `ACTIVITY`, `~/.wxcc-flow/config.json`
+  and `wxcc-flow-command-map.md` are not findings. Examined = code spans read. **It reads 0 in
+  Plan 2 by construction**: wxcc's docs sit under `wxcc/`, outside the scan set. **Plan 3
+  inherits a red gate on purpose**: the first wxcc doc it moves into the scan set brings its
+  `wxcc-flow` commands with it, and the gate fails until that file is rewritten through the
+  command map. The size of that sweep is recorded in `plan-2-decisions.md`. **To clear:**
+  rewrite the command with `docs/merge/wxcc-flow-command-map.md`.
+- **[34] (ii) A command-map row whose "New command" does not resolve.** Every row of
+  `docs/merge/wxcc-flow-command-map.md` keyed `1`-`60`, `H1`-`H10` or `F1`-`F11`
+  (`COMMAND_MAP_ROWS`): the cell's first code span starting `wxcli ` must name a top-level
+  command (`init`), a callback-only group (`configure`), or a registered group and one of its
+  commands, extension commands included (`build_cli_surface` merges
+  `_lazy.GROUP_EXTENSIONS`, so `cc-functions test` resolves). A cell with no such span (rows
+  H2, H7, H8, H9) is skipped and counted. A missing or repeated row key is a finding. A
+  missing map is `BLIND`, so retire this half in the same commit that retires the map. **To
+  clear:** fix the row. A renamed command's hidden alias still resolves, but the row should
+  name the new command.
+- The two halves print as two `[34]` lines (`CHECK_EXAMINED` keys `34i`/`34ii`;
+  `print_check_findings(..., heading="[34]")`), each with its own examined count. CI's
+  completion assertion greps `^\[34\]`. Tests: `tests/wxcc/test_drift_check.py`
+  (`TestLegacyCliCheck`: a planted fixture fires and a clean control does not, for each half).
+  Proven on the live tree too: a planted `` `wxcc-flow list --type SUBFLOW` `` in
+  `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
+  made the gate FAIL with one finding.
+
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
   within a tag and silently demote an operator-facing command. Diff `@app.command` names.
@@ -363,6 +402,15 @@ spec" can silently replace a live-verified example (`docs/spec-sync-contract.md`
 Why the generated CLI looks the way it does. Recorded because each of these was
 re-derived from scratch at least once after the reasoning was lost to a commit
 message. If you are about to change one, read the row first.
+
+**Which API options get a flag (Adam, 2026-10-19).** A command or flag exists only if it maps to
+something that works live. The other half of the rule: an option measured to work is carried, even
+when it looks redundant or its spec text is wrong, because the reader is an LLM and a missing
+working option costs a capability while an extra flag costs a few help tokens. Measured to work →
+add it, with help text saying what it did live, not the spec's wording. Untested → one cheap
+read-only live check decides. Measured to do nothing (silently ignored) → no flag. The case: a
+plan amendment (Task 3b) dropped `checkUiEnabled` (worked, opposite to its spec text) and `activityName`
+(untested) along with `searchBy` (measured ignored); only `searchBy` should have gone.
 
 ### `--output` was missing from three of six command types (fixed 2026-07-25)
 
@@ -456,7 +504,7 @@ above is the standing backstop for this and any other case a regen surfaces.
 correct and the conclusion is inverted — see the table above. Its `--output`
 finding is real and valuable; its token figures are file bytes ÷ 4 and are not
 measurements; its claim that request-template generation does not exist is false
-(see `locations.py:147`).
+(see `locations.py:147`); and the `--input-json` flag it proposes duplicates the existing `--json-body`.
 
 ### Upstream refresh, 2026-07-26 — +16 ops, −3 ops, and the first live `--fields` collision
 
@@ -1030,7 +1078,7 @@ NOT applied on 2026-07-29: it is inert until a regen, and a renderer that disagr
 507 files on disk is a fresh inconsistency rather than a fix. `tests/fixtures/expected_output.py`
 must be refreshed in the same commit (see `tests/test_generator_regression.py`'s header).
 
-Until then the truthful version lives in `CLAUDE.md`'s Common Flags section, which is the
+Until then the truthful version lives in `docs/reference/wxcli-behavior.md` § 1. Common Flags, which is the
 surface an agent actually loads. This is worth more than documentation because every skill
 has a mandatory `--help` gate — `--help` is the one place every agent looks, and today it
 undersells the trap.
@@ -1251,6 +1299,24 @@ unaffected — any claim of a repo-wide reduction is overcounting.
 
 See `docs/superpowers/plans/2026-07-25-cli-plain-output.md`.
 
+### Parsing `--help` from a script: four traps (found building check 6)
+
+Each one gives a wrong answer, not an error:
+
+1. **Rich wraps the Options panel to the terminal width.** At 80 columns a long flag wraps and a
+   line parser reports it absent (`--enable-call-park-notification/--no-…` looked missing). Always
+   set `COLUMNS=400 TERM=dumb`.
+2. **Required options start with `*`** (`│ *  --start-time  TEXT`). A parser that keeps lines
+   starting with `-` drops every required option. Strip the `*` first.
+3. **The `Usage:` line wraps onto a second line whatever `COLUMNS` says** when the command name is
+   long. Read positionals and their order from the **Arguments** panel, never from `Usage:`.
+4. **zsh does not split an unquoted `$var`.** `for c in "locations list"; do wxcli $c --help; done`
+   passes one argument and prints the root help, so the command looks missing. Use `${=c}` or an array.
+
+Also: `cucm config set` shows up in a static parse as `cucm set` (a sub-app mounted under a group;
+`cucm.py` is the only module with several Typer apps), so a name-only check can "resolve" a command
+that does not exist. When `--help` and the source disagree, suspect the parser first.
+
 ### Check 19 — the granularity call, decided by measurement (2026-08-04)
 
 Checks 1-18 all verify one direction: **every reference points at something
@@ -1411,7 +1477,7 @@ expected weekly outcome, not an edge case.
 name to the operation(s) it targets, read off the shipped source with
 `CommandFacts` (ast — never by importing wxcli). Scope is every module
 `command_sets()` returns — every module a regen can write; hand-written seams
-mounted outside the registry (`converged_recordings_export`, `init_playbook`)
+mounted outside the registry (`converged_recordings_export`, `cc_flow_authoring`, `cc_functions_test`, `init_playbook`; the first three via `_lazy.GROUP_EXTENSIONS`)
 and the callback-only `configure`/`update` modules lock as empty or not at all
 and are regen-immune by construction. Check 22 fails when a locked
 name targets something else, vanishes, or when a visible name is unlocked.
@@ -1654,6 +1720,93 @@ run on a spec contradiction.
 refresh that drops a key the live API still accepts fails the gate, and the only way out is
 a human doc edit. The widening rules above soften this; they do not remove it.
 
+## Flow Store spec
+
+*(Plan 2 Task 21, 2026-10-19. Merged from `wxcc/tools/generator/README.md`, which was removed with `wxcc/` in Plan 6;
+its ledger fate is `merged`. ADR-19 is the decision record.)*
+
+`specs/webex-cc-flow-store.json` is the snapshot of the Flow Store service's own `GET {flow-store base}/v3/api-docs`.
+It renders eight groups: `cc-flow-store`, `cc-flow-versions`, `cc-flow-tracing`, `cc-flow-prefs`, `cc-flow-templates`,
+`cc-flow-projects`, `cc-flow-connectors` and `cc-functions`. Its operations that `cc-flow` or `cc-legacy-flows`
+already perform are skipped in `operation_overrides` on live evidence (P2-1; `docs/merge/flow-store-host-map.md`),
+and `docs/merge/wxcc-flow-command-map.md` maps every old `wxcc-flow` command to its new one. wxcc's generator was a
+fork of this one, so it has no counterpart here: the same pipeline renders the spec.
+
+### Where each wxcc piece went
+
+| wxcc (`tools/generator/`) | Now |
+|---|---|
+| `parser.py` (spec walk → `Endpoint`) | `tools/openapi_parser.py` |
+| `renderer.py` (`Endpoint` → typer source) | `tools/command_renderer.py` |
+| `generate.py` (orchestrator, `--dry-run`) | `tools/generate_commands.py` |
+| `flow-store-overrides.yaml` (every deviation from the spec) | `tools/field_overrides.yaml`, in the sections keyed `webex-cc-flow-store.json:` |
+| `pull_spec.py` | `python -m tools.flow_store_spec pull` |
+| `wxcc-flow spec-diff` | `python -m tools.flow_store_spec diff [--exit-code]` |
+| `drift_check.py` (parity gate) | `tools/drift_check.py` (`python -m tools.drift_check --enforce`) |
+
+**Never hand-edit an emitted file.** Change the override and regenerate.
+
+### Regenerate one spec
+
+```bash
+PYTHONPATH=. .venv/bin/python tools/generate_commands.py --spec specs/webex-cc-flow-store.json --all --dry-run   # review the plan
+PYTHONPATH=. .venv/bin/python tools/generate_commands.py --spec specs/webex-cc-flow-store.json --all             # emit src/wxcli/commands/
+```
+
+The full atomic regen (`python3.14 tools/spec_sync.py --skip-update`) also covers this spec, because it is tracked.
+
+### Weekly drift runbook
+
+The weekly cloud routine never refreshes this spec: `tools/update-specs.py` downloads seven named specs and not this one.
+A human runs this, with a token from `wxcli configure` or `WEBEX_ACCESS_TOKEN`.
+
+1. **Check for drift.** `.venv/bin/python -m tools.flow_store_spec diff --exit-code` (the live `/v3/api-docs` against
+   the snapshot). Exit 0 / "In sync." means done for the week.
+2. **Refresh the snapshot.** `.venv/bin/python -m tools.flow_store_spec pull`, then review `git diff specs/` to see exactly
+   what changed.
+3. **Review the plan.** Run the `--dry-run` above. New or changed operations usually need an override decision first
+   (skip / block / warn in `operation_overrides`, a `command_name_overrides` entry, a `cli_name_overrides` group
+   name) in `tools/field_overrides.yaml`.
+4. **Regenerate.** Run the emit command above, then `.venv/bin/python -m tools.drift_check --refresh-name-lock`
+   (additive; it refuses if a locked name moved, so pin the name first, as for any spec) and
+   `--refresh-spec-snapshot` if check 19 asks for it.
+5. **Test.** `.venv/bin/python -m pytest tests/wxcc -q` (pure local, no API cost). If the operation counts legitimately
+   changed, update the pinned partition numbers in `tests/wxcc/test_drift_check.py` and any operation-count comment in
+   the spec's override blocks.
+6. **Gate.** `.venv/bin/python -m tools.drift_check --enforce` must end `result: PASS`.
+7. **Spot-check live, read-only** (inside the `wxops` agent, as for any `wxcli` call): `wxcli cc-flow list P --all`,
+   `wxcli cc-flow-store list-global-variables P`, `wxcli cc-flow-versions list P F`, and compare shapes against the
+   goldens in `docs/plans/eval/goldens/` (local-only files, not in git). Caveat carried from wxcc: goldens can be
+   ERROR captures; read the golden before treating it as a shape reference.
+8. **Commit** the snapshot, overrides, emitted files, lock and docs in ONE commit so the gate stays green at every revision.
+9. **Re-check the README's 'Which path, last checked on' table:** for each server, does a new release do the whole job, writes included? Update the date either way.
+
+### Debugging recipe: a path returns 500 or 404
+
+Re-pull the live contract before theorizing about a server bug or rewriting a payload:
+`venv/bin/python -m tools.flow_store_spec diff` (live contract against the snapshot, read-only), or `GET {flow-store base}/v3/api-docs`. On this
+service a 500 can mean the path is not routed at all (the framework's generic error), not that a
+handler is broken. wxcc lost hours on 2026-07-11 building a case that the server was broken, from
+a cached spec and its own path builders; the live contract had moved the `v2` segment
+(`/v2/{org}/…` → `/{org}/project/{proj}/v2/…`), and one pull showed it. The running service wins
+over any cached file, checked-in spec, existing code or earlier conclusion. Also check that a term
+is the vendor's: "FlowIR" is ours, Cisco's schema is FlowV2 / FDL 2.0.
+
+### Debugging recipe: a list command prints `[]`
+
+A 200 is NOT success: the server may wrap the array in an envelope the renderer does not know. Re-run with `--debug` and
+read the response body. If it is `{"variables": [...]}`-shaped, the fix is a `response_list_keys` entry
+(`<operationId>: <envelope key>`) in `tools/field_overrides.yaml`, **but drift check 27 (no ack) refuses an extractor
+key that the operation's 200 schema does not declare.** That is the case for `getGlobalVariables` (the spec declares
+only `searchEnabled`), so `cc-flow-store list-global-variables` stays a single-object read that prints the whole
+object, `variables` included. Precedent for the old rule: wxcc found `getGlobalVariables: variables` live in its Phase C.
+
+### Host and region
+
+The default base is `flow-store.produs1.ciscoccservice.com/flow-store` (`FLOW_STORE_DEFAULT_URL`, `src/wxcli/config.py`).
+A tenant outside the US sets `flow_store_url` (or `WXCLI_FLOW_STORE_URL`). `flow_store_spec.py` reads the same base,
+so `pull` and `diff` follow the setting. See ADR-19 for why this host, and for what the gateway does not route.
+
 ## Known Issues — Generator / Pipeline Only
 
 These were removed from root CLAUDE.md (not needed by the builder agent at runtime):
@@ -1708,7 +1861,7 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
 
     Live-proven end-to-end on supervisors: scoped delete removed exactly the named target and left the other in place. **Still unproven: the other 4 scoping deletes were fixed by the same code path but not live-tested.**
 
-    `numbers delete` — the one that most deserves it — was attempted on **2026-07-27** against org `sandbox.example` and **could not be tested there**; it remains unproven. The test needs a throwaway number to add and then scope-delete, and that org has no API-managed number lifecycle: its only PSTN location (`Site1`, which holds all 30 inventory records) reports `pstnConnectionType: CISCO_PSTN`, the second location has no PSTN configured at all, and `call-routing list-trunks` returns `[]` — so there is no non-integrated / Local Gateway path, and creating one would mean building routing infrastructure rather than testing numbers. On CCP-integrated orgs number DELETE is refused outright with `ERR.V.TRM.TMN60004` ("DELETE number is supported only for non-integrated CCP"), because number lifecycle is owned by the PSTN portal, not the API (see `docs/reference/provisioning.md`). A run there would therefore have failed on org entitlement and proven nothing either way about whether the body scopes the delete — a false negative, not evidence. **Proving `numbers delete` requires an org with a non-integrated / Local Gateway PSTN location.** No numbers were added or removed during the attempt: inventory was byte-identical before and after.
+    `numbers delete` — the one that most deserves it — was attempted on **2026-07-27** against the sandbox org and **could not be tested there**; it remains unproven. The test needs a throwaway number to add and then scope-delete, and that org has no API-managed number lifecycle: its only PSTN location (`Site1`, which holds all 30 inventory records) reports `pstnConnectionType: CISCO_PSTN`, the second location has no PSTN configured at all, and `call-routing list-trunks` returns `[]` — so there is no non-integrated / Local Gateway path, and creating one would mean building routing infrastructure rather than testing numbers. On CCP-integrated orgs number DELETE is refused outright with `ERR.V.TRM.TMN60004` ("DELETE number is supported only for non-integrated CCP"), because number lifecycle is owned by the PSTN portal, not the API (see `docs/reference/provisioning.md`). A run there would therefore have failed on org entitlement and proven nothing either way about whether the body scopes the delete — a false negative, not evidence. **Proving `numbers delete` requires an org with a non-integrated / Local Gateway PSTN location.** No numbers were added or removed during the attempt: inventory was byte-identical before and after.
 
     Lesson (this one cost a session): the claim above was inference stated as fact, in a file whose entire purpose is to be trusted. #20 is still UNFIXED and its claim is *observed* (its own `--help` says "Delete", it prints "Updated.") — do not let this correction cast doubt on that one.
 
@@ -1736,8 +1889,12 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
 
 ## Agent Teams
 
+> **Off in this repo since Plan 5 (P5-17, Adam, 2026-10-20).** `.claude/settings.json` (and the shipped `wxcli-dist/settings.bundled.json`) set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` to `0`. Why: with teams on, an interactive session turns every *named* spawn into a teammate, and the safety hook then sees the spawn name as the agent's type — so a real builder given a name was refused, and any agent named like the builder passed as it (`docs/merge/plan-5-hook-measurements.md` § Interactive). The gate also refuses any caller it can tell is a teammate. The two patterns below are kept for the record; to use one, turn teams on for that session only (e.g. `.claude/settings.local.json`) and expect every `wxcli` write inside a teammate to be refused.
+
+**Spawning the builder with teams off** (from the maintainer's notes, 2026-07-31 and Plan 5). The Agent tool then has no `name` parameter, so never rely on a name being set; spawn by type. Messaging a named background agent by its name still reached it. Say in every builder prompt "Do NOT spawn another agent — do this yourself", because a refused write otherwise invites a respawn. Never correct a running agent's identity data (names, emails, IDs) mid-flight: stop it, read the real state, and send a fresh prompt.
+
 Two reusable agent team patterns for development workflows. Requires Claude Code v2.1.32+.
-Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in `.claude/settings.json`.
+Enabled via `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (before Plan 5, in `.claude/settings.json`).
 
 | Pattern | Template | When to Use |
 |---------|----------|-------------|
@@ -1756,6 +1913,8 @@ All reference docs are grounded in official API specs and documentation:
 - **Postman collection** (`../postman-webex-collections/webex_cloud_calling.json`) — legacy reference, 22.5MB, 1,079 endpoints
 - **developer.webex.com** — Official API docs, guides, and blog posts
 - **Cisco Live LTRCOL-2574** — Hands-on provisioning lab
+
+**Not a source of truth: `wxc_sdk` or `wxcadm`** (Adam: "OpenAPI specs only"). What an endpoint does is settled by `specs/` and then a live call (status and body). An SDK client class does not prove the server answers, and its models can be wrong for an endpoint: on 2026-07-14 `wxc_sdk` reused the *person* call-recording model for a *queue* endpoint, and the live queue response both lacked fields the model declares and returned fields it does not. A live endpoint missing from the spec is a spec-overlay question (`specs/overlays/`, `tools/spec_overlay.py`). Never write an SDK-derived field or schema claim into a reference doc. The SDK clones were early input to the reference docs, not current authority.
 
 **Execution pattern:** wxcli CLI commands are the primary execution method; reference docs provide Raw HTTP sections for fallback. All Raw HTTP sections were added 2026-03-18.
 

@@ -87,7 +87,7 @@ Rationale: Webex is the target system. Existing Webex assignments represent prod
 <!-- Source: call-routing.md validate_phone_numbers section -->
 
 - **Virtual extensions use different ID type than virtual lines (VIRTUAL_EXTENSION vs VIRTUAL_LINE)** -- The `virtual-extensions` command group uses VIRTUAL_EXTENSION-encoded IDs. Virtual lines created via `/telephony/config/virtualLines` use VIRTUAL_LINE IDs. These are not interchangeable. `virtual-extensions list` returns empty for virtual lines, and `virtual-extensions delete` returns 400 for virtual line IDs.
-<!-- Source: CLAUDE.md Known Issue #12 -->
+<!-- Source: wxcli-behavior.md Known Issue #9 -->
 
 - **Email is the primary user identifier in Webex** -- The People API uses `emails` as the identity key. Currently only one email is supported per person. All lookups, deduplication, and merge operations should key on email. The CUCM userid is not a Webex-native concept.
 <!-- Source: provisioning.md Person data model: "emails list[str] Currently only one email supported"; People API list filter: email parameter -->
@@ -130,5 +130,5 @@ Rationale: Webex is the target system. Existing Webex assignments represent prod
 | # | Claim | Verified | Source | Finding |
 |---|-------|----------|--------|---------|
 | 1 | Max virtual lines per org | No | `virtual-lines.md` | No org-level limit documented. `max=1000` values are pagination page sizes. `LIMIT_EXCEEDED` validation status exists but no number is stated. |
-| 2 | Virtual extension vs virtual line ID type issue | Yes | CLAUDE.md Known Issue #12 | `virtual-extensions` uses `VIRTUAL_EXTENSION` IDs, virtual lines use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, `delete` returns 400. Confirmed. |
+| 2 | Virtual extension vs virtual line ID type issue | Yes | wxcli-behavior.md Known Issue #9 | `virtual-extensions` uses `VIRTUAL_EXTENSION` IDs, virtual lines use `VIRTUAL_LINE` IDs. `virtual-extensions list` returns empty, `delete` returns 400. Confirmed. |
 | 3 | Email as primary Webex identifier | Yes | `provisioning.md` Person data model line 1109 | `emails: list[str]` — currently only one email supported. People API uses email as filter/lookup key. |

@@ -991,8 +991,12 @@ class TestGroupHelpProduct:
         """Covers the unprefixed CC groups (`asset`, `channel` at the time of
         writing) without naming any, so an upstream tag rename cannot fail it."""
         cmd_dir = Path(__file__).parent.parent / "src" / "wxcli" / "commands"
+        # A module that builds no Typer app owns no group, so it has no label:
+        # cc_flow_authoring.py registers onto cc-flow (_lazy.GROUP_EXTENSIONS),
+        # whose own module carries the label and is checked here.
         cc = [f for f in sorted(cmd_dir.glob("*.py"))
-              if "cc_base_url = get_cc_base_url()" in f.read_text()]
+              if "cc_base_url = get_cc_base_url()" in f.read_text()
+              and "typer.Typer(" in f.read_text()]
         assert len(cc) >= 1, "no CC-host module found -- the marker moved?"
         wrong = [f.name for f in cc
                  # prefix without the colon: cc_ai_assistant.py is a kept
@@ -1958,6 +1962,40 @@ class TestUnboundUrlPlaceholderGuard:
         )
         with pytest.raises(UnboundUrlPlaceholderError):
             render_command_file("demo", [ep], {})
+
+    def test_tag_sibling_inference_borrows_by_name_in_template_order(self):
+        """The Flow Store shape (Plan 2 Task 14): no op on the same path
+        declares the var, but another op in the tag declares the same name.
+        It is borrowed with its auto-inject status (orgId is injected, not an
+        argument) and lands in URL order (PROJECT_ID before FLOW_ID)."""
+        donor = _make_endpoint(
+            command_type="show", command_name="show", method="GET",
+            url_path="{orgId}/project/{projectId}/flows/{flowId}/tags",
+            path_vars=["orgId", "projectId", "flowId"],
+            auto_inject_path_params=["orgId"],
+            path_var_meta={"orgId": {}, "projectId": {}, "flowId": {}},
+        )
+        prefs = _make_endpoint(
+            command_type="show", command_name="show-prefs", method="GET",
+            url_path="{orgId}/project/{projectId}/flows/{flowId}/preferences",
+            path_vars=["orgId", "flowId"],   # spec bug: projectId undeclared
+            auto_inject_path_params=["orgId"],
+            path_var_meta={"orgId": {}, "flowId": {}},
+        )
+        mapping = _make_endpoint(
+            command_type="action", command_name="map", method="POST",
+            url_path="{orgId}/project/{projectId}/flows:variable-mapping",
+            path_vars=["projectId"],         # spec bug: orgId is query-only
+            path_var_meta={"projectId": {}},
+        )
+        code = render_command_file("demo", [donor, prefs, mapping], {})
+        assert prefs.path_vars == ["orgId", "projectId", "flowId"]
+        assert mapping.path_vars == ["orgId", "projectId"]
+        assert mapping.auto_inject_path_params == ["orgId"]
+        fn = code[code.index('"show-prefs"'):].split("\n@app.command")[0]
+        assert fn.index("project_id: str") < fn.index("flow_id: str")
+        assert "org_id: str = typer.Argument" not in code
+        compile(code, "<generated>", "exec")
 
     def test_render_url_expr_accepts_optional_method_for_back_compat(self):
         """Direct callers (e.g. TestUrlRendering) don't pass method= — the

@@ -5,7 +5,7 @@ User-level self-service endpoints for managing personal call settings via user O
 ## Sources
 
 - specs/webex-cloud-calling.json (6 "Call Settings For Me" tags + Mode Management + Beta Barge-In, 156 endpoints across 99 paths)
-- CLAUDE.md known issue #4 (6 user-only endpoints)
+- [wxcli-behavior.md](wxcli-behavior.md) Known Issue #4 (6 user-only endpoints)
 - person-call-settings-*.md (admin-path equivalents)
 
 ---
@@ -877,7 +877,7 @@ POST https://webexapis.com/v1/telephony/config/people/me/settings/modeManagement
 Authorization: Bearer {user_token}
 ```
 
-**Cross-reference:** CLAUDE.md known issue #3 (mode-management requires calling-licensed user). See also `location-recording-advanced.md` for admin-level operating modes.
+**Cross-reference:** [wxcli-behavior.md](wxcli-behavior.md) Known Issue #3 (mode-management requires calling-licensed user). See also `location-recording-advanced.md` for admin-level operating modes.
 
 ---
 
@@ -1012,7 +1012,7 @@ Master mapping of every `/me/` endpoint to its admin equivalent. Path suffixes a
 
 10. **Criteria CRUD pattern.** Eight settings use the criteria sub-resource pattern (simultaneousRing, sequentialRing, priorityAlert, callNotify, selectiveAccept, selectiveForward, selectiveReject, and executive callFiltering). GET on the parent resource returns a `criterias` array with summary objects. Full CRUD on individual criteria uses the `/criteria/{id}` sub-path.
 
-11. **Mode management is richer on /me/ than admin.** The admin path only has 2 endpoints (`availableFeatures` GET and `features` GET/PUT) while the `/me/` surface exposes 9 endpoints including mode switching, extending, and normal operation actions. Mode management requires a calling-licensed user (CLAUDE.md known issue #3).
+11. **Mode management is richer on /me/ than admin.** The admin path only has 2 endpoints (`availableFeatures` GET and `features` GET/PUT) while the `/me/` surface exposes 9 endpoints including mode switching, extending, and normal operation actions. Mode management requires a calling-licensed user ([wxcli-behavior.md](wxcli-behavior.md) Known Issue #3).
 
 12. **Barge-In is tagged Beta.** The `/me/settings/bargeIn` endpoints are tagged `Beta Settings Features For Barge-In`. The admin equivalent at `/people/{personId}/features/bargeIn` is the stable path.
 

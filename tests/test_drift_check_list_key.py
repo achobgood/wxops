@@ -155,6 +155,27 @@ def test_bare_array_response_passes(tree):
     assert drift_check.CHECK_EXAMINED["27"] == {"examined": 1, "skipped": 0}
 
 
+SCALA_SEQ = _obj({"empty": {"type": "boolean"},
+                  "traversableAgain": {"type": "boolean"}})
+
+
+def test_scala_seq_placeholder_is_a_bare_array(tree):
+    """springfox renders a Scala collection (`SeqProject`, Plan 2 Task 14) as
+    `{empty, traversableAgain}`; the wire is a bare list, so it passes."""
+    spec = _spec({"$ref": "#/components/schemas/SeqProject"},
+                 components={"SeqProject": SCALA_SEQ})
+    assert tree(_block(LIST_BLOCK, key="projects"), spec) == []
+    assert drift_check.CHECK_EXAMINED["27"] == {"examined": 1, "skipped": 0}
+
+
+def test_scala_seq_with_an_extra_property_still_fires(tree):
+    """Only exactly those two properties mark the placeholder."""
+    seq_plus = _obj({**SCALA_SEQ["properties"], "size": INT})
+    findings = tree(_block(LIST_BLOCK, key="projects"), _spec(seq_plus))
+    assert [f["drops"] for f in findings] == [
+        ["empty", "size", "traversableAgain"]]
+
+
 def test_json_media_type_fires_too(tree):
     findings = tree(_block(LIST_BLOCK),
                     _spec(EXPORT, media="application/json"))

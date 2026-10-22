@@ -63,6 +63,16 @@ ALIASES = [
     ("licenses", "licenses-api"),
 ]
 
+# Hand-written commands mounted ONTO an existing group: (group, module). Each
+# module defines `register(app)`, which adds its `@app.command`s to that
+# group's Typer app — so `wxcli cc-flow show-node-template` lives beside the
+# generated cc-flow commands without the generator knowing about it.
+GROUP_EXTENSIONS = [
+    ("converged-recordings", "converged_recordings_export"),
+    ("cc-flow", "cc_flow_authoring"),
+    ("cc-functions", "cc_functions_test"),
+]
+
 _GROUP_TO_MODULE = {grp: mod for mod, grp in [*HAND_WRITTEN_GROUPS, *GENERATED_GROUPS]}
 
 
@@ -99,17 +109,20 @@ def _extract_short_help(module_stem: str) -> str:
         return ""
 
 
-def _ensure_converged_recordings_registered(sub_app: typer.Typer) -> None:
-    """`converged_recordings_export.register()` adds hand-written download/
-    export commands onto the generated converged-recordings app. Guarded so
-    a process that resolves this group through both the lazy proxy path and
-    the eager `mount_all` fallback (e.g. a test that does both) can't
-    register the same two commands onto the same cached module twice.
+def _ensure_extensions_registered(group: str, sub_app: typer.Typer) -> None:
+    """Run every `GROUP_EXTENSIONS` module's `register()` for `group` onto its
+    Typer app (e.g. `converged_recordings_export` adds download/export to the
+    generated converged-recordings app). Guarded so a process that resolves
+    the group through both the lazy proxy path and the eager `mount_all`
+    fallback (e.g. a test that does both) can't register the same commands
+    onto the same cached module twice.
     """
-    if any(c.name == "download" for c in sub_app.registered_commands):
-        return
-    from wxcli.commands import converged_recordings_export
-    converged_recordings_export.register(sub_app)
+    done = sub_app.__dict__.setdefault("_wxcli_extensions", set())
+    for ext_group, module_stem in GROUP_EXTENSIONS:
+        if ext_group != group or module_stem in done:
+            continue
+        import_module(f"wxcli.commands.{module_stem}").register(sub_app)
+        done.add(module_stem)
 
 
 class _LazyGroupProxy:
@@ -204,8 +217,7 @@ def _to_click_group(sub_app: typer.Typer, name: str, root: typer.Typer) -> click
 def _group_loader(module_stem: str, group_name: str, root: typer.Typer):
     def _load():
         sub_app = _stamped(import_module(f"wxcli.commands.{module_stem}").app)
-        if group_name == "converged-recordings":
-            _ensure_converged_recordings_registered(sub_app)
+        _ensure_extensions_registered(group_name, sub_app)
         return _to_click_group(sub_app, group_name, root)
     return _load
 
@@ -249,7 +261,8 @@ def mount_all(root: typer.Typer) -> None:
         generated_apps[group] = sub_app
         root.add_typer(sub_app, name=group)
 
-    _ensure_converged_recordings_registered(generated_apps["converged-recordings"])
+    for group, _module in GROUP_EXTENSIONS:
+        _ensure_extensions_registered(group, generated_apps[group])
 
     for base, alias in ALIASES:
         root.add_typer(generated_apps[base], name=alias)

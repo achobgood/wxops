@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref",
+        "YOUR_SUPABASE_PROJECT_REF"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "YOUR_SUPABASE_ACCESS_TOKEN"
+      }
+    },
+    "wxcc-flow-builder": {
+      "type": "http",
+      "url": "https://flow-store.produs1.ciscoccservice.com/flow-store/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_FLOW_STORE_TOKEN"
+      }
+    }
+  }
+}

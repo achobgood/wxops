@@ -4,9 +4,16 @@ Reference for the Webex Contact Center Customer Journey Data Service — identit
 person profiles, profile view templates, journey event ingestion, and real-time streaming.
 41 commands in the `cc-journey` CLI group spanning 7 functional areas.
 
-> **Regional base URL:** `https://api.wxcc-{region}.cisco.com`
+> **Regional base URL:** `https://api.wxcc-{region}.cisco.com` — for reads and writes alike.
+> Verified live 2026-10-19 (us1): `cc-journey list` (workspaces), `cc-journey show` (persons)
+> and `cc-journey show-aliases` answered on `https://api.wxcc-us1.cisco.com`. The separate
+> read hosts `https://api-jds.prod-{region}.ciscowxdap.com` that `cjds.md` used to give
+> (`prod-useast1`, `-useast2`, `-eu`, `-apjc`) do not exist: on 2026-10-19 each, and the
+> domain `ciscowxdap.com` itself, returned NXDOMAIN in DNS, while the gateway resolved on the
+> same resolver. Only `us1` was tested.
 > **Auth:** `cjp:config_read` / `cjp:config_write` for most operations. JDS admin APIs
-> (`/admin/v1/api/...`) additionally require `cjds:admin_org_read` / `cjds:admin_org_write`.
+> (`/admin/v1/api/...`) additionally require `cjds:admin_org_read` / `cjds:admin_org_write`
+> (unverified — gotcha 2).
 > **Set region:** `wxcli set-cc-region <region>` (defaults to us1)
 
 **Important:** Journey workspaces are NOT Webex Calling workspaces. JDS workspaces organize
@@ -432,11 +439,13 @@ All JDS endpoints. Admin paths require `cjds:admin_org_read`/`cjds:admin_org_wri
 
 2. **JDS admin operations require separate `cjds:` scopes.** The standard `cjp:config_read`/`cjp:config_write` scopes do NOT grant access to JDS admin APIs (`/admin/v1/api/...`). You also need `cjds:admin_org_read` and/or `cjds:admin_org_write`. Without these, workspace and person management calls return 403.
 
+   > **Unverified (2026-10-19):** [cjds.md](cjds.md) says the opposite — that both scope sets are accepted. Neither claim has a live test behind it. A full-admin personal access token carries both sets, so a run with one (as on 2026-10-19, when it reached `/admin/v1/api/workspace` and the person and alias reads) cannot tell them apart, and Cisco's JDS API reference on developer.webex.com could not be fetched that day. What would settle it: the same admin read with a token holding only `cjp:config_*`, then one holding only `cjds:admin_org_*`.
+
 3. **`task:new` is the event that triggers JDS person record creation.** When a caller first contacts WXCC, the platform fires `task:new`. `journey-stream-profiles` consumes this and creates the JDS person record using the caller's ANI in E.164 format. The record appears within seconds. At the exact moment `task:new` fires the record may not yet exist — but by the time a flow HTTP node queries JDS (a few seconds later), it will be present.
 
 4. **WXCC writes ANI to JDS in E.164 format.** Phone numbers are stored as `+15551234567`, not `5551234567`. Alias lookups from a flow must pass the number with `+1` prefix or they will miss.
 
-5. **Alias lookup strips `+` but does not normalize the country code.** `5551234567`, `15551234567`, and `+15551234567` are three distinct aliases — they will not cross-match. The `+` is stripped before matching, so `+15551234567` matches `15551234567` in `aliases`, but `5551234567` is a completely separate alias.
+5. **Alias lookup ignores a leading `+` but does not normalize the country code.** A 10-digit number and its `1`-prefixed / E.164 form do not cross-match in either direction; `1…` and `+1…` do. Verified live 2026-10-19 with `cc-journey show-aliases` on stored persons: `+15559876543` found only the person stored as `+15559876543`, not a second person stored as `5559876543`; `5551234567` → 404 (`Persons not found with the searched aliases`) although `+15551234567` is stored; `15551234567` and `+15551234567` both found that person, and `15559876543` found the `+15559876543` person. So for `+15551234567` there are two aliases to try, `+15551234567` (≡ `15551234567`) and `5551234567`, not three. Not shown: whether the API strips `+` or the stored alias set holds both spellings — the result is the same for a caller. (Before 2026-10-19 this gotcha said "`5551234567`, `15551234567`, and `+15551234567` are three distinct aliases"; it was right about the 10-digit form, wrong about `1…` vs `+1…`.)
 
 6. **`createdAt == updatedAt` signals a first-time caller.** A person record where both timestamps are equal and `createdBy` is `journey-stream-profiles` was just created by the current contact — this is their first interaction. A returning caller's record will have `updatedAt > createdAt` or prior events predating the current contact.
 
@@ -451,6 +460,8 @@ All JDS endpoints. Admin paths require `cjds:admin_org_read`/`cjds:admin_org_wri
 11. **`wxcli cc-journey show-workspace-id-events` had a missing `/v1/` prefix bug.** Fixed in the current CLI. Both commands now correctly hit `/v1/api/events/...`.
 
 12. **Flow Designer HTTP connector requires a full absolute URL.** Relative paths like `/publish/v1/api/event` return HTTP 500 "is not a valid HTTP URL". Always use `https://api.wxcc-{region}.cisco.com/publish/v1/api/event?workspaceId=...`.
+
+   > **Unverified — scope of this gotcha (hypothesis, 2026-10-19):** it may conflict with [contact-center-core.md](contact-center-core.md) gotcha 25 ("provide only the **request path**"). The `http-request-v2` activity has two URL inputs: `httpRequestPath`, shown when `authenticated` is `true` (a connector is selected), and `httpRequestUrl`, shown when it is `false`. The hypothesis is that this gotcha is about `httpRequestUrl` and gotcha 25 about `httpRequestPath`; neither gotcha names a field. Dry-run validate on 2026-10-19, connector mode: relative and absolute `httpRequestPath` both passed; a relative `httpRequestUrl` failed `FC1047 HTTP request URL must be a valid URL format.`, an absolute one passed. The HTTP 500 above is runtime behaviour that validate cannot show; settling it needs a placed call through each form.
 
 13. **For Flow Designer JDS patterns (returning caller detection, posting events from flows), see `contact-center-routing.md` gotchas #16–18.**
 

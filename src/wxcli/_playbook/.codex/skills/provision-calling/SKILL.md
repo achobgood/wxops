@@ -10,7 +10,6 @@ description: |
   Guides through auth verification, prerequisite checks,
   deployment planning, execution, and result verification for any provisioning operation.
   Use for: create, enable, assign, bulk provision, update user profile fields.
-  For teardown/delete/cleanup operations, use the teardown skill instead.
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation — e.g. "create location", "enable user", "assign license", "bulk provision", "org calling defaults"]
 ---

@@ -1,19 +1,69 @@
-# Webex Calling Playbook
+# Webex Ops
 
-Build and configure Webex Calling, admin, device, and messaging APIs programmatically with guided Claude Code assistance.
+Build, configure, migrate and audit Webex with Claude Code: Webex Calling, admin, devices, messaging and meetings through the `wxcli` command line; Contact Center voice flows (Flow Designer), Webex Connect flows, AI agents (AI Agent Studio) and Business Rules Engine lookups through the skills and docs below.
 
-**Execution pattern:** `wxcli` CLI commands (primary) → raw HTTP (fallback).
-The wxcli CLI has 192 command groups covering calling, admin, device, messaging, meetings, and contact center APIs. Raw HTTP docs in `docs/reference/` serve as reference and fallback.
+**Execution pattern:** `wxcli` commands first, raw HTTP as the fallback. `wxcli` has 200 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface; the raw HTTP forms are in `docs/reference/`.
+
+**MCP only when it does the whole job.** `wxcli` commands are the default. Move a job to an official Cisco MCP server only when that server does the whole job, writes included, has been tested live on a real tenant, and costs the same or fewer tokens.
+
+## You run the commands
+
+Claude runs every command — through the builder agent (§ Quick Start) — and never hands the user one to type. The only exceptions are steps a person must do:
+- **The Webex token.** It is the user's secret, so they run `wxcli configure` and paste it at the prompt — first time, and again after a 401/403 or expiry. The skills' "run `wxcli configure`" lines mean this.
+- **Clicks in a Cisco screen with no API** (Control Hub, Webex Connect, AI Agent Studio, DataSync, developer.webex.com): give them as UI steps (§ Answering platform questions).
+- **CUCM migration decisions.** The operator answers each review prompt in `/cucm-migrate`. The operator runbook's own `wxcli` steps are for an operator working without Claude.
 
 ## Mandatory Grounding Rule
 
-**Never answer any question about Webex Calling from training data alone.**
+**Never answer any question about Webex Calling from training data alone.** The same holds for every Cisco platform this repo covers: Webex Calling, Contact Center and its Control Hub configuration, Flow Designer, Webex Connect, AI Agent Studio (autonomous and scripted agents), the Business Rules Engine (BRE), the Customer Journey Data Service (CJDS), Service Apps and the other Webex APIs (admin, devices, messaging, meetings), and the `@webex/contact-center` agent-desktop SDK. It applies to every build — AI agent, Connect flow, Flow Designer IVR, outbound notification, BRE lookup, Calling configuration — not only the AI-agent path.
 
-For every question — capability, configuration, behavior, limits, or anything else — you MUST either:
-1. Invoke the relevant skill (`configure-features`, `customer-assist`, `contact-center`, etc.), OR
-2. Read the relevant reference doc in `docs/reference/`
+For every such question — capability, configuration, behavior, limits, or anything else — you MUST either:
+1. Invoke the relevant skill (§ Routing Table names it), OR
+2. Read the relevant doc in `docs/reference/` (and, for a procedure, `docs/playbooks/`)
 
-The reference docs and skills are the authoritative source for this project. Training data about Cisco/Webex products is unreliable — product tiers get conflated, feature names change, and capabilities vary by license. If the answer isn't in the docs or skills, say so explicitly rather than filling the gap from training data.
+The skills and docs are the authoritative source for this project. Training data about Cisco/Webex products is unreliable — product tiers get conflated, feature names change, and capabilities vary by license. Every platform instruction — UI fields, node settings, header values, deployment steps, routing configuration — must come from a skill or a file in `docs/reference/` or `docs/playbooks/`. If it isn't there, say "I don't have that documented" and either search the project docs or tell the user it needs to be added. Inventing a plausible-sounding platform detail is the single most damaging failure mode in this project — the user has no way to know it's wrong until it fails at runtime.
+
+## Answering platform questions
+
+For every platform question — every platform § Mandatory Grounding Rule names, digital inbound flows and database integration included — read the docs before responding, even when the question seems simple or you feel sure: training data is stale, the docs are authoritative. § Routing Table names the first doc for each topic and what to read next. If you catch yourself about to answer without a Read of a doc in this turn, STOP and read first.
+
+**Default position.** Your starting answer is **"I don't have that documented in the reference docs."** Replace it only after the lookup finds a source you can cite. If the lookup finds nothing, the default stands: your reply must contain that exact sentence, apostrophe included — not a paraphrase such as "I couldn't find…" or "the docs don't say".
+
+**Which directory — value vs. procedure.** Classify the question before reading:
+- **Value question** ("what / which / how many / what does it return / is it possible") → answer from `docs/reference/`. **Never from a playbook alone.**
+- **Procedure question** ("how do I / build / set up / walk me through") → read the `docs/playbooks/` file **and** every reference doc it cites.
+
+`docs/reference/` owns values — field names, valid values, limits, output variables, ports, error codes, restrictions, syntax. `docs/playbooks/` owns procedure — ordering, decisions, prerequisites, which-UI-next, judgment. The test: **would this still be true if the user's goal changed?** Yes → reference. No → playbook. A playbook cites reference facts rather than restating them. Full doctrine: `.claude/rules/doc-placement.md`.
+
+⚠ **Until the source repository's remediation backlog (`docs/plans/2026-07-25-documentation-remediation-backlog.md`, not shipped) is closed out, neither directory is reliably authoritative** — an April 2026 audit corrected the playbooks and skills but never swept `docs/reference/`. Where the two overlap, read both and treat any disagreement as a **finding**, not a coin flip: resolve it against the live API, official vendor documentation, or the platform owner. Never pick the more plausible one.
+
+**Hard rules.**
+- NEVER answer a platform question from training data or memory alone.
+- NEVER say "I believe…" or "typically…" about a platform detail — either cite the doc or say "I don't have that documented".
+- If the doc doesn't cover the question, say so explicitly — do not fill the gap with plausible-sounding invented details.
+- Every one of these must trace to a line in the docs: Control Hub navigation and paths; field, node (Connect, Webex Engage) and activity names; configuration values and steps; entity, agent and channel-specific configuration; output variables, variable paths and syntax; global variable names; queue settings; routing configuration; restrictions; sizing and table limits; CCAI settings; action descriptions; slot syntax; instruction patterns; deployment steps; intents, entities (names, types); response templates; fulfillment patterns; context flow; AI engines and options; channel triggers; Process Message configuration; escalation patterns and steps; headers (names, values; Supabase); PostgREST query syntax and parameters; API endpoint patterns; backend selection criteria; flow wiring; BRE data tables; rule syntax; DataSync configuration.
+
+**When you give UI steps.** The target user has ZERO prior experience with WxCC, Webex Connect, AI Agent Studio, or Flow Designer, whatever they are building. Every instruction must:
+- Name the exact platform and UI location (e.g., "Webex Connect → HTTP Request node → Headers section", "Control Hub → Contact Center → Queues → Create Queue", "Flow Designer → Call Patch node → Caller ID field")
+- Specify the exact value to enter or select, not just "configure it"
+- Include the exact click path when navigating between platforms (Connect, Control Hub, AI Agent Studio, and Flow Designer are four different UIs)
+- Never assume a previous step was already completed unless the user explicitly confirmed it
+- Never say "as you did before" — repeat the instruction or link to where it was given
+- Never combine platform steps across different UIs in a single bullet — each platform switch is a distinct step
+
+If you're about to write "configure the [X]" without saying exactly where and how, stop and look it up in `docs/`.
+
+**Cite every claim.** Every platform-specific claim in your response needs an inline citation in the format `[source: filename § section heading]`, for example:
+- "A telephony contact can remain in queue for at most 86,400 seconds (24 hours) [source: flow-designer-essentials.md § Queue Contact Activity]"
+- "Scripted agents support two engines — Webex AI Pro 2.0 (with Swiftmatch) and Webex AI Pro 1.0 (with Swiftmatch) [source: ai-agent-studio-scripted.md § AI Engines]"
+
+If you cannot produce a citation for a claim, replace the claim with "I don't have that documented in the reference docs." This is not optional formatting — a missing citation means an unverified claim, which means potential hallucination.
+
+**Proof of read.** Each primary reference doc carries a `<!-- ref-tag: <slug>-vN -->` comment near the top. When answering, state the ref-tags of every doc you consulted:
+
+> Docs consulted: `<slug>-vN`, `<slug>-vN`
+
+If you cannot produce the ref-tag for a doc you are citing, you did not read the current version. Do not cite it.
 
 ## Source of Truth Precedence
 
@@ -36,48 +86,31 @@ This refines the grounding rule above: skills and docs outrank your training, bu
 are hand-written and drift as the CLI regenerates. When a recipe and `--help` disagree,
 `--help` wins, and the stale recipe should be fixed, not worked around.
 
-**The ladder above does not apply to the `@webex/contact-center` JavaScript SDK.**
-It tops out at `wxcli --help`, which has zero visibility into a JS SDK — no `wxcli`
-command can tell you anything about `webex.cc` or `task.*`. For that surface only,
-the order is:
+**Platform facts follow a second order.** The ladder above is for `wxcli` (command names,
+flags, examples). A platform value (field, limit, port, error code) is owned by
+`docs/reference/`, which wins every disagreement; a playbook or skill that repeats it names
+that owner. Different questions, so keep both — subject to the interim ⚠ in § Answering
+platform questions.
 
-1. **Live observation against a real tenant** — the wire format is repeatedly not the
-   declared type (`Team` declares `{teamId}`, the wire sends `{id}`)
-2. **The SDK's own TypeScript sources** — `sourcesContent` inside the shipped `.map`
-3. **The published typedoc** (`web-sdk.webex.com/wxcc`) — built from the **`next`
-   prerelease**, so it is *ahead of* stable and documents members that exist in no
-   shipping release
-4. **Your training data**
+**The ladder above does not apply to the `@webex/contact-center` JavaScript SDK** — `wxcli --help` cannot see `webex.cc` or `task.*`. Its own order (live observation first; its typedoc documents the `next` prerelease, ahead of stable; never conclude a field is missing by grepping the minified bundle) is `docs/reference/contact-center-agent-sdk.md` § Source of Truth for This Surface.
 
-Never conclude "field X does not exist" by grepping the minified bundle: TypeScript
-types are erased at compile time, so a type-only field never appears in the `.js`.
-Enumerate a type's members instead. See `docs/reference/contact-center-agent-sdk.md`.
-
-**A read-only command can be silently wrong.** Real case: the query-live recipe said
-`wxcli people list -o json`, but Webex omits `extension` and `locationId` unless
-`--calling-data true` is passed. The command exits 0 and returns every user, so
-"how many users have extensions?" answers **0** instead of the true count. No error, no
-warning. Before trusting a read, confirm via `--help` that the command was actually
-capable of returning the field you are about to draw a conclusion from.
+**A read-only command can be silently wrong.** It can exit 0, return every record, and
+still omit the field you are counting (`people list` drops `extension` and `locationId`
+unless `--calling-data true` is passed). Before trusting a read, confirm via `--help` that
+the command was actually capable of returning the field you are about to draw a
+conclusion from.
 
 **`--help` outranks docs on command names, flags and requiredness — but NOT on two
-things, both measured.** (1) **Argument ID kinds:** 79 arguments declare a kind their own
-name contradicts — `location_id` help-typed "Webex PEOPLE id", `call_queue_id` typed
-HUNT_GROUP. Where help and the doc disagree on an ID *kind*, the doc is right.
-(2) **Enum choices:** proven
-both ways — `--event all` works though the enum omits it, and `announcements
---location-id` advertises a sample ID that exits 1. On these two, a live call settles it,
-not a re-read of `--help`.
+things, both measured.** (1) **Argument ID kinds:** where help and the doc disagree on an
+ID *kind*, the doc is right. (2) **Enum choices:** help is wrong in both directions. On
+these two, a live call settles it, not a re-read of `--help`.
 
 **A value from the spec is a hypothesis, not a correction.** `--help` is generated from the
 OpenAPI spec, so it inherits the spec's mistakes in enum spellings, example values and
 requiredness. Never change an existing doc or skill example to match the spec or a `--help`
 example unless a live call confirms it, and label any spec-only change `> **Unverified:**`.
-Measured 2026-10-13: an automated pass "corrected" `cc-skill create`'s `skillType` from
-`PROFICIENCY` to the spec's `Proficiency`; the live API rejects title case (400 listing
-`BOOLEAN, ENUM, PROFICIENCY, TEXT`) — while the sibling Global Variable `variableType`
-requires title case. The same day the spec was also wrong on the flow-import body shape and
-on what `cc-dial-number create` requires (`location`, `regionId`).
+
+The measured cases behind the last three rules: `docs/reference/wxcli-behavior.md` § 5. When `--help` Is Wrong.
 
 ## Discovery-First Rule
 
@@ -96,7 +129,7 @@ finding — that IS the answer. Three total commands max before reporting back.
 **Guard on that rule: only accept a negative once the query could have returned a positive.**
 An absent field may mean "not configured" or may mean "you didn't ask for it" (see the
 `--calling-data` case above). Confirm the command surfaces the field before reporting
-"none found" — a false negative delivered confidently is worse than no answer.
+"none found" — a false negative delivered confidently is worse than no answer. Before saying `wxcli` has no command for something, check every group's `--help`, not only the obvious one.
 
 ## Plain-English Communication Rule
 
@@ -118,45 +151,44 @@ This applies to chat answers AND the option text in any question you ask the use
 - **When a plan breaks, stop and re-plan.** Don't push through a failing approach — re-assess, update the plan, then resume.
 - **Bug fixes: just fix it.** When the reproduction is clear (logs, errors, failing tests), resolve without asking for hand-holding. For ambiguous or architectural bugs, propose first.
 - **Learn from every correction.** After any user correction, save a feedback memory capturing the pattern and why it matters. Write the rule so it prevents the same mistake in future sessions — not just this one.
+- **Skill invocations and their reference reads are mandatory.** When an agent file or skill says "YOU MUST call Skill(X)" or "Step 1: Load references", do it: the docs hold platform conventions training data cannot guess (Connect node wiring, Flow Designer activities, AI Agent Studio configuration, Control Hub setup, inbound and outbound flow patterns). Skip them and the output WILL contain invented details.
+- **Don't ask what the user can't answer.** Ask only what they have context for: business logic, their data schema, their team's preferences. Never ask for API response shapes (give a sample and explain it), data center regions or endpoint URLs (say where Control Hub shows them), event type or naming conventions (recommend one), failure-handling defaults (recommend one with its reason; they may override), or node settings, header values and variable syntax (those come from the docs).
+- **No abbreviated documentation.** Never write "etc.", "and more", "and others" or vague wording when documenting API specs, node configurations or platform settings: if there are 9 inputs, list all 9. The user relies on this output as their primary reference.
 
 ---
 
+## Never confuse these
+
+- **CCAI is not Webex AI Agent.** "CCAI" / "Contact Center AI" is **Google's** product; a **Webex AI Agent** is Cisco's own, and deploying one has **no** Control Hub step: publish in AI Agent Studio, then pick `Webex AI Agent Autonomous` / `Webex AI Agent Scripted` in the **Contact Center AI Config** dropdown of the Flow Designer **Virtual Agent V2** activity. Control Hub's *"create a Contact Center AI Config"* flow is for Google CCAI / BYOVA / Agent Answers [`wxcc-platform.md` § CCAI Config]. The mix-up once put a non-existent step into every AI-agent deploy walkthrough — do not reintroduce it.
+- **Export JSON is never generated; FlowIR is.** Flow Designer **export JSON** (the UI export) and Webex Connect flow JSON are proprietary — internal UUIDs cross-referenced in process links, diagram widgets and port mappings — so never generate or restructure them; the only safe edit is find-and-replace of org-specific values (orgId, virtualAgentId, queueId, display names). FlowIR (the v2 API format; names, not IDs) is the supported way to build a flow [`flow-designer-flowir.md` § FlowIR vs Proprietary Export JSON].
+- **Scripted ≠ autonomous agents.** Autonomous agents have *actions* whose descriptions an LLM reads. Scripted agents have intents and entities, no LLM-described actions, and call their API work *fulfillment* — on digital channels inline flow logic (Data Parser → Branch → HTTP → Evaluate → Channel Reply), not standalone action flows.
+- **Digital inbound ≠ outbound notification.** A conversation the customer starts vs a message sent to the customer: different flow patterns, different skills.
+- **In AI Agent Studio, lead with the AI Agent** (the build artifact), not the routing node, and never guess its variable syntax: `{{variable_name}}` works for custom data and fails for Flow Outcomes data [`ai-agent-studio.md` § Custom Data vs. Flow Outcomes Variables].
+- **9800-series phones (9811/9821/9841/9851/9861/9871) run PhoneOS, not RoomOS.**
+
 ## Quick Start
 
-You MUST use `/agents` and select **wxc-calling-builder**. This is the primary interface for all operations.
-The agent walks you through authentication, interviews you about what you want to build, designs
-a deployment plan, executes via `wxcli` commands, and verifies the results. **Do not run `wxcli`
-commands directly** — the agent handles the full workflow.
+Claude spawns the **wxops** agent itself (the `Agent` tool, `subagent_type: "wxops"`) for every job that changes or audits the org; you never pick it from a menu. It authenticates, interviews you about what to build, plans, runs `wxcli` and verifies the results. **Do not run `wxcli` commands directly** — the agent handles the full workflow.
 
-**To build or configure Webex Calling:** `/agents` → wxc-calling-builder → describe what you want.
-
-**To migrate from CUCM:** `/agents` → wxc-calling-builder → "Run a CUCM migration" and provide
-the CUCM host/credentials. The agent runs the full pipeline: discover → normalize → map → analyze
-→ resolve addresses → review decisions → plan → execute → verify. See the CUCM migration section
-below for what the pipeline does. Pipeline and tool details in `.claude/rules/cucm-migration.md` (path-scoped).
-
-**To debug a failing configuration:** Use `/wxc-calling-debug` (this one is a skill, invoked directly).
-
-**To query live org state:** Use `/query-live` for read-only questions about the current environment ("who has call forwarding enabled?", "which locations have no users?", "show me all hunt groups").
-
-**To audit org health:** `/agents` → wxc-calling-builder → "audit my org". The `org-health` skill orchestrates collection, analysis, and HTML report generation.
+- **Build or configure Webex Calling:** describe what you want; the agent follows `docs/playbooks/calling-build.md`.
+- **Contact Center flows, Webex Connect flows, AI agents:** the agent starts with `design-ai-agent` (it settles what the build is), then runs the WxCC skills in the order § Routing Table gives.
+- **Migrate from CUCM:** "Run a CUCM migration", with the CUCM host and credentials. It runs discover → normalize → map → analyze → resolve addresses → review decisions → plan → execute → verify; details in `.claude/rules/cucm-migration.md`.
+- **Debug:** `/wxc-calling-debug` for a failing Calling configuration, `/wxcc-debug` for a failing AI agent action (skills, invoked directly).
+- **Query live org state (read-only):** `/query-live` — "who has call forwarding enabled?", "which locations have no users?", "show me all hunt groups".
+- **Audit org health:** "audit my org"; the agent runs the `org-health` skill, which collects, analyzes and writes an HTML report.
 
 ### Agent Invocation Pattern
 
-wxc-calling-builder is a **phase-per-invocation** agent. Each major phase runs as a
-fresh agent invocation — do NOT resume agents via `SendMessage` for multi-phase workflows.
+**One agent per job.** Spawn one `wxops` agent for a job and keep the whole job — interview, plan, run, verify, report — in that agent.
 
-**Invocation rules:**
-- Always spawn a fresh agent for each phase
-- Pass current state in the prompt: project name, current pipeline stage, key context
-- The agent reads state from disk on startup and validates against the prompt
-- For single-phase work (quick config, one-off query), one invocation is sufficient
+- **Unrelated jobs** (a hunt group for one team, a queue report for another) run as separate agents **in parallel**, spawned in one message.
+- **Follow-ups and interview answers** go to the same agent with `SendMessage` ("also add voicemail to that user", "change the extension to 2001 instead"); don't spawn a new one per question.
+- **Dependent steps** stay in one agent, in order — never split them across parallel agents.
+- **The one exception — CUCM migration:** it stays phase-per-invocation, one fresh agent per phase, one phase at a time, because a whole migration outgrows one agent's context (`.claude/rules/cucm-migration.md`).
+- **Naming is optional:** the safety hook matches the agent's type, not its name.
+- After a long silence, check that the agent is alive before you message it (§ Agent Orchestration below).
 
-**What constitutes a phase boundary:** Any point where the agent writes state to disk and the next step is conceptually independent. Typical boundaries: auth complete → provisioning starts, provisioning complete → feature configuration starts, discovery complete → analysis starts. If the next step needs results from the current step but could be described to a fresh agent in one sentence, it's a new phase.
-
-**When SendMessage IS appropriate:** Simple follow-ups within a single phase — "also add voicemail to that user", "change the extension to 2001 instead". The agent still has the right context. Do NOT use SendMessage across phase boundaries or after long silences; the agent may have lost context or died mid-tool-call.
-
-**Prompt template for fresh phase invocations:**
+**Prompt template for a new agent** (a new job, or the next CUCM phase). The agent reads state from disk on startup and checks it against the prompt:
 ```
 "Project: [name]. Current state: [stage, e.g. 'provisioning complete, 3 users + 2 locations created'].
 Next: [what to do]. Key context: [anything the agent needs that isn't on disk]."
@@ -166,14 +198,14 @@ Next: [what to do]. Key context: [anything the agent needs that isn't on disk]."
 
 ### Agent Model Selection
 
-The builder agent base context is ~40k tokens. Choose the model to match the task complexity:
+The agent's own instructions are about 8 KB, and it starts with about 31k tokens of context. It runs on `sonnet` unless you pass another model; choose the model to match the task complexity:
 
 | Task type | Model | Why |
 |-----------|-------|-----|
 | Cleanup, teardown, batch delete | `haiku` | All logic is in `wxcli cleanup run` — agent just picks flags and runs it |
 | Simple read-only checks (list users, verify resource) | `sonnet` with minimal prompt (1-2 sentences) | Base context load is unavoidable; keep prompt short to minimize output tokens |
 | Standard provisioning, feature config, single-phase builds | `sonnet` (default) | Good balance of capability and cost |
-| Multi-phase CUCM migration, complex routing, architectural decisions | `opus` | Needs reasoning about dependencies, cross-feature interactions |
+| WxCC builds (AI agents, Flow Designer and Connect flows), CUCM migration, complex routing, architectural decisions | `opus` | Needs reasoning about dependencies, cross-feature interactions |
 | Batch multiple simple checks into one agent call | `sonnet` | One agent with 3 checks < three separate agent spawns |
 
 **Anti-patterns:**
@@ -198,14 +230,7 @@ wxcli dect-devices show "Y2lz..." "Y2xz..."
 
 ### Agent Orchestration — Long-Running Work & Silence Detection
 
-A subagent can die mid-work when a long-running tool call (e.g. a Python polling loop) outlives Bash's ~10-min timeout: the call is killed, the agent loop never resumes to emit a final message, and `SendMessage` pings queue to a dead mailbox. This protocol prevents and recovers from that; it **complements** — does not replace — the phase-per-invocation rule above.
-
-#### For subagents running long-running work (>2 min expected)
-
-1. **Never wrap long-running polling in a single Bash call.** A call that outlives the ~10-min hard timeout is killed mid-run; stdout buffering hides progress and the parent sees silence (see the failure mode above).
-2. **Split into discrete tool calls.** One Bash call per polling round (not 20 rounds in one call). Between rounds, the agent loop can emit progress messages.
-3. **Use `run_in_background: true` on Bash** for genuinely long-running commands (e.g., `wxcli cucm execute` that runs >5 min); monitor the task output file (but do not `tail`/Read large JSONL transcripts — use targeted line ranges only).
-4. **Emit progress explicitly.** At minimum every 60s, the subagent should produce a visible message (text output, not a tool call) so observers see aliveness.
+A subagent can die mid-work when a long-running tool call (e.g. a Python polling loop) outlives Bash's ~10-min timeout: the call is killed, the agent loop never resumes to emit a final message, and `SendMessage` pings queue to a dead mailbox. The agent's own rules for long-running work are in its body (§ 3. Run); this is the parent's half.
 
 #### For parent agents when a subagent goes silent
 
@@ -217,201 +242,104 @@ A subagent can die mid-work when a long-running tool call (e.g. a Python polling
 4. **If the subagent is dead** (transcript ends on unpaired `tool_use`), spawn a fresh agent to continue the work from current state. Do not wait longer.
 5. **Check external state** via a fresh diagnostic agent (e.g., "run `wxcli locations list`") rather than trusting the dead subagent's last self-reported state.
 
-## File Map
+## Routing Table
 
-### Agent & Skills
+Find the user's words in the first column. **When the row names a skill, invoking that skill is your first action** — the skill reads the row's docs itself. Open a doc from the row yourself first only for a value question (what / which / how many / is it possible) or when the row names no skill. A row naming several meanings lists each; if the user hasn't said which, ask. CC = Contact Center. A doc named without a folder is in `docs/reference/`; "CC core/routing/analytics/journey § N" is section N of docs/reference/contact-center-core.md (or -routing, -analytics, -journey).
 
-| Path | Purpose |
-|------|---------|
-| `.claude/agents/wxc-calling-builder.md` | Main builder agent — drives the full workflow |
-| `.claude/agents/migration-advisor.md` | Opus-powered CCIE-level migration advisor — architectural reasoning + decision review |
-| `.claude/skills/provision-calling/` | Skill: provision users, locations, licenses |
-| `.claude/skills/teardown/` | Skill: dependency-safe teardown, `wxcli cleanup`, manual deletion procedure |
-| `.claude/skills/configure-features/` | Skill: set up call features (AA, CQ, HG, etc.; Customer Assist → see customer-assist skill) |
-| `.claude/skills/customer-assist/`      | Skill: configure Customer Assist (screen pop, wrap-up, recording, supervisors) |
-| `.claude/skills/manage-call-settings/` | Skill: configure person/workspace call settings, phone number add/remove/reassign |
-| `.claude/skills/configure-routing/` | Skill: configure routing (trunks, dial plans, PSTN) |
-| `.claude/skills/manage-devices/` | Skill: manage devices (phones, DECT, workspaces) |
-| `.claude/skills/device-platform/` | Skill: manage PhoneOS/RoomOS device configs, workspace personalization, xAPI; 9800-series phones (9811/9821/9841/9851/9861/9871) use PhoneOS (not RoomOS) |
-| `.claude/skills/call-control/` | Skill: real-time call control, webhooks |
-| `.claude/skills/reporting/` | Skill: CDR query engine (75 recipes + composition guide), report templates, recordings |
-| `.claude/skills/reporting-cc/` | Skill: Contact Center analytics (queue stats, agent stats, EWT, summaries) |
-| `.claude/skills/reporting-meetings/` | Skill: meetings quality, workspace metrics, historical analytics, live monitoring |
-| `.claude/skills/wxc-calling-debug/` | Skill: debug failing configurations |
-| `.claude/skills/manage-identity/` | Skill: SCIM sync, directory, groups, contacts, domains |
-| `.claude/skills/audit-compliance/` | Skill: audit events, security, compliance, authorizations |
-| `.claude/skills/manage-licensing/` | Skill: license audit, assignment, reclamation |
-| `.claude/skills/messaging-spaces/` | Skill: manage spaces, teams, memberships, ECM, HDS |
-| `.claude/skills/messaging-bots/` | Skill: build bots, adaptive cards, webhooks, cross-domain integrations |
-| `.claude/skills/manage-meetings/` | Skill: schedule, manage, query meetings + content |
-| `.claude/skills/video-mesh/` | Skill: Video Mesh monitoring and threshold configuration |
-| `.claude/skills/contact-center/` | Skill: CC provisioning (agents, queues, entry points, dial numbers, flows, campaigns) |
-| `.claude/skills/org-health/` | Skill: org health assessment — collect, analyze 18 checks, HTML report |
-| `.claude/skills/cucm-migrate/` | Skill: execute CUCM-to-Webex migration from exported deployment plan |
-| `.claude/skills/query-live/` | Skill: read-only natural language queries against live Webex Calling state |
-
-### Skill Disambiguation
-
-When multiple skills could match, use this lookup. (Basic skill-vs-skill routing already lives in each skill's `NOT for:` description, which the session always sees — the rows below cover only what those don't resolve: subtle overlaps, Calling-vs-CC terminology collisions, and undocumented capabilities.)
-
-| If the user wants to... | Use this skill | NOT this one |
-|--------------------------|---------------|-------------|
-| Add/remove phone numbers on a user, number reassignment | `manage-call-settings` | `provision-calling` (that's for initial user/license creation; provision-calling owns number *inventory*, not per-user assignment) |
-| Update user profile fields (alternate numbers, display name) | `provision-calling` | `manage-call-settings` (profile fields are People API, not telephony config) |
-| Configure voicemail groups (shared location mailbox) | `configure-features` | `manage-call-settings` ("voicemail" collides: groups are a location feature, not person voicemail) |
-| **Calling vs CC terminology — when the same word means different things:** | | |
-| "Create a queue" (Calling call queue) | `configure-features` | `contact-center` (that's CC queues — different API, different entity) |
-| "Create a queue" (Contact Center queue) | `contact-center` | `configure-features` (that's Calling queues — no skill-based routing) |
-| "Set up a dial plan" (Calling outbound routing) | `configure-routing` | `contact-center` (CC dial plans map DNs to entry points, different API) |
-| "Set up a dial plan" (CC DN-to-entry-point mapping) | `contact-center` | `configure-routing` (that's Calling outbound routing) |
-| "Create a team" (Messaging spaces) | `messaging-spaces` | `contact-center` (CC teams group agents for routing) |
-| "Create a team" (CC agent grouping) | `contact-center` | `messaging-spaces` (that's collaboration spaces) |
-| "Set up recording" (per-user call recording) | `manage-call-settings` | `customer-assist` (that's CC queue recording) |
-| "Set up recording" (CC queue recording) | `customer-assist` | `manage-call-settings` (that's per-user Calling recording) |
-| "Download/export recordings" (converged recordings) | `reporting` | `manage-call-settings` (that's the per-user toggle, not retrieval) |
-| "Configure the site" (Calling location) | `provision-calling` | `contact-center` (CC sites are logical agent groupings, not locations) |
-| "Configure the site" (CC site for agent teams) | `contact-center` | `provision-calling` (Calling locations have addresses and PSTN) |
-| "Create a workspace" (Calling device workspace) | `manage-devices` | `contact-center` (CC JDS workspaces are journey data containers) |
-| "Set up business hours / holidays" (Calling schedule) | `configure-features` | `contact-center` (CC business hours are a separate entity type) |
-| "Set up business hours / holidays" (CC schedule) | `contact-center` | `configure-features` (Calling schedules attach to AA/CQ/HG) |
-| Build a custom agent desktop / browser softphone with WebRTC audio | **`docs/reference/contact-center-agent-sdk.md`** (a reference doc, not a skill — no CLI path exists for this) | `contact-center` (that provisions the agents/queues the desktop connects to) and **not** `cc-desktop-layout` (that configures Cisco's own Agent Desktop; a custom desktop ignores layouts entirely) |
-| **Undocumented capabilities — user asks, table must route:** | | |
-| Set up executive-assistant delegation | `manage-call-settings` | `configure-features` (delegation is a person setting, not a call feature) |
-| Configure line keys, BLF, speed dials on phones | `manage-devices` | `manage-call-settings` (line key templates are device config, not call settings) |
-| Digit manipulation (strip digits, add country code) | `configure-routing` (translation patterns) | `manage-call-settings` (that's per-person settings, not digit transforms) |
-| Bulk import users from CSV | `provision-calling` | `manage-identity` (SCIM is directory sync, not bulk user provisioning) |
-| How many licenses are unused / license audit | `manage-licensing` | `reporting` (reporting is CDR/call data, not license inventory) |
-| Verify domain for SCIM / DNS setup | `manage-identity` | `provision-calling` (domain verification is identity, not calling provisioning) |
-| Enable hoteling on a workspace | `manage-call-settings` | `manage-devices` (hoteling is a workspace calling setting, not device provisioning) |
-| Import org contacts / directory entries | `manage-identity` | `provision-calling` (org contacts are directory, not calling users) |
-| Set where calling data is stored (data/storage policy region, org or per-location) | `provision-calling` (group: `data-policies`) | `manage-call-settings` (it is an org/location storage policy, not a per-person setting) |
-| List the campaigns belonging to a campaign group | `contact-center` (group: `cc-campaign-group`) | `configure-features` (outbound campaigns are Contact Center, not Calling) |
-| Reclaim licenses from inactive users | `manage-licensing` | `teardown` (license reclamation ≠ resource deletion) |
-| Manage announcement repository files/playlists (AA/CQ greetings), or generate text-to-speech prompts | `configure-features` (groups: `announcements` — incl. `tts-generate`/`tts-usage`/`tts-status`/`tts-voices`; `announcement-playlists`, `cq-playlists`) | `reporting` (that's recordings, not announcements) |
-| Set up an AI that answers calls, its intents, or the knowledge base it answers from | `configure-features` (group: `ai-receptionist`) | `configure-features`'s **Auto Attendant** (that's a key-press IVR menu, not an AI) and `contact-center` (AI Receptionist is a Calling feature, not a WxCC agent) |
-| Configure E911 emergency services/addresses (`emergency-services` group) | `provision-calling` (location addresses) + `manage-call-settings` (per-person ECBN) | `wxc-calling-debug` |
-| Virtual line call settings (`virtual-line-settings`) | `manage-call-settings` (virtual lines are person-like settings; see `virtual-lines.md`) | `provision-calling` |
-| Operating modes / mode management (`mode-management`, user-token only per Known Issue #3) | `manage-call-settings` | `configure-features` (`operating-modes` location/feature side stays there) |
-| Org/admin recordings retrieval (`admin-recordings`) | `reporting` | `manage-meetings` |
-| Org profile, settings, roles (`identity-org`, `org-settings`, `roles`) | `manage-identity` | `audit-compliance` |
-| Register interest in telephony webhook events (`webhook-interest-registrations`) | `call-control` | `messaging-bots` (that's messaging webhooks; this is the Calling-side registration that gates which telephony events a webhook receives) |
-| Discover which fields the Contact Center search API accepts (`cc-search-metadata`) | `reporting-cc` | `contact-center` (metadata describes the search surface; it provisions nothing) |
-| Person-level hot-desking members (`hot-desking-members`) | `manage-call-settings` (person settings) | `manage-devices` (workspace/device-level hot-desk stays there) |
-| Set the wrap-up reason on a Webex **Calling** call (`call-controls-members`, `call-controls-members-me`) | `call-control` | `contact-center` (`cc-aux-code` is the WxCC wrap-up surface — same word, different API, needs a `cjp:` scope) and `customer-assist` (that configures wrap-up reasons on a CX queue; these two SET one on a live call) |
-| List, read, mark or delete the **messages in a voicemail box** (`user-call-settings-members`, `user-call-settings-members-me`) | `manage-call-settings` | `provision-calling` and `configure-features` (voicemail *groups* are a location feature there); `user-settings` inside this same skill is voicemail **configuration** — enable, forward, greeting, passcode — not the messages |
-| Batch-correct global variable values on Contact Center contacts already handled (`external-data-updates`) | `contact-center` | `reporting-cc` (that reads CC analytics; this writes back onto contacts) and `configure-features` (Calling has no global-variable concept) |
-| Schedule when a Contact Center supervisor may monitor which agents — recurring or one-off windows (`cc-monitoring-schedules`) | `contact-center` | `cc-call-monitoring` in the same skill (that starts, barges and coaches a LIVE monitoring session; this stores the schedule that authorises one) and `call-control` (Calling barge-in/silent-monitor on a Calling call, not WxCC) |
-| Read or change Contact Center tenant-wide entitlements and thresholds — short/lost-call thresholds, contact entitlements, WFO and campaign-manager flags (`cc-org-settings`) | `contact-center` | `manage-identity` (`org-settings` is the **Webex** org's feature-key settings, a different API on a different host) |
-| Read or change Contact Center tenant configuration — auto wrap-up interval, outdial, logging levels, DN descriptions (`cc-tenant-config`) | `contact-center` | `manage-identity` (Webex org identity settings) and `provision-calling` (Calling org defaults live in `calling-service`) |
-| Set up the medium a Contact Center contact arrives on (telephony/email/chat/social/work-item), or the configured instance of one — `channel`, `asset` | `contact-center` | `messaging-spaces` (a Webex space is not a CC "channel") and `configure-features` (Calling has no channel concept) |
-| Generate or download a Contact Center consumption/billing report (`usage-reports`) | `reporting-cc` | `reporting` (that group is Webex Calling CDR; CC resource consumption is a different API and arrives as a downloadable file) |
-| Webex Calling call quality figures — packet loss, jitter, latency — for a time window (`calling-metrics`) | `reporting` | `reporting-cc` (that is Contact Center quality) and `reporting-meetings` (that is meeting media quality) |
+| Topic or trigger words | Invoke first | Docs (the skill reads them; read one directly only for a value question or when no skill is named) |
+|---|---|---|
+| queue | Calling call queue: `configure-features`. CC queue: `contact-center`. Customer Assist queue: `customer-assist` (`call-queue` needs `--has-cx-essentials true`, `docs/reference/wxcli-behavior.md` Known Issue #7) | CC core § 6. Flow Designer Queue Contact activity: `docs/reference/flow-designer-essentials.md`; Control Hub queues: `docs/playbooks/wxcc-setup.md` |
+| flow, call flow, flow for our contact center | voice flow: `design-flow`, then `build-flow-designer` or `build-flow-programmatic`. Webex Connect flow: `build-action`, `build-digital-inbound`, `build-notification`, `build-outbound-flow`. List/export/import/publish a CC flow: `contact-center` | CC routing § 11. Not said: ask voice IVR, AI agent, or digital (chat/SMS)? |
+| AI agent, Agent Studio, "set up my agent" | autonomous (actions + LLM descriptions): `configure-ai-agent`. Scripted (intents + entities): `design-scripted-agent`, then `configure-scripted-agent`. Mid-build: that skill. From scratch: `design-ai-agent` (§ Multi-Skill Workflows). | Not said: ask which |
+| agent (a person), agent records, users, user profiles | CC agents, profiles, greetings, wellbeing: `contact-center`. Claude's builder subagent: `wxops` | CC core §§ 1–5; a human agent's app: desktop row |
+| action, fulfillment, "wire up the API call for my agent" | autonomous agent *action*: `build-action`. Scripted agent *fulfillment*: `build-scripted-fulfillment` | Not said: ask which |
+| team | messaging team: `messaging-spaces`. CC agent team: `contact-center` | CC core § 9 |
+| site | Calling location (address, PSTN): `provision-calling`. CC site (agent grouping): `contact-center` | CC core § 19 |
+| dial plan, dial number, map a number to an entry point | Calling outbound routing: `configure-routing`. CC dial plan, dial number: `contact-center` | CC routing §§ 1–2 |
+| desktop, desktop layout, agent desktop, browser softphone, WebRTC, `webex.cc`, `task.*` | your own agent desktop: no skill, no CLI (not `configure-ai-agent`; a custom desktop ignores layouts). Cisco's Agent Desktop layout, desktop profile: `contact-center` | `docs/reference/contact-center-agent-sdk.md`; CC core §§ 13–14 |
+| recording | per-user Calling recording: `manage-call-settings`. CC / Customer Assist queue recording: `customer-assist`. Download converged or org/admin recordings (`admin-recordings`): `reporting` | |
+| workspace | Calling device workspace: `manage-devices`; its hoteling, hot desking: `manage-call-settings`. CC journey (JDS) workspace: `contact-center`. Workspace metrics: `reporting-meetings` | CC journey § 1 |
+| business hours, holidays, schedule | Calling schedule (AA/CQ/HG): `configure-features`. CC business hours, holiday list: `contact-center` | CC core §§ 15–16 |
+| IVR, phone menu, voice menu | Flow Designer IVR: `design-flow` first, not `build-flow-designer`. Calling auto attendant (key presses): `configure-features`. AI that answers calls (`ai-receptionist`): `configure-features` | |
+| SMS, text message | outbound: `build-notification`. Inbound with an AI agent: `build-digital-inbound` | inbound without one: `docs/playbooks/inbound-sms.md` |
+| webhook, event subscription | Calling telephony events, `webhook-interest-registrations`: `call-control`. Messaging webhooks: `messaging-bots`. CC event subscriptions (`cc-subscriptions`): `contact-center` | Connect flow trigger: `docs/playbooks/webhook-triggers.md`; CC analytics § 9 |
+| debug, not working, failing, not routing | Calling configuration: `wxc-calling-debug`. AI agent action: `wxcc-debug`. Not Claude Code's built-in `debug` skill | voice flow: `docs/reference/flow-designer-patterns.md` § Flow Debugging (no skill) |
+| wrap-up | live Calling call (`call-controls-members`): `call-control`. CC wrap-up, aux codes (`cc-aux-code`): `contact-center`. Reasons on a Customer Assist queue: `customer-assist` | |
+| voicemail | voicemail group: `configure-features`. A person's voicemail and the messages in a box (`user-call-settings-members`): `manage-call-settings` | |
+| bot, chatbot, flow for my chatbot | ask: from scratch, the conversation loop (`build-digital-inbound`), or an API call (`build-action` / `build-scripted-fulfillment`)? Webex messaging bot: `messaging-bots` | |
+| outbound notification, outbound flow (no channel) | ask: voice with TTS (`build-outbound-flow`), SMS/email/WhatsApp/RCS/Apple Messages (`build-notification`), or both with fallback? | |
+| audio, skill profile, outdial, callback, campaign, contact list, DNC, channel, asset | `contact-center` (`cc-campaign-group` lists a group's campaigns; a Webex space is not a CC channel) | audio CC routing § 12; skills, skill profiles CC core §§ 10–11; outdial ANI routing § 3; callbacks routing § 5 (the Callback activity: `docs/reference/flow-designer-activities/_index.md`); campaigns, lists, DNC routing §§ 8–9; channels, assets routing §§ 15–16 |
+| CC tenant settings, entitlements, thresholds, auto wrap-up interval, logging levels; monitoring schedule, live monitoring, barge; correct global variables on handled contacts | `contact-center` (`cc-org-settings`, `cc-tenant-config`, not `manage-identity`'s `org-settings`; `cc-monitoring-schedules`, `cc-call-monitoring`; `external-data-updates`). Calling barge-in: `call-control` | CC core §§ 21–23; CC analytics §§ 7, 15 |
+| CC analytics, queue/agent stats, EWT, search fields, usage/billing report | `reporting-cc` (`cc-search-metadata`, `usage-reports`) | CC analytics |
+| CC provisioning: agents, queues, entry points, teams | `contact-center` | `docs/reference/contact-center-core.md` |
+| phone numbers on a user, reassign a number | `manage-call-settings` (a location's inventory: `provision-calling`) | |
+| users, locations, licenses, profile fields (alternate numbers, display name), bulk CSV import (not SCIM), data region (`data-policies`) | `provision-calling` | |
+| auto attendant, call queue, hunt group, paging, call park, pickup, announcements, playlists, text-to-speech (`tts-*`) | `configure-features` | |
+| person or workspace call settings: forwarding, DND, executive-assistant, virtual lines (`virtual-line-settings`), operating modes (`mode-management`, user token: `docs/reference/wxcli-behavior.md` Known Issue #3), hot-desking members, hoteling | `manage-call-settings` | |
+| trunks, PSTN, route groups, route lists, translation patterns, digit manipulation | `configure-routing` | |
+| phones, DECT, line keys, BLF, speed dials | `manage-devices` | |
+| PhoneOS / RoomOS configuration, xAPI, workspace personalization | `device-platform` | |
+| E911, emergency address, ECBN | `provision-calling` (address) + `manage-call-settings` (ECBN) | |
+| live call control: dial, answer, hold, transfer, park | `call-control` (user OAuth: `docs/reference/wxcli-behavior.md` Known Issue #1) | |
+| CDR, call history, Calling call quality (packet loss, jitter, latency) | `reporting` | |
+| "who has / which / how many" in the live org | `query-live` | |
+| delete, tear down, clean up | `teardown` | `.claude/rules/cleanup.md` (read it; it does not auto-load in a customer folder) |
+| Customer Assist: screen pop, wrap-up, recording, supervisors | `customer-assist` | |
+| licenses: audit, unused, assign, reclaim from inactive users | `manage-licensing` (not `reporting`, not `teardown`) | |
+| SCIM, directory, groups, org contacts, domain verification, org profile, org settings, roles | `manage-identity` | |
+| audit events, security audit, compliance, authorizations, service app credentials | `audit-compliance` | |
+| org health, "audit my org" | `org-health` (self-contained) | |
+| partner, several customer orgs, switch org | | `docs/reference/wxcli-behavior.md` § 2; `docs/reference/authentication.md` |
+| BroadWorks, wholesale, partner admins/tags, hybrid, UCM profile | not covered | § Out-of-Skill-Scope Command Groups |
+| Webex spaces, messages, memberships, ECM, HDS | `messaging-spaces` | |
+| bots, adaptive cards, cross-domain integrations | `messaging-bots` | |
+| schedule or manage meetings, transcripts, meeting content | `manage-meetings` | |
+| meeting quality, live meeting monitoring | `reporting-meetings` | |
+| Video Mesh | `video-mesh` | |
+| CUCM migration, `wxcli cucm` | `cucm-migrate`; `migration-advisor` agent | `.claude/rules/cucm-migration.md` |
+| any other Webex API (endpoint, scope, raw HTTP) | | `docs/reference/INDEX.md` |
+| how `wxcli` behaves: flags, paging, errors, known issues | | `docs/reference/wxcli-behavior.md` |
+| Flow Designer: activities, settings, restrictions, capabilities, error codes, event flows, wiring rules, configuration fields, "can I do X in Flow Designer?", Virtual Agent V2, Queue Contact, Collect Input, Play Message, Call Patch, BRE Request, Functions Activity, flow variables, entry point routing | | `docs/reference/flow-designer-essentials.md` first (the 9 activities every flow uses); other activities: `docs/reference/flow-designer-activities/_index.md`, then the activity's file; versioning, subflows, fulfillment, TTS, debugging: `docs/reference/flow-designer-patterns.md`; FlowIR, API property names, v2 REST: `docs/reference/flow-designer-flowir.md` |
+| Contact Center Control Hub: entry points, queues, teams, sites, PSTN assignment, channel assets, routing strategy, global variables, CCAI config, Analyzer reporting, Service Apps, token refresh, CJDS, "where do I configure X in Control Hub?" | CLI: `contact-center` | `docs/reference/wxcc-platform.md` first; setup: `docs/playbooks/wxcc-setup.md`; API auth: `docs/playbooks/webex-api-auth.md`; CJDS: `docs/playbooks/cjds-integration.md` |
+| autonomous agent: goal, welcome message, actions, action descriptions, slot entities, sample JSON, instructions, Custom Data, Custom Event Fulfillment, CCAI config, deployment, "how do I configure X in Agent Studio?" | `configure-ai-agent` | `docs/reference/ai-agent-studio.md` first; an action's flow: `docs/reference/webex-connect.md` + `docs/playbooks/connect-flows.md`; deployment: also `docs/reference/wxcc-platform.md`; import JSON: `docs/reference/ai-agent-studio-import-json.md` |
+| scripted agent: intents, entities, responses, fulfillment, AI engines, context flow, training phrases, Incoming Custom Events, state_update, voice channel fulfillment, "how do I set up a scripted agent?" | `design-scripted-agent` → `configure-scripted-agent` → `build-scripted-fulfillment` | `docs/reference/ai-agent-studio-scripted.md` first; design: `docs/playbooks/scripted-agent-design.md`; build: `docs/playbooks/scripted-agent-build.md`; voice fulfillment: flow-designer-patterns.md § Scripted Agent Fulfillment Pattern |
+| digital inbound: channel Start triggers, Webex Engage nodes, Process Message, multi-turn loops, human escalation, Queue Task, Fetch Conversation Transcript, cross-channel escalation, "set up a digital channel for my agent" | `build-digital-inbound` | `docs/reference/digital-inbound.md` first; steps: `docs/playbooks/digital-inbound-agent.md`; chat → voice: `docs/playbooks/cross-channel-escalation.md`; channel nodes: connect-*.md |
+| database: Supabase, PostgREST, choosing a backend, HTTP headers for DB calls, research protocol, "what database should I use?" | | `docs/reference/db-integration.md` first (backend not documented: its research protocol, don't guess); `docs/playbooks/supabase.md`; BRE: `docs/reference/bre.md` |
+| Webex Connect: flow structure, nodes (HTTP Request, Branch, Evaluate, Play, Call User, Voice Node Group, channels), variable picker, Flow Outcomes, Custom Connectors, Start node triggers, flow wiring, "how do I do X in Connect?" | | `docs/reference/webex-connect.md` first; Branch, Evaluate, voice, channel nodes: `docs/reference/webex-connect-advanced.md`; action flow: `docs/playbooks/connect-flows.md` |
+| Connect channel: SMS/MMS, email, RCS, Apple Messages, WhatsApp, multi-channel | send to customers: `build-notification`; receive with an AI agent: `build-digital-inbound` | `docs/reference/connect-sms.md`, `docs/reference/connect-email.md`, `docs/reference/connect-rcs.md`, `docs/reference/connect-apple-messages.md`, `docs/reference/connect-whatsapp.md`, `docs/reference/connect-multi-channel.md` |
+| BRE (Business Rules Engine): DataSync, rules, CSV upload, BRE Request, data tables, sizing limits, lookup patterns, "how do I use BRE for X?" | | `docs/reference/bre.md` first; setup: `docs/playbooks/bre-setup.md`; the activity: flow-designer-activities/_index.md; vs other backends: db-integration.md |
+| build the flow from a design doc | manual UI: `build-flow-designer`; programmatic (FlowIR): `build-flow-programmatic`; no design doc: `design-flow` | Not said: ask |
+| outbound voice call, TTS alert | `build-outbound-flow` | |
+| outbound SMS, email, WhatsApp, RCS, Apple Messages | `build-notification` | |
+| diagram, visualize, drawio, presentation, deck | activity-level `.drawio`: `build-spec-diagram`; architecture HTML + PPTX: `build-solution-docs` (not MARP, not Gamma) | "a diagram from this plan": ask |
+| Connect flow for my agent | single API call: `build-action`; conversation: `build-digital-inbound` | Not said: ask |
 
 ### Multi-Skill Workflows
 
-Common admin goals that span multiple skills. When the user states one of these end goals, orchestrate the skills in sequence — don't pick just one.
+Common goals that span several skills. When the user states one of these end goals, orchestrate the skills in sequence — don't pick just one.
 
-| User goal | Skills needed (in order) | Why it's multi-skill |
-|-----------|------------------------|---------------------|
-| Offboard a user | `manage-call-settings` → `manage-devices` → `manage-licensing` → `teardown` → `manage-identity` | Must remove settings, release device, reclaim license, delete user, sync directory |
-| Set up call recording for a team | `manage-call-settings` (per-person toggle) + `configure-features` (location recording policy) + `customer-assist` (if CX queue recording) | Recording config lives at person, location, AND queue level |
-| E911 compliance for a location | `provision-calling` (emergency address on location) + `manage-call-settings` (per-person ECBN) | Address is location-level, ECBN callback number is per-person |
-| Shared line on physical phones | `manage-call-settings` (shared line appearance / exec-assistant) + `manage-devices` (line key assignment on devices) | Pairing is a call setting, line key layout is device config |
-| Port numbers and assign to users | `provision-calling` (location number inventory) → `manage-call-settings` (assign to users) → `configure-routing` (update dial plan if needed) | Numbers flow through location inventory before user assignment |
-| Convert workspace to licensed user | `teardown` (decommission workspace) → `provision-calling` (create user, assign license) → `manage-call-settings` (voicemail, forwarding) → `manage-devices` (reassign device) | Workspace-to-user is a lifecycle change spanning 4 domains |
-| CC overflow to Calling hunt group | `contact-center` (CC queue/entry point config) + `configure-features` (hunt group) + `configure-routing` (dial plan to connect them) | CC and Calling are separate routing worlds joined by PSTN/dial plan |
-| Hot desking on conference phones | `manage-devices` (enable hot desking; workspace/device level) + `device-platform` (PhoneOS config keys for hot desk behavior) + `manage-call-settings` (workspace hoteling settings AND person-level hot-desking members via `hot-desking-members`) | Device provisioning, firmware config, and calling settings are three layers; person-level members are person settings |
+| Goal | Skills in order | Why |
+|---|---|---|
+| Offboard a user | `manage-call-settings` → `manage-devices` → `manage-licensing` → `teardown` → `manage-identity` | settings, device, license, user, directory |
+| Recording for a team | `manage-call-settings` + `configure-features` + `customer-assist` | set per person, location and queue |
+| E911 for a location | `provision-calling` + `manage-call-settings` | address per location, ECBN per person |
+| Shared line on phones | `manage-call-settings` + `manage-devices` | pairing is a setting; line keys are device config |
+| Port numbers to users | `provision-calling` → `manage-call-settings` → `configure-routing` | numbers enter location inventory first |
+| Workspace → licensed user | `teardown` → `provision-calling` → `manage-call-settings` → `manage-devices` | lifecycle change across 4 areas |
+| CC overflow to a hunt group | `contact-center` + `configure-features` + `configure-routing` | two routing worlds joined by PSTN / dial plan |
+| Hot desking on conference phones | `manage-devices` + `device-platform` + `manage-call-settings` | device, PhoneOS config, calling settings |
+| AI agent from scratch | `design-ai-agent` → `build-action` → `configure-ai-agent` → `build-digital-inbound`, in one `wxops` agent | design first; one agent for the build |
+| Voice flow | `design-flow` → review → `build-spec-diagram` (optional) → `build-flow-designer` or `build-flow-programmatic` → `docs/playbooks/wxcc-setup.md` | design doc first |
+| Notification, voice fallback | `build-notification` + `build-outbound-flow` | voice needs Call User |
+| Scripted agent | `design-scripted-agent` → review → `configure-scripted-agent` → `build-scripted-fulfillment` → `build-digital-inbound` | design before build |
+| Solution docs from a plan | `build-solution-docs`, `build-spec-diagram` | can run both |
+| Digital inbound, escalate to voice | `build-digital-inbound` → `docs/playbooks/cross-channel-escalation.md` → `design-flow` | the voice leg is a flow |
 
-### Reference Docs — Webex API Surface
+## Where the rest lives
 
-| Path | Purpose |
-|------|---------|
-| `docs/reference/authentication.md` | Auth methods, tokens, scopes, OAuth flows |
-| `docs/reference/provisioning.md` | People (profile fields, phoneNumbers array incl. alternate1/alternate2), licenses, locations, org setup |
-| `docs/reference/call-features-major.md` | Auto attendants, call queues, hunt groups |
-| `docs/reference/call-features-additional.md` | Paging, call park, pickup, voicemail groups, Customer Assist |
-| `docs/reference/ai-receptionist.md` | AI Receptionist (AI call answering), intents, knowledge bases + documents |
-| `docs/reference/person-call-settings-handling.md` | Call forwarding, DND, call waiting, sim/sequential ring |
-| `docs/reference/person-call-settings-media.md` | Voicemail, caller ID, privacy, barge, recording, intercept |
-| `docs/reference/person-call-settings-permissions.md` | Incoming/outgoing permissions, feature access, executive/assistant |
-| `docs/reference/person-call-settings-behavior.md` | Calling behavior, app services, hoteling, receptionist, phone number add/remove/reassign, ECBN |
-| `docs/reference/self-service-call-settings.md` | User self-service call settings (/people/me/ endpoints) |
-| `docs/reference/location-calling-core.md` | Location enablement, internal dialing, voicemail policies, voice portal |
-| `docs/reference/location-calling-media.md` | Announcements, playlists, schedules, access codes |
-| `docs/reference/location-recording-advanced.md` | Call recording, caller reputation, conference, supervisor, operating modes |
-| `docs/reference/call-routing.md` | Dial plans, trunks, route groups, route lists, translation patterns, PSTN |
-| `docs/reference/devices-core.md` | Device CRUD, activation, device configurations, telephony devices |
-| `docs/reference/devices-dect.md` | DECT networks, base stations, handsets, hotdesking |
-| `docs/reference/devices-workspaces.md` | Workspaces, workspace settings, workspace locations |
-| `docs/reference/devices-platform.md` | RoomOS device configurations, workspace personalization, xAPI |
-| `docs/reference/call-control.md` | Real-time call control (dial, answer, hold, transfer, park, recording) |
-| `docs/reference/webhooks-events.md` | Webhooks: CRUD, telephony + messaging event types, payloads |
-| `docs/reference/reporting-analytics.md` | CDR, report templates, call quality, queue/AA stats |
-| `docs/reference/virtual-lines.md` | Virtual line/extension settings, voicemail, recording |
-| `docs/reference/emergency-services.md` | E911, emergency addresses, ECBN |
-
-### Reference Docs — Admin & Identity APIs
-
-| Path | Purpose |
-|------|---------|
-| `docs/reference/admin-org-management.md` | Organizations, org settings, contacts, roles, domains |
-| `docs/reference/admin-identity-scim.md` | SCIM users/groups, schemas, bulk ops, identity org, people, groups |
-| `docs/reference/admin-licensing.md` | License inventory, assignment, usage auditing |
-| `docs/reference/admin-audit-security.md` | Admin audit events, security audit, compliance events |
-| `docs/reference/admin-hybrid.md` | Hybrid clusters/connectors, analytics, meeting quality |
-| `docs/reference/admin-partner.md` | Partner admins, tags, partner reports |
-| `docs/reference/admin-apps-data.md` | Service apps, authorizations, activation emails, data sources, recordings, resource groups |
-
-### Reference Docs — Messaging APIs
-
-| Path | Purpose |
-|------|---------|
-| `docs/reference/messaging-spaces.md` | Spaces, messages, memberships, teams, ECM, HDS |
-| `docs/reference/messaging-bots.md` | Bot development, adaptive cards, room tabs, cross-domain recipes |
-
-### Reference Docs — Meetings APIs
-
-| Path | Purpose |
-|------|---------|
-| `docs/reference/meetings-core.md` | Meeting CRUD, templates, controls, registrants, interpreters, breakouts, surveys |
-| `docs/reference/meetings-content.md` | Transcripts, captions, chats, summaries, meeting messages |
-| `docs/reference/meetings-settings.md` | Preferences, session types, tracking codes, site settings, polls, Q&A, reports |
-| `docs/reference/meetings-infrastructure.md` | Video Mesh (clusters, nodes, health, utilization), participants, invitees |
-
-### Reference Docs — Contact Center APIs
-
-| Path | Purpose |
-|------|---------|
-| `docs/reference/contact-center-core.md` | CC agents, queues, entry points, teams, skills, desktop, configuration |
-| `docs/reference/contact-center-routing.md` | CC dial plans, dial number-to-entry-point mapping, campaigns, flows, audio, contacts, outdial |
-| `docs/reference/contact-center-analytics.md` | CC AI, monitoring, subscriptions, tasks, search |
-| `docs/reference/contact-center-journey.md` | JDS: workspaces, persons, identity, profile views, events, WXCC subscription |
-| `docs/reference/contact-center-agent-sdk.md` | `@webex/contact-center` JS SDK — building a **custom agent desktop** (browser softphone): `webex.cc`/`task.*`, WebRTC audio, events, flow variables, `cjp:user` runtime scope. Not the REST/`wxcli` surface |
-
-### Migration (KB, Runbooks, Tool)
-
-Detailed migration context lives in `.claude/rules/cucm-migration.md` (the file ships; its `paths:` globs auto-load it only in a source checkout — read it explicitly in an installed playbook). Contains: knowledge base file map (8 KB docs for the Opus advisor), operator runbooks (3 docs for pipeline walkthrough, decision guide, tuning), migration tool pipeline commands, advisory workflow, report/diff/notice generation commands, and the phase-by-phase agent invocation example.
-
-**Read the rule when:** handling any CUCM migration question, running `/cucm-migrate`, or working with the migration advisor agent — even if not editing migration source files directly.
-
-### CLI (wxcli) — Primary Execution Layer
-
-| Path | Purpose |
-|------|---------|
-| `wxcli --help` | Shows all command groups |
-| `wxcli <group> --help` | Shows commands within a group |
-| `wxcli <group> <command> --help` | Shows options for a command |
-| `docs/spec-sync-contract.md` | (repo-only — present in a source checkout, not in an installed playbook) The weekly spec-sync's definition of done; the cloud routine's prompt points here |
-
-### Org Health Assessment
-
-Detailed context in `.claude/rules/org-health.md` (the file ships; its `paths:` glob targets this repo's own source, so it auto-loads only in a source checkout). Contains: a one-paragraph overview, run instructions, and check category counts (Security Posture, Routing Hygiene, Feature Utilization, Device Health).
-
-**Read the rule when:** modifying the checks or the report generator. To *run* an audit, the `org-health` skill is the entry point and is self-contained — it already carries the three phases, the collection commands, and all 18 checks.
-
-### CUCM→Webex Migration Tool
-
-The migration tool is wired into the CLI as `wxcli cucm <command>`. Pipeline workflow, report generation, and advisory details are in `.claude/rules/cucm-migration.md`.
+- `docs/reference/INDEX.md` — every reference doc, one line each; `docs/reference/flow-designer-activities/_index.md` — every Flow Designer activity.
+- `docs/playbooks/INDEX.md` — step-by-step guides by goal; `docs/templates/INDEX.md` — design-doc and report templates; `docs/examples/INDEX.md` — working FlowIR flows and other build artifacts.
+- Rules that auto-load only when their files are touched — read them yourself when the topic comes up: `.claude/rules/cleanup.md` (`wxcli cleanup`, deletion order), `.claude/rules/cucm-migration.md` (any CUCM migration question, `/cucm-migrate`, the migration advisor), `.claude/rules/org-health.md` (changing the checks or the report; to run an audit the `org-health` skill is self-contained), `.claude/rules/doc-placement.md` (which directory owns a fact), `.claude/rules/flowir-mcp-verification.md` (before writing FlowIR).
 
 ## Out-of-Skill-Scope Command Groups
 
@@ -433,80 +361,21 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 | `partner-tags` | Partner/VAR org tagging. Same reason as partner-admins. |
 | `hybrid-clusters` | On-premises hybrid connector infrastructure (Expressway). Out of scope for a cloud-calling playbook. |
 | `hybrid-connectors` | On-premises hybrid connector infrastructure. Same reason as hybrid-clusters. |
-| `cc-legacy-flows` | Superseded by the current cc-flow group, which the contact-center skill already routes to. Retained for API parity only. |
 | `ucm-profile` | UCM calling-profile stub. The CUCM story in this repo is the migration pipeline (the cucm command group), not this group. |
 
-## CLI Status & Known Issues
+## Before you trust a wxcli command
 
-**192 command groups covering calling, admin, device, messaging, meetings, wholesale, and contact center APIs.** The `converged-recordings` group combines generated CRUD commands with hand-written `download` and `export` commands.
+1. **Run `--help` first.** `wxcli --help` lists the groups, `wxcli <group> --help` its commands, `wxcli <group> <command> --help` its options. Never guess a command name.
+2. **`--calling-data true`** on any `people` read that needs `extension` or `locationId`; without it they are silently absent.
+3. **`--all`** for any "how many / which ones / are there any" — the default fetches one page. Output that says **INCOMPLETE** is missing records: conclude nothing from it.
+4. **`--verify`** after a write that matters: a 2xx means accepted, not applied.
+5. **`--offset` refused** (exit 2, "this endpoint ignores --offset"): use `--all` and slice with `--fields '[N:M]'`.
 
-### Common Flags (`--fields`, `--output`, `--json-body`, `--all`, `--verify`)
-
-Every generated command takes `--fields` and `--output`/`-o` — **including `update`, `delete`, and action commands.** An earlier build had `--output` only on list/show/create and no `--fields` at all; that split is gone, so don't assume a write command lacks them.
-
-- **`--fields`** — a JMESPath expression applied to the response before rendering. Same syntax on every command: a projection (`[].{name:name,id:id}`) reshapes the output, a filter (`` [?enabled==`false`] ``) narrows it.
-- **`--output`/`-o`** — `table|json|text` on every command, plus `id` (create's default) on create only.
-- **`--json-body`** accepts inline JSON, `file://path`, a bare path, or `-` for stdin (pairs with `--generate-json-body`; see Known Issue #2 below).
-- **`--all`** — on **every `list` command**: fetch every page, not just the first. Default is one fetch; `--all` walks the whole collection and **overrides `--limit`**. Read the detail below before trusting a count.
-- **`--verify`** — on **328 update commands** (every PUT/PATCH that has a same-path GET to read back from). Off by default. After the write it re-reads the resource and reports any field you sent that did not take, then prints either `Verified: … all N sent field(s) match.` or a per-field `sent X, now Y` list. It compares **only the fields you sent**, and it **never changes the exit code** — servers legitimately normalise values, so the CLI reports the difference and leaves the judgement to you. Since ADR-17 (2026-10-13; unit-tested, not re-run live) a sent field matches when the read-back **contains** it: `'30'` sent by a string-typed numeric flag matches `30`, `'true'` matches `true`, extra keys the server adds (defaults, ids on nested objects, including inside list elements) are ignored, and lists match regardless of order — but a list must come back with **exactly as many elements** as you sent, so an element you removed that the server kept shows as differing. A nested difference is named by its path (`callForwarding.always.enabled: sent True, now False`); a list of a different length, and a rewritten value such as an E.164 phone number, still show as differing. A list over 1,000 elements that comes back reordered, or any failure inside the compare, prints `could not compare the read-back (<ErrorType>)` — still exit 0. A sent field the read-back does not carry at all is listed separately as **could not be verified** (the endpoint may name it differently — e.g. `monitoring` writes `enableCallParkNotification` and reads `callParkNotificationEnabled`), and the summary then says `N matched, M could not be verified`, never "all match"; check those fields with `show`. **One exception:** a field you sent as `null` that the read-back omits counts as *matched*, because omitting a cleared field is how these endpoints read it back (an ignored clear would bring the old value back, present, and show as differing). Use it whenever a write's success matters: a 2xx means the request was *accepted*, not that it was *applied*. `device-members` is the worked case — it does no port validation, so `PRIMARY` on two ports returns 200 and both persist. A command with no same-path GET deliberately does **not** offer the flag, because a `--verify` that silently verifies nothing is worse than none.
-
-**The `--calling-data` interlock.** `people list/show/create/update/show-me` now check the `--fields` expression before rendering: ask for `extension` or `locationId` without `--calling-data`, and the CLI says so on stderr instead of handing back a silent, confident zero. Measured live on 2026-08-01 — `people list --fields '[].extension' --all` returns `[]` on an org where 15 users have extensions; adding `--calling-data true` returns all 15. The check fires only on endpoints that actually accept the flag, so it can never point you at an option a command does not have.
-
-Four worked examples:
-
-```bash
-# Projection — pick just the fields you need
-wxcli people list --calling-data true --fields '[].{name:displayName,extension:extension}' -o json
-
-# Filter — JMESPath predicates narrow the response client-side, before rendering
-wxcli call-queue list --fields '[?enabled==`false`].name' -o json
-
-# --fields + -o text: one bare value per line, composable in a shell pipeline
-wxcli locations list --fields '[].id' -o text | while read -r LOC_ID; do
-  wxcli call-park list "$LOC_ID" -o json
-done
-
-# --all: never answer "how many?" from a single page
-wxcli people list --calling-data true --all --fields 'length(@)' -o json
-```
-
-If `--fields` reduces a non-empty response to an empty one, a note goes to stderr naming the unfiltered record count — stdout stays pipeable. The note states the fact (0 of N matched) without diagnosing the cause: it can mean a wrong expression, or it can mean the filter genuinely matched nothing. Decide which based on the expression and what you expected, not from the note alone.
-
-**`--all` in detail — read this before counting or aggregating anything.** The default for a list command is a **single fetch**, which on a paging endpoint quietly hands back page one. `--all` walks the whole collection and overrides `--limit`. Three paging shapes are handled, so it behaves the same across the CLI: `Link: rel="next"`, Contact Center `page`/`pageSize`, and SCIM `startIndex`/`count`.
-
-Three behaviors that will otherwise read as bugs:
-
-- **It is deliberately a no-op on endpoints the spec says do not paginate** — that is roughly half the commands carrying it. The flag is uniform on every list command *by design*: an option present on most commands but not all teaches a rule that breaks unpredictably, costing a failed call plus a `--help` round trip each time (the same reasoning that closed the `--output` gap). One page back from `--all` on a non-paging endpoint is correct, not a failure. On a `list*` command whose response is one object (e.g. `user-settings list-privacy`, `call-queue list-night-service`, which print the whole object as JSON), `--all`, `--limit` and `--offset` are accepted and ignored, and hidden from `--help` (ADR-14).
-- **Walking is bounded at 1000 pages**, overridable with `WXCLI_MAX_PAGES`. Hitting the ceiling prints an error to stderr containing the word **INCOMPLETE**. That word means records are missing — not that a request failed. Do not draw a conclusion from output that produced it.
-- **Without `--all`, a truncated read warns on stderr, not stdout.** A single fetch that left pages behind prints `Note: N records returned and the server has more pages. Re-run with --all to fetch every page`. Since ADR-18 (2026-10-13; unit-tested, not re-run live) the note names only flags the command really offers: on a command with no page walker (a `show`, a single-object `list*`, an unpaged list) it ends `This command does not walk pages; see its --help for a cursor or paging option.` instead of advising an `--all` that does not exist or walks nothing. **You will see that note — do not assume otherwise.** (Measured 2026-08-01 on Claude Code and Codex 0.144.1: both merge stderr into the tool result the model reads, so it stays visible when stdout is piped, redirected to a file, or large enough to be truncated to a head preview — the note is written by `rest_get` *before* any row is rendered, so it lands on line 1. It is lost only if you suppress it yourself with `2>/dev/null` or `WXCLI_NO_PAGE_WARN=1`.) The failure mode this guards against is therefore *ignoring* the note, not missing it: if you see it and still answer a "how many" question, the answer is wrong. `WXCLI_NO_PAGE_WARN=1` suppresses the note when you have taken one page on purpose.
-
-One precision on "overrides `--limit`": it overrides what is **fetched**. In `-o table` mode `--limit` still caps *printed* rows (with a visible `... N more` row); `-o json` prints everything fetched.
-
-Practical rule: any question of the form *how many*, *which ones*, or *are there any* needs `--all` on a paging endpoint. A read that merely fetches a known record by ID does not.
-
-Watch the inverse too: on a command whose default already walks every page, passing `--limit N` **switches it to a single fetch** and silently drops the rest. `--limit` narrows; it never just "caps the display."
-
-**`--offset N` means "skip N records" on every list command whose endpoint honours it — not provably all of them** (see the Link-header measurement below), including the page-numbered Contact Center ones (`page`/`pageSize`), where the CLI translates it to the right page(s) and `--limit N` to the page size (ADR-12, 2026-10-13; before that both were sent under names those endpoints ignore), and the 5 SCIM-style identity lists (`scim-users list`, `scim-groups list`/`list-members`, `groups list`/`list-members`), where `--offset N` becomes `startIndex=N+1` and `--limit N` becomes `count` — an explicit `--start-index`/`--count` still wins (ADR-13). Drift check 23 fails the gate if a list command ever sends either flag under a name its endpoint does not declare. The truncation note names the absolute `--offset` of the next record wherever `--offset` is offered, so following it works on an endpoint that honours `--offset`, whether or not the command also has a `--page` flag (`cc-tasks list` has none); on a command whose endpoint is measured, or inferred from its spec, to ignore it (below) the note names `--all` only.
-
-**Link-header lists are the exception, measured live 2026-10-13 (6 sampled; 158 more probed 2026-10-14 and the resulting spec rule, at the end of this paragraph).** `devices list`, `workspaces list`, `numbers list` and `hunt-group list` honour it (`--offset 2 --limit 3` equals items 2–4 of `--all`). `people list` and `licenses list` **ignore it**: `people list --offset 2 --limit 3` returned items 0–2, and `licenses list --limit 3` returned all 18 rows. On those two the truncation note's "or --offset N" hint used to loop back to page one. Since ADR-18 (2026-10-13) both are a declared, live-measured set the generator reads: `--offset` above 0 exits 2 with `Error: this endpoint ignores --offset …` before any request (Verified live 2026-10-13 on `people list --offset 2 --limit 3`, which names `--all`; `licenses list` and the reworded messages are unit-tested, not re-run live — on `licenses list` the message says to drop `--offset` and slice, never `--all`, because its `--all` walks nothing), and `people list`'s note names `--all` only (unit-tested; not re-run live). So use `--all` and slice — Verified live 2026-10-13: `people list --all --fields '[2:5].id'` returns the 3 items. `hunt-group list --offset 2 --limit 3` still equals items 2–4 of `--all` after the change (Verified live 2026-10-13, 7 records). `licenses list` ignores `max` too: `--limit` there caps the printed rows in `-o table` only, and `-o json` prints every license. **The other 158 were probed live 2026-10-14 (ADR-18 amendment), and the rule is now the spec.** 28 honour `--offset`; **14 more ignore it** and refuse it like `people list` — `device-dynamic-settings list`, `resource-group-memberships list`/`list-v2`, and, measured on temporary data, `locations list`, `webhooks list`, `rooms list`, `messages list`, `memberships list`, `room-tabs list`, `teams list`, `team-memberships list`, `meetings list-meetings`, `meeting-invitees list`, `meetings list-registrants` (Verified live 2026-10-14: `locations list --offset 2` exits 2; `--all` still works). Every one of the 48 measured matched its spec: those that declare `start` (sometimes via a `$ref`) honour it, those that do not ignore it. So the generator now **refuses `--offset` on every page-walking list whose spec declares no `start`/`offset`**, measured or not — 34 more (`cdr`, `security-audit`, `events`, recordings, meeting participants/Q&A/polls/transcripts/reports, partner/wholesale lists); their message says `its spec declares no offset parameter` instead of "measured live" (Verified live 2026-10-14: `admin-recordings list --offset 2` exits 2). On any refused command, use `--all` and slice with `--fields '[N:M]'`. The 82 lists whose spec declares `start` keep `--offset` and are expected, not proven, to honour it (28 of them measured).
-
-### Partner Multi-Org Support
-
-wxcli supports partner/VAR/MSP admins who manage multiple customer orgs with a single partner token.
-
-- **`wxcli configure`** — saves an `orgId` to the config file for every token. On a multi-org token it prompts for a selection; on a single-org token it saves that org automatically. It will not overwrite an org that is already configured.
-- **`wxcli switch-org`** — change the active target org at any time. On a single-org token it now saves that org to the config too. The bare form prompts interactively, which will block a script or agent forever on a multi-org token — in automation always pass the id: `wxcli switch-org <orgId>`.
-- **`wxcli clear-org`** — remove the saved `orgId` to revert to single-org behavior.
-- **`wxcli whoami`** — shows a "Target:" line when an org is set.
-- **Most generated commands** auto-inject `orgId` from config on endpoints that accept it (generator `auto_inject_from_config`). No flag is required — the parameter is injected transparently.
-- The former hand-coded trio (licenses, locations, numbers) is retired — all three are generated modules now with the same orgId injection. `users` is an alias for the generated `people` group; `licenses-api` is a deprecated one-release alias for `licenses` (renamed 2026-07-02).
-- The builder agent has a blocking org confirmation step at session start (section 2b) when a partner token is detected.
-
-See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for full details.
+Everything behind these rules — every flag, paging, partner multi-org, the eleven Known Issues, cleanup — is in `docs/reference/wxcli-behavior.md`. In a source checkout only, `docs/spec-sync-contract.md` is the weekly spec-sync's definition of done (the cloud routine's prompt points there).
 
 ### Error → Known Issue Quick Reference
 
-When you hit one of these errors, jump to the matching known issue:
+When you hit one of these errors, read the matching Known Issue in `docs/reference/wxcli-behavior.md` § 3:
 
 | Error | Symptom | Known Issue |
 |-------|---------|-------------|
@@ -519,24 +388,3 @@ When you hit one of these errors, jump to the matching known issue:
 | 400 "Required request parameter 'orgId' ... is not present" | `audit-events list`, `security-audit list`, or any `video-mesh` command | No org saved in config — run `wxcli switch-org` (or `wxcli switch-org <orgId>` in automation); fixed for new configs. See `docs/reference/meetings-infrastructure.md` gotcha #8. |
 | Unexpected command name | `show-*` vs `list-*`, singular vs plural | #5 — two path families; always run `--help` first |
 | `--json-body` needed | Complex nested fields in request body | #2 — run the command with `--generate-json-body` for a skeleton |
-
-### Known issues
-
-1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". The CLI now detects this error and prints a tip about needing user-level OAuth.
-2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. Run the command with `--generate-json-body` to print an indented request-body skeleton and exit before authenticating, e.g. `wxcli user-settings update-call-forwarding PERSON_ID --generate-json-body`; edit the printed skeleton and pass it back via `--json-body`. Caveat, verified live: `--generate-json-body` does not bypass required positional arguments — `wxcli call-queue create --generate-json-body` fails with `Missing argument 'LOCATION_ID'`; pass a placeholder positional first, e.g. `wxcli call-queue create dummy-location-id --generate-json-body`. `cc-team`, `cc-skill-profile` and `cc-desktop-profile` `create`/`update` had no `--generate-json-body` (and required a dummy `--team-dto` / `--skill-profile-dto` / `--agent-profile-dto` beside `--json-body`) because the spec declares their body as a query parameter; since the generator fix of 2026-10-13 (ADR-16) they take `--json-body` alone and offer `--generate-json-body`, and the old option is accepted and ignored — Verified live 2026-10-13 on a temporary team, skill profile and desktop profile (create, show, update, delete; the old option on update for teams and desktop profiles; not tried: the old option on create, or on update for skill profiles).
-3. **my-call-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The `my-call-settings` group (130 commands) covers base + UserHub Phase 2/3/4/5 self-service endpoints. Phase 5 was folded in on 2026-07-29 — it had been shipping as its own group named `call-settings-for-me-phase-5`; its 7 commands are now `show-personal-assistant`, `update-personal-assistant`, `show-voicemail-rules`, `update-voicemail-pin`, `show-hoteling-guest`, `update-hoteling-guest`, `list-available-hosts`. The old group name is **deliberately not aliased**: `my-call-settings show`/`update`/`list` are the Preferred Answer Endpoint commands, so an alias would have answered a different question with exit 0. The CLI detects this error and prints a tip.
-4. **19 person settings are user-only (no admin path).** Admin tokens get 404. Use `wxcli my-call-settings` with user-level OAuth. Includes core settings (`callBlock`, `callNotify`, `preferredAnswerEndpoint`, `guestCalling`, `modeManagement`) plus informational/read-only endpoints (`availableCallerIds`, `queues`, `services`, etc.). **`callCaptions` and `anonymousCallReject` are NOT user-only** — verified live 2026-10-13: `user-settings show-call-captions` and `show-anonymous-call-reject` return 200 with an admin token (the "19" count predates this correction and has not been re-counted). See `docs/reference/self-service-call-settings.md` gotchas.
-5. **Two path families for person settings.** Classic `/people/{id}/features/` vs newer `/telephony/config/people/{id}/`. Some names differ. See `docs/reference/person-call-settings-behavior.md` (lines 36-54) for the full mapping table.
-6. **Workspace `/telephony/config/` settings require Professional license.** Basic workspaces get 405. See `docs/reference/devices-workspaces.md` gotcha #10 for the endpoint-by-license matrix.
-7. **Customer Assist queues require `--has-cx-essentials true` on `call-queue` commands.** Use `wxcli customer-assist` (alias `cx-essentials`) as the primary CLI group for CX queue management. Standard `call-queue list` omits CX queues unless the flag is passed. See `docs/reference/call-features-additional.md` cross-cutting gotchas.
-8. **Supervisor delete returns 204 but supervisor persists.** Workaround: `update-supervisors` with `action: DELETE` on each agent. See `docs/reference/call-features-additional.md` gotchas.
-9. **`virtual-extensions` commands use wrong ID type.** Uses `VIRTUAL_EXTENSION`-encoded IDs but virtual lines use `VIRTUAL_LINE` IDs. Still separate path families in the spec (`virtualExtensions/{extensionId}` vs `virtualLines/{virtualLineId}`). `wxcli cleanup` uses raw REST as a workaround. See `docs/reference/virtual-lines.md` Gotchas #9.
-10. **Device config schema is firmware-dependent.** Per-line ringtone was absent on PhoneOS 3.5/3.6 but fixed in 4.1. Offline/expired devices retain a stale schema. See `docs/reference/devices-platform.md` gotchas #10-11.
-11. **Contact Center (`cc-*`) commands need a token carrying the `cjp:config` scopes, plus region config.** A full-admin personal access token **does** work — verified live 2026-10-13 on the sandbox tenant: `cc-flow` list/show/export/validate/lock/unlock, `cc-queue list`, `cc-entry-point list` and `cc-global-vars list-cad-variable` all returned 200, no 403 anywhere. (An April 2026 entry here said PATs get 403; that was a global-variables 403 on the same org and it no longer reproduces.) If you do get a 403 with a `ccconfig_` tracking ID, the token lacks the scopes: use an OAuth integration or Service App with `cjp:config_read`/`cjp:config_write` explicitly selected, and re-authorize after adding scopes. The CC API also requires the bare UUID org ID (not the base64 Spark ID); `get_cc_org_id()` in `config.py` handles decoding. See `docs/reference/contact-center-core.md` gotchas #18-23. A PAT also carries `cjp:user`, the per-agent runtime scope — verified live driving `register()`/`stationLogin()`/`setAgentState()` through the `@webex/contact-center` JS SDK. See `docs/reference/contact-center-agent-sdk.md` §10.
-
-### Cleanup Command
-
-Detailed context in `.claude/rules/cleanup.md` (the file ships; its `paths:` glob targets `cleanup.py`, so it auto-loads only in a source checkout). Contains: all flags, 13-layer deletion order, and known behaviors (virtual line workaround, location disable propagation, workspace ordering).
-
-**Read the rule when:** running `wxcli cleanup`, modifying cleanup logic, or debugging deletion failures. Do not wait for it to auto-load — read the file. The `teardown` skill already instructs this as its step 1.
-

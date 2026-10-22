@@ -68,7 +68,7 @@ where = ["src"]
 [tool.setuptools.package-data]
 # Explicit dot-directory patterns are required: setuptools' recursive glob does
 # not descend into them, so "_playbook/**" alone would drop Claude/Codex files.
-wxcli = ["_playbook/**", "_playbook/.claude/**", "_playbook/.codex/**"]
+wxcli = ["_playbook/**", "_playbook/.mcp.json", "_playbook/.claude/**", "_playbook/.codex/**"]
 
 [tool.setuptools_scm]
 write_to = "src/wxcli/_version.py"
@@ -77,6 +77,9 @@ write_to = "src/wxcli/_version.py"
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
+addopts = "-m 'not live and not mutation'"
 markers = [
     "live: requires live Webex API access (deselect with '-m not live')",
+    "mutation: create/modify/delete round-trips against live prod (Tier 2). Double-gated: `-m mutation` AND env WXCLI_LIVE_MUTATION=1. All flows named CLITest_WebexOps_*, deleted in teardown.",
+    "portaudit: per-activity output-port cross-check vs flowir §8 (a live subtest; reuses the shared activities fixture, no extra API calls).",
 ]

@@ -74,7 +74,12 @@ It creates `CanonicalSharedLine` objects from the `device_has_dn` cross-refs dur
 enrichment pass. `cucm/extractors/shared_lines.py:SharedLineDetector` is **dead code** —
 it has no caller anywhere in the pipeline, and wiring it would build a duplicate producer
 of the same objects. Do not wire it. `DeviceLayoutMapper._build_shared_dn_set()` reads the
-objects this method creates.
+objects this method creates. Line type is decided **per appearance, not per DN**
+(`device_layout_mapper.py:149-156`): a shared DN is `PRIMARY` with `primary_owner` on its
+owner's own phone and shared only on the others. Before cross-site Phase 2 (2026-07-24) it
+was per DN, so the owner's line had no primary owner. Two findings in the Phase 2 prompt
+were false and must not be re-derived: "no `shared_line:` object is ever created" (G3) and
+"every line is typed PRIMARY" (G4).
 
 **Note:** `device_pool_to_location` is NOT built here — it's written by `LocationMapper` during the map pass, because the mapping requires decisions about ambiguous device pool → location assignments. Similarly, `voicemail_group_in_location` is written by `VoicemailGroupMapper` after location resolution. `feature_forwards_to_voicemail_group` is written by `FeatureMapper` when a hunt group/call queue forwarding destination matches a voicemail group extension — this powers the dependency graph edge that ensures `voicemail_group:create` runs before `feature:configure_forwarding`.
 

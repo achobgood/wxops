@@ -50,7 +50,7 @@ ACTION_SEG = {
 }
 SKIP_SEG = {"v1", "v2", "v3", "v4", "api", "telephony", "config",
             "organizations", "admin", "webexapis.com", "https:", "",
-            "{cc_base_url}"}
+            "{cc_base_url}", "{fs_base_url}"}
 
 SYNONYM = {
     "person": "people", "people": "people", "user": "people", "member": "people",
@@ -121,7 +121,8 @@ def norm_tokens(text: str) -> set[str]:
 
 def url_path(url: str) -> list[str]:
     p = re.sub(r"^https?://[^/]+", "", url)
-    p = p.replace("{cc_base_url}", "").replace("{base_url}", "")
+    p = (p.replace("{cc_base_url}", "").replace("{fs_base_url}", "")
+         .replace("{base_url}", ""))
     return [s for s in p.split("/") if s]
 
 

@@ -17,6 +17,11 @@ whether the guarded side effect actually happened:
     deny + non-empty reason              hook: PreToolUse Blocked     NO
     permissionDecision "allow"           hook: PreToolUse Failed      yes
     unparseable / cannot execute         hook: PreToolUse Failed      yes
+
+Re-measured on Codex 0.163.0 on 2026-10-20 (headless, marker file as the
+control): the gate's deny blocked the command; `allow`, an empty-reason deny
+and silence all let it run. `codex exec` prints no status lines, so that
+column is still 0.147.0's.
 """
 from __future__ import annotations
 
@@ -33,8 +38,11 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_JSON = REPO_ROOT / "wxcli-dist" / "codex" / "hooks.json"
 
 
-def _payload(command: str, agent: str = "") -> dict:
-    return {"agent_type": agent, "tool_input": {"command": command}}
+def _payload(command: str, agent: str = "", agent_id: str = "") -> dict:
+    payload = {"agent_type": agent, "tool_input": {"command": command}}
+    if agent_id:
+        payload["agent_id"] = agent_id
+    return payload
 
 
 def _decision(raw_stdout: str) -> str:
@@ -67,9 +75,9 @@ def test_deny_carries_a_non_empty_reason():
     permissionDecisionReason` and then falls OPEN, so a reasonless deny is not
     a weaker deny — it is no deny at all."""
     import io
-    for reason in (G.DENY_WRITE, G.DENY_IMPORT, G.DENY_UNREADABLE):
+    for reason in (G.DENY_WRITE, G.DENY_WRITE_SUBAGENT, G.DENY_IMPORT, G.DENY_UNREADABLE):
         buf = io.StringIO()
-        G.emit(reason.format(command="x") if "{command}" in reason else reason,
+        G.emit(reason.format(command="x", who="a `probe` subagent") if "{command}" in reason else reason,
                stream=buf)
         out = json.loads(buf.getvalue())["hookSpecificOutput"]
         assert out["hookEventName"] == "PreToolUse"
@@ -84,7 +92,7 @@ def test_deny_reason_explains_the_undocumented_agent_type_failure():
     stops. That is safe but unreadable unless the deny says so."""
     reason = G.DENY_WRITE.format(command="wxcli locations delete X")
     assert "agent_type" in reason
-    assert "wxc-calling-builder" in reason
+    assert "wxops" in reason
     assert G.CODEX_VERIFIED_VERSION in reason
     assert ".codex/hooks.json" in reason        # names the way out
 
@@ -116,7 +124,7 @@ def test_unparseable_payload_fails_closed_only_for_wxcli():
 @pytest.mark.parametrize("agent,command,expected", [
     ("", "wxcli people list", "allow"),
     ("", "wxcli organizations delete Y2lz", "deny"),
-    ("wxc-calling-builder", "wxcli organizations delete Y2lz", "allow"),
+    ("wxops", "wxcli organizations delete Y2lz", "allow"),
     ("migration-advisor", "wxcli cleanup run --force", "allow"),
     ("general-purpose", "wxcli cleanup run --force", "deny"),
     # The 2026-08-10 bypass: a global option before the group used to be read
@@ -125,13 +133,78 @@ def test_unparseable_payload_fails_closed_only_for_wxcli():
     ("", "wxcli --no-update-check people list", "allow"),
     ("", "wxcli --version", "allow"),
     # The builder is trusted to run wxcli, not to bypass it.
-    ("wxc-calling-builder", 'python -c "import wxcli"', "deny"),
+    ("wxops", 'python -c "import wxcli"', "deny"),
 ])
 def test_policy(agent, command, expected):
     import io
     buf = io.StringIO()
     G.emit(G.decide(_payload(command, agent)), stream=buf)
     assert _decision(buf.getvalue().strip()) == expected
+
+
+# Codex 0.163.0 (Plan 5 Task 1 Step 9): a subagent's shell call now reaches
+# PreToolUse with its definition type in `agent_type` and an `agent_id`; the
+# main session's payload carries neither.
+SUB_ID = "01a15a0c-4333-7000-8000-000000000000"
+
+
+def test_subagent_deny_says_do_not_spawn():
+    """A denied subagent must stop and report, never spawn another agent —
+    the recursion the Claude gate's P5-1 fix closes."""
+    reason = G.decide(_payload("wxcli people delete X", "default", SUB_ID))
+    assert reason is not None
+    assert "do not spawn" in reason.lower()
+    assert "wxcli people delete X" in reason
+    assert "Ask Codex to use" not in reason
+    # The trusted agent's subagent call is still permitted (silence).
+    assert G.decide(_payload("wxcli people delete X", G.TRUSTED_AGENTS[0], SUB_ID)) is None
+
+
+def test_main_session_deny_names_type_and_the_spawn_name_rule():
+    """Codex rejects hyphens in a spawn name (`agent_name must use only
+    lowercase letters, digits, and underscores`, measured 0.163.0), so the
+    main-session deny says how to name the spawn as well as which type."""
+    reason = G.decide(_payload("wxcli people delete X"))
+    assert reason is not None and reason.startswith("Only read-only wxcli")
+    assert f'agent_type: "{G.TRUSTED_AGENTS[0]}"' in reason
+    assert "lowercase letters, digits and underscores" in reason
+    assert "do not spawn" not in reason.lower()
+    assert "MAIN session only" not in reason
+
+
+def test_agent_id_without_agent_type_is_not_trusted():
+    """Seen on Claude Code (run c): an agent_id with no agent_type. It is a
+    subagent nobody can identify, so it gets the subagent deny."""
+    payload = {"agent_id": SUB_ID, "tool_input": {"command": "wxcli people delete X"}}
+    reason = G.decide(payload)
+    assert "do not spawn" in reason.lower()
+    assert "a subagent that reports no agent type" in reason   # review R1 m3
+
+
+@pytest.mark.parametrize("command", [
+    # Review R1 T4-B1: a lone `&` separates commands.
+    "wxcli people list & wxcli people delete X",
+    "wxcli people list 2>&1 & wxcli people delete X",
+    # Review R1 T4-B2: keywords, exec/eval and grouping do not hide a write.
+    "for i in A B; do wxcli people delete $i; done",
+    "if true; then wxcli people delete X; fi",
+    "while read i; do wxcli people delete $i; done < ids.txt",
+    "! wxcli people delete X",
+    "exec wxcli people delete X",
+    'eval "wxcli people delete X"',
+    "(wxcli people delete X)",
+    "{ wxcli people delete X; }",
+])
+def test_hidden_writes_are_denied(command):
+    assert G.denies_wxcli_write(command), command
+
+
+@pytest.mark.parametrize("command", [
+    "wxcli people list 2>&1", "wxcli people list >&2", "(wxcli people list)",
+    "wxcli people list & rm -rf /tmp/x",
+])
+def test_fd_duplication_and_grouped_reads_are_not_writes(command):
+    assert not G.denies_wxcli_write(command), command
 
 
 # ── the wiring ─────────────────────────────────────────────────────────────
@@ -180,6 +253,10 @@ def test_hooks_json_fallback_fails_closed_without_wxcli():
     body = json.loads(denied)["hookSpecificOutput"]
     assert body["permissionDecision"] == "deny"
     assert body["permissionDecisionReason"].strip()
+    # No gate ran, so the fallback cannot tell a subagent from the main
+    # session: one sentence must be safe for both (never "spawn" alone).
+    assert "if you are already an agent, stop and report" in body["permissionDecisionReason"]
+    assert "do not spawn" in body["permissionDecisionReason"]
     # Denying every Bash command would be its own outage.
     assert run("ls -la") == ""
 
@@ -199,5 +276,5 @@ def test_hooks_json_command_runs_the_real_gate_end_to_end():
     assert _decision(run(_payload("wxcli people list"))) == "allow"
     assert _decision(run(_payload("wxcli organizations delete Y2lz"))) == "deny"
     assert _decision(
-        run(_payload("wxcli organizations delete Y2lz", "wxc-calling-builder"))
+        run(_payload("wxcli organizations delete Y2lz", "wxops"))
     ) == "allow"

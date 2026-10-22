@@ -289,7 +289,7 @@ command — see [Gotcha 3](#7-gotchas).
    `transferTo` on `create-intents`. The generator renders a nested object as a plain `TEXT`
    option, so `--ai-agent '{"voice":...}'` sends a JSON *string* where the API expects an
    object. Print the skeleton with `--generate-json-body`, edit it, and pass it back with
-   `--json-body` (root `CLAUDE.md` Known Issue #2). `create-knowledge-bases` and
+   `--json-body` ([wxcli-behavior.md](wxcli-behavior.md) Known Issue #2). `create-knowledge-bases` and
    `create-documents` have no nested required field and work with plain flags.
 
 3. **Document file upload has no CLI command — 27 commands for 28 operations.**

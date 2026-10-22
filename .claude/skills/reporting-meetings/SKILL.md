@@ -3,8 +3,6 @@ name: reporting-meetings
 description: |
   Query and analyze Webex meetings quality, usage reports, workspace utilization,
   historical platform analytics, and live meeting monitoring.
-  NOT for: Webex Calling CDR/queue stats (use reporting skill), Contact Center analytics
-  (use reporting-cc skill), or scheduling/managing meetings (use manage-meetings skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [meetings-report-type]
 ---
@@ -185,40 +183,29 @@ for d, n in list(zip(*series))[:14]:
 #### Recipe M-7 — Meetings aggregate comparison
 Question: "How do this month's meetings compare?"
 ```bash
-wxcli analytics show-aggregates --site-url SITE_URL -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-if isinstance(data, dict):
-    for key, val in data.items():
-        print(f'{key}: {val}')
-else:
-    print(json.dumps(data, indent=2))
-"
+wxcli analytics show-aggregates --site-url SITE_URL -o json
 ```
+This prints every key and value of the response; no `--fields` is needed.
 
 ### Workspace Metrics
 
 #### Recipe M-8 — Workspace occupancy
 Question: "Which rooms are used the most?"
 ```bash
-wxcli workspace-metrics list --workspace-id WORKSPACE_ID --metric-name soundLevel -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-items = data if isinstance(data, list) else data.get('items', [data])
-for w in sorted(items, key=lambda x: x.get('utilizationPercentage', x.get('occupancy', 0)), reverse=True)[:15]:
-    name = w.get('workspaceName', w.get('name', '?'))
-    util = w.get('utilizationPercentage', w.get('occupancy', 0))
-    print(f'{name}: {util}% utilized')
-"
+wxcli workspace-metrics list --workspace-id WORKSPACE_ID --metric-name soundLevel --fields 'reverse(sort_by(items, &(utilizationPercentage || occupancy || `0`)))[:15].{workspaceName: workspaceName || name, utilizationPercentage: utilizationPercentage || occupancy || `0`}' -o table
 ```
+The command prints the whole response object, so the expression starts from its `items` array.
+
+> **Unverified:** the fields this recipe reads (`utilizationPercentage`, `occupancy`, `workspaceName`) are not in the spec's `WorkspaceMetricsResponse`. Its `items` declare no fields ("the structure of the elements will depend on whether or not aggregated data was requested"), and `--metric-name soundLevel` asks for sound level, not use. The metric names the spec declares are `soundLevel`, `ambientNoise`, `temperature`, `humidity`, `tvoc` and `peopleCount`. Not measured live; check a real response with `-o json` before trusting this ranking.
 
 #### Recipe M-9 — Workspace duration analysis
 Question: "How long is this room occupied on average?"
 
 `--workspace-id` is required, so one call covers one workspace and the rows carry no
 workspace name — each row is one interval: `start`, `end`, `duration`. The command
-emits only `items`, dropping the response's top-level `unit` (example: `minutes`), so
-the durations below are left in the unit the API returned them in.
+prints the whole response: the `items` rows plus the top-level `unit` (example:
+`minutes`). The script below reads the rows from `items` and leaves the durations in
+that unit.
 ```bash
 wxcli workspace-metrics list-workspace-duration-metrics --workspace-id WORKSPACE_ID -o json | python3.11 -c "
 import json, sys
@@ -276,17 +263,7 @@ for name, count in sorted(issues.items(), key=lambda x: x[1], reverse=True):
 #### Recipe M-12 — Attendee report for compliance
 Question: "Who attended this meeting?"
 ```bash
-wxcli meeting-reports list-attendees --site-url SITE_URL --meeting-id MEETING_ID -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-items = data if isinstance(data, list) else data.get('items', [data])
-for a in items:
-    name = a.get('displayName', a.get('name', '?'))
-    email = a.get('email', '?')
-    joined = a.get('joinTime', a.get('joinedTime', '?'))
-    left = a.get('leaveTime', a.get('leftTime', '?'))
-    print(f'{name} ({email}): joined {joined}, left {left}')
-"
+wxcli meeting-reports list-attendees --site-url SITE_URL --meeting-id MEETING_ID --fields '[].{displayName: displayName || name, email: email, joinedTime: joinTime || joinedTime, leftTime: leaveTime || leftTime}' -o table
 ```
 
 #### Recipe M-13 — Top meeting hosts
@@ -311,7 +288,7 @@ for host, count in hosts.most_common(15):
 2. **Historical analytics may require Pro Pack.** Depends on the data type.
 3. **Live monitoring is a snapshot.** Data is current, not historical.
 4. **Workspace metrics require workspace admin scope.** `spark-admin:workspace_metrics_read`.
-5. **Response shapes vary across API versions.** Recipes use `isinstance` checks and field fallbacks.
+5. **Response shapes vary across API versions.** The Python recipes use `isinstance` checks and field fallbacks; the `--fields` recipes use `||` fallbacks (`displayName || name`).
 
 ---
 

@@ -567,7 +567,7 @@ wxcli conference create-undeafen --json-body '{"callId": "participant_call_id"}'
 wxcli conference delete
 ```
 
-> **Note:** Conference controls require a **user-level OAuth token** (`spark:calls_write` scope). Admin tokens will not work. See Known Issues in CLAUDE.md.
+> **Note:** Conference controls require a **user-level OAuth token** (`spark:calls_write` scope). Admin tokens will not work. See [wxcli-behavior.md](wxcli-behavior.md) Known Issue #1.
 
 ### 3.5 Key Behaviors
 
@@ -659,7 +659,7 @@ wxcli call-queue update-supervisors SUPERVISOR_ID --has-cx-essentials true \
 wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
 
 # Delete ALL supervisors in the org — no --has-cx-essentials, and no way to
-# scope it: the API takes a request body the generator drops (known issue #21)
+# scope it: the API takes a request body the generator drops (the generator's known issue #21)
 wxcli call-queue delete-supervisors-config --force
 
 # RECOMMENDED: Remove supervisor by removing all agents (more reliable)

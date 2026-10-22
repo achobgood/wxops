@@ -4,10 +4,10 @@ description: |
   Answer natural-language questions about a Webex Calling environment using live API data.
   Read-only queries against people, call features, routing, numbers, call history, and call flow tracing.
   Use when the user asks "who", "what", "which", "how many", "does", "is", "show me", or "check" questions
-  about their current Webex Calling configuration. Invoked by the wxc-calling-builder agent on query intent,
+  about their current Webex Calling configuration. Invoked by the wxops agent on query intent,
   or directly via the `query-live` skill.
-  NOT for: making changes (use the appropriate config skill), historical CDR analysis
-  (use reporting skill), or Contact Center queries (use reporting-cc skill).
+  NOT for: making changes (a config skill), historical CDR analysis (reporting), or Contact Center
+  queries (reporting-cc).
 allowed-tools: Read, Grep, Glob, Bash, Skill
 argument-hint: [question]
 ---
@@ -62,7 +62,7 @@ Read the domain module(s) that match the question. Cross-domain queries load mul
 
 Follow the loaded domain module's command recipes, resolution rules, and join patterns exactly. Use `-o json` on all commands for programmatic parsing, and `--fields` to project only the fields the question actually needs.
 
-**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli people list --help`). Even read-only commands differ by name (`show` vs `list`, singular vs plural — known issue #5), so confirm before running. Do NOT rely on examples in this skill, the domain modules, or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli people list --help`). Even read-only commands differ by name (`show` vs `list`, singular vs plural — `docs/reference/wxcli-behavior.md` Known Issue #5), so confirm before running. Do NOT rely on examples in this skill, the domain modules, or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
 ### Field Projection with `--fields`
 

@@ -910,7 +910,7 @@ wxcli user-settings update-mode-management <personId> --json-body '{"featureIds"
 # Verified live 2026-10-13: on an org with no mode-enabled AA/CQ/HG both lists return [] and
 # update-mode-management --json-body '{"featureIds":[]}' succeeds; an unknown id returns 400 "[Error 4008] User not found: <id>"
 # (misleading wording — it is a bad feature id, not a missing user). The user-side `mode-management list` returned 4008
-# for the admin token (Known Issue #3, confirmed).
+# for the admin token (wxcli-behavior.md Known Issue #3, confirmed).
 
 # Additional mode-management commands (org-level mode operations)
 wxcli mode-management list

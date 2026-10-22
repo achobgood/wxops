@@ -1,0 +1,269 @@
+{
+  "name": "Example_Business_Hours_Routing",
+  "flowType": "FLOW",
+  "description": "Business hours routing: check schedule \u2192 working hours path vs closed path. Demonstrates business-hours activity with multi-port edges and set-variable double declaration pattern.",
+  "variables": [
+    {
+      "name": "flowStatus",
+      "type": "STRING",
+      "defaultValue": "open",
+      "isInput": false,
+      "isOutput": false,
+      "reportable": false
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "name": "NewPhoneContact",
+      "activityType": "start",
+      "group": "action",
+      "properties": {
+        "activityName": "start"
+      }
+    },
+    {
+      "id": "biz-hours",
+      "name": "CheckBusinessHours",
+      "activityType": "enum-gateway",
+      "group": "enum-gateway",
+      "properties": {
+        "activityName": "business-hours",
+        "businessHoursId": "00000000-0000-0000-0000-000000000000",
+        "businessHoursId:name": "Default Schedule",
+        "businessHoursId_name": "Default Schedule"
+      }
+    },
+    {
+      "id": "set-open",
+      "name": "SetStatusOpen",
+      "activityType": "action",
+      "group": "set-variable",
+      "properties": {
+        "activityName": "set-variable",
+        "activityId": "set-variable",
+        "activityType": "logic",
+        "setTo": "set-to-literal",
+        "srcVariableType": "STRING",
+        "srcVariable": "flowStatus",
+        "literal": "open",
+        "expr": "open",
+        "setVariablesArray": [
+          {
+            "setTo": "set-to-literal",
+            "srcVariableType": "STRING",
+            "srcVariable": "flowStatus",
+            "literal": "open",
+            "expr": "open",
+            "literal_invalid_error": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "welcome",
+      "name": "WelcomeMessage",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "play-message",
+        "toggle": true,
+        "promptsTts": [
+          {
+            "name": "Thank you for calling during business hours. An agent will be with you shortly.",
+            "type": "tts",
+            "value": "Thank you for calling during business hours. An agent will be with you shortly."
+          }
+        ],
+        "connector": "Cisco Cloud Text-to-Speech",
+        "connector_name": "Cisco Cloud Text-to-Speech",
+        "connector:name": "Cisco Cloud Text-to-Speech",
+        "connector_type": "Cisco Cloud Text-to-Speech",
+        "connector:type": "Cisco Cloud Text-to-Speech",
+        "speakingRate": 1,
+        "volumeGainDb": 0
+      }
+    },
+    {
+      "id": "queue",
+      "name": "MainQueue",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "queue-contact",
+        "queueId": "00000000-0000-0000-0000-000000000001",
+        "channelType": "TELEPHONY"
+      }
+    },
+    {
+      "id": "hold-music",
+      "name": "HoldMusic",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "play-music",
+        "prompt": "defaultmusic_on_hold.wav",
+        "audioRadioGroup": "audioFile"
+      }
+    },
+    {
+      "id": "closed-msg",
+      "name": "ClosedMessage",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "play-message",
+        "toggle": true,
+        "promptsTts": [
+          {
+            "name": "We are currently closed. Our business hours are Monday through Friday, 8 AM to 5 PM. Please call back during business hours.",
+            "type": "tts",
+            "value": "We are currently closed. Our business hours are Monday through Friday, 8 AM to 5 PM. Please call back during business hours."
+          }
+        ],
+        "connector": "Cisco Cloud Text-to-Speech",
+        "connector_name": "Cisco Cloud Text-to-Speech",
+        "connector:name": "Cisco Cloud Text-to-Speech",
+        "connector_type": "Cisco Cloud Text-to-Speech",
+        "connector:type": "Cisco Cloud Text-to-Speech",
+        "speakingRate": 1,
+        "volumeGainDb": 0
+      }
+    },
+    {
+      "id": "disconnect",
+      "name": "Disconnect",
+      "activityType": "action",
+      "group": "terminating-action",
+      "properties": {
+        "activityName": "disconnect-contact"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "NewPhoneContact",
+      "to": "CheckBusinessHours"
+    },
+    {
+      "id": "e2",
+      "from": "CheckBusinessHours",
+      "to": "SetStatusOpen",
+      "condition": "workingHours"
+    },
+    {
+      "id": "e3",
+      "from": "CheckBusinessHours",
+      "to": "ClosedMessage",
+      "condition": "holidays"
+    },
+    {
+      "id": "e4",
+      "from": "CheckBusinessHours",
+      "to": "ClosedMessage",
+      "condition": "default"
+    },
+    {
+      "id": "e5",
+      "from": "SetStatusOpen",
+      "to": "WelcomeMessage",
+      "condition": "out"
+    },
+    {
+      "id": "e6",
+      "from": "WelcomeMessage",
+      "to": "MainQueue",
+      "condition": "default"
+    },
+    {
+      "id": "e7",
+      "from": "MainQueue",
+      "to": "HoldMusic"
+    },
+    {
+      "id": "e8",
+      "from": "HoldMusic",
+      "to": "Disconnect",
+      "condition": "default"
+    },
+    {
+      "id": "e9",
+      "from": "ClosedMessage",
+      "to": "Disconnect",
+      "condition": "default"
+    }
+  ],
+  "eventFlows": {
+    "GLOBAL_EVENTS": {
+      "id": "GLOBAL_EVENTS",
+      "name": "Global Error Handling",
+      "description": "Runs when the flow raises an unhandled error.",
+      "onEvents": {
+        "GlobalErrorHandling": "OnGlobalError"
+      },
+      "nodes": [
+        {
+          "id": "event-global-error",
+          "name": "OnGlobalError",
+          "activityType": "action",
+          "group": "action",
+          "properties": {
+            "activityName": "Event",
+            "eventSourceName": "WebexContactCenter",
+            "eventClassificationName": "VoiceInteractions",
+            "eventSpecificationName": "GlobalErrorHandling"
+          }
+        },
+        {
+          "id": "err-msg",
+          "name": "ErrorMessage",
+          "activityType": "action",
+          "group": "action",
+          "properties": {
+            "activityName": "play-message",
+            "toggle": true,
+            "promptsTts": [
+              {
+                "name": "We are experiencing technical difficulties.",
+                "type": "tts",
+                "value": "We are experiencing technical difficulties."
+              }
+            ],
+            "connector": "Cisco Cloud Text-to-Speech",
+            "connector_name": "Cisco Cloud Text-to-Speech",
+            "connector:name": "Cisco Cloud Text-to-Speech",
+            "connector_type": "Cisco Cloud Text-to-Speech",
+            "connector:type": "Cisco Cloud Text-to-Speech",
+            "speakingRate": 1,
+            "volumeGainDb": 0
+          }
+        },
+        {
+          "id": "err-disconnect",
+          "name": "ErrorDisconnect",
+          "activityType": "action",
+          "group": "terminating-action",
+          "properties": {
+            "activityName": "disconnect-contact"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "ev-entry",
+          "from": "OnGlobalError",
+          "to": "ErrorMessage",
+          "condition": "out",
+          "properties": {}
+        },
+        {
+          "id": "e10",
+          "from": "ErrorMessage",
+          "to": "ErrorDisconnect",
+          "condition": "default"
+        }
+      ]
+    }
+  }
+}

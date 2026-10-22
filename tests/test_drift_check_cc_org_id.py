@@ -258,3 +258,46 @@ def test_check_26_line_format(capsys, monkeypatch):
         "orgId: 1   (examined 470 Contact Center commands, skipped 0)",
         "      wxcli cc-queue-stats list  GET /v1/queues/statistics",
     ]
+
+
+# ------------------------------------- the Flow Store base (Plan 2 Task 9)
+#
+# Flow Store modules build their URL on `get_flow_store_base_url()` (Task 8's
+# BASE_URL_FS) and are Contact Center too: the Flow Store host wants the bare
+# UUID exactly like the CC host. The block shape is copied from a module the
+# generator rendered from tests/wxcc/fixtures/mini_flow_store.json.
+
+FS_PATH_BLOCK = '''
+@app.command("CMD")
+def cmd(
+    project_id: str = typer.Argument(..., help="projectId"),
+    output: str = typer.Option("table", "--output", "-o"),
+):
+    """List widgets."""
+    api = get_api(debug=debug)
+    fs_base_url = get_flow_store_base_url()
+    org_id = SOURCE
+    url = f"{fs_base_url}/{org_id}/project/{project_id}/widgets"
+    params = {}
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    emit(result, output=output)
+'''
+
+
+def _fs(cmd="show", source="get_cc_org_id(api.session)"):
+    return FS_PATH_BLOCK.replace("CMD", cmd).replace("SOURCE", source)
+
+
+def test_check26_fires_on_flow_store_module_with_base64_org(tmp_path):
+    findings = _run(tmp_path, _fs(source="resolve_org_id(api.session)"))
+    assert findings == [{"group": "cc-probe0", "command": "show",
+                         "op": "GET /{org_id}/project/{project_id}/widgets"}]
+
+
+def test_check26_examines_flow_store_modules(tmp_path):
+    # Only Flow Store blocks, all clean: examined > 0, so the run is not BLIND.
+    assert _run(tmp_path, _fs(), _fs(cmd="list", source="get_cc_org_id(api.session)")) == []
+    assert drift_check.CHECK_EXAMINED["26"]["examined"] == 2

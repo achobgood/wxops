@@ -1104,6 +1104,8 @@ wxcli workspace-locations show-floors <location_id> <floor_id>
 
 12. **Device limits per workspace depend on the license tier.** Verified live 2026-10-13 with made-up MACs (`devices create --mac ... --model "DMS Cisco 8845" --workspace-id ...`): a Basic workspace holds **one** phone — the second returned 400 `{"errorCode":"2022","message":"Exceeded max number of devices"}`, and adding a DECT handset to it returned 400 `[Error 5682] Exceeded max number of devices, the user currently has 1 devices, 0 applications. Only 1 device is allowed.` A Professional workspace accepted five and rejected the sixth with the same 2022. A phone activation code (`create-activation-code --workspace-id ... --model ...`) creates a device record in `activating` state immediately, so it counts too: the next code or MAC create on that Basic workspace got 2022 (a code with no `--model`, which is for RoomOS devices, was still issued on a workspace that already held its one phone). Deleting the workspace removed all of its devices (4 remaining devices gone after one `workspaces delete`).
 
+13. **A workspace read does not return its extension.** `GET` on a workspace never included `webexCalling.extension`. To confirm a workspace's extension, list the number (`numbers list --extension <ext>`) and check that `owner.type` is `PLACE`. Observed live 2026-07-24.
+
 ## CLI: `workspace-metrics` (Workspace Sensor Metrics)
 
 The `workspace-metrics` CLI group retrieves environmental sensor data and usage duration metrics from workspace devices (RoomOS endpoints with sensors).

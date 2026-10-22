@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -26,6 +27,10 @@ SHARED_DOCS = (
     "docs/runbooks/cucm-migration/tuning-reference.md",
 )
 INTERNAL_ONLY_DOC = "docs/runbooks/cucm-migration/self-review-findings.md"
+# Files that must ship with a placeholder, never a real token (claude profile).
+SANITIZED = ((".mcp.json", "YOUR_FLOW_STORE_TOKEN"),)
+# Codex files that must name an env var for auth instead of holding a token.
+ENV_BACKED = ((".codex/config.toml", "WEBEX_ACCESS_TOKEN"),)
 
 
 def _run(command: list[str], *, cwd: Path, env: dict[str, str]) -> None:
@@ -63,11 +68,46 @@ def _assert_shared_docs(root: Path) -> None:
         raise AssertionError(f"internal-only document shipped: {root / INTERNAL_ONLY_DOC}")
 
 
+def _assert_sanitized(root: Path) -> None:
+    for relative_path, placeholder in SANITIZED:
+        path = root / relative_path
+        if not path.is_file():
+            raise AssertionError(f"{root} is missing {relative_path}")
+        text = path.read_text()
+        if placeholder not in text:
+            raise AssertionError(f"{path} lost its placeholder {placeholder}")
+        real = [t for t in re.findall(r"Bearer\s+(\S+)", text) if placeholder not in t]
+        if real:
+            raise AssertionError(f"{path} holds a non-placeholder Bearer value")
+        servers = json.loads(text).get("mcpServers", {})
+        # Plan 5 (P5-14): the Supabase entry ships switched off, placeholders only.
+        supabase = servers.get("supabase")
+        if supabase is not None and (
+                supabase.get("env") != {"SUPABASE_ACCESS_TOKEN": "YOUR_SUPABASE_ACCESS_TOKEN"}
+                or "YOUR_SUPABASE_PROJECT_REF" not in supabase.get("args", [])):
+            raise AssertionError(f"{path} ships a supabase server with non-placeholder values")
+
+
+def _assert_env_backed(root: Path) -> None:
+    for relative_path, env_var in ENV_BACKED:
+        path = root / relative_path
+        if not path.is_file():
+            raise AssertionError(f"{root} is missing {relative_path}")
+        text = path.read_text()
+        with path.open("rb") as fh:
+            tomllib.load(fh)
+        if f'bearer_token_env_var = "{env_var}"' not in text:
+            raise AssertionError(f"{path} does not name {env_var} for bearer auth")
+        if re.search(r"^\s*bearer_token\s*=", text, re.MULTILINE) or re.search(r"Bearer\s+\S", text):
+            raise AssertionError(f"{path} holds a static token")
+
+
 def _assert_claude_only(root: Path) -> None:
     _assert_exists(root, ("CLAUDE.md", ".claude/.wxops-manifest.json"))
     for relative_path in (".claude/agents", ".claude/skills", ".claude/rules"):
         _assert_populated_directory(root, relative_path)
     _assert_manifest(root, "claude")
+    _assert_sanitized(root)
     _assert_shared_docs(root)
     for forbidden in ("AGENTS.md", ".codex"):
         if (root / forbidden).exists():
@@ -79,8 +119,9 @@ def _assert_codex_only(root: Path) -> None:
     for relative_path in (".codex/agents", ".codex/skills", ".codex/rules"):
         _assert_populated_directory(root, relative_path)
     _assert_manifest(root, "codex")
+    _assert_env_backed(root)
     _assert_shared_docs(root)
-    for forbidden in ("CLAUDE.md", ".claude"):
+    for forbidden in ("CLAUDE.md", ".claude", ".mcp.json"):
         if (root / forbidden).exists():
             raise AssertionError(f"Codex-only profile unexpectedly contains {forbidden}")
 
@@ -91,6 +132,8 @@ def _assert_dual_profile(root: Path) -> None:
     ))
     _assert_manifest(root, "claude")
     _assert_manifest(root, "codex")
+    _assert_sanitized(root)
+    _assert_env_backed(root)
     _assert_shared_docs(root)
 
     agent_files = sorted((root / ".codex" / "agents").glob("*.toml"))

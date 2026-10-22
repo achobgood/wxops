@@ -6,7 +6,7 @@ description: |
   speed dials, line key layout), hot desking members, and device tags.
   Guides the user from prerequisites through provisioning, activation, configuration, deletion, and verification.
   Use for: create, provision, activate, configure, delete, remove, decommission, or list devices and workspaces.
-  NOT for: PhoneOS/RoomOS config keys or xAPI commands (use device-platform skill).
+  NOT for: PhoneOS/RoomOS config keys or xAPI commands (device-platform).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [device-operation]
 ---

@@ -1,0 +1,309 @@
+{
+  "name": "Example_Data_Dip_Routing",
+  "flowType": "FLOW",
+  "description": "HTTP data dip with conditional routing: collect account number \u2192 HTTP lookup \u2192 branch on result \u2192 route to VIP or standard queue. Demonstrates http-request-v2, set-variable, condition-activity, and ivr-collectdigits. Note: the HTTP URL reads the declared flow variable {{accountNumber}}. Referencing the Collect Digits output directly ({{CollectAccount.DigitsEntered}}) works at runtime but fails validation with FC1038 \u2014 see flow-designer-flowir.md, Output Variable Scope.",
+  "variables": [
+    {
+      "name": "accountNumber",
+      "type": "STRING",
+      "defaultValue": "",
+      "isInput": false,
+      "isOutput": false,
+      "reportable": false
+    },
+    {
+      "name": "customerTier",
+      "type": "STRING",
+      "defaultValue": "standard",
+      "isInput": false,
+      "isOutput": false,
+      "reportable": false
+    },
+    {
+      "name": "httpStatusCode",
+      "type": "INTEGER",
+      "defaultValue": "0",
+      "isInput": false,
+      "isOutput": false,
+      "reportable": false
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "name": "NewPhoneContact",
+      "activityType": "start",
+      "group": "action",
+      "properties": {
+        "activityName": "start"
+      }
+    },
+    {
+      "id": "collect",
+      "name": "CollectAccount",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "ivr-collectdigits",
+        "toggle": true,
+        "promptsTts": [
+          {
+            "name": "Please enter your account number followed by the pound key.",
+            "type": "tts",
+            "value": "Please enter your account number followed by the pound key."
+          }
+        ],
+        "connector": "Cisco Cloud Text-to-Speech",
+        "connector_name": "Cisco Cloud Text-to-Speech",
+        "connector:name": "Cisco Cloud Text-to-Speech",
+        "connector_type": "Cisco Cloud Text-to-Speech",
+        "connector:type": "Cisco Cloud Text-to-Speech",
+        "entryTimeout": "5",
+        "interDigitTimeout": "3",
+        "minDigits": 1,
+        "maxDigits": 10,
+        "terminatorSymbol": "#",
+        "speakingRate": 1,
+        "volumeGainDb": 0
+      }
+    },
+    {
+      "id": "http-lookup",
+      "name": "LookupCustomer",
+      "activityType": "action",
+      "group": "http-request",
+      "properties": {
+        "activityName": "http-request-v2",
+        "retryOn5xx": true,
+        "maxRetries": "1",
+        "outputVariableArray": [
+          {
+            "outputVariable": "customerTier",
+            "jsonPathExp": "$.tier"
+          },
+          {
+            "outputVariable": "httpStatusCode",
+            "jsonPathExp": "$.statusCode"
+          }
+        ],
+        "authenticated": false,
+        "httpRequestUrl": "https://api.example.com/customers/{{accountNumber}}",
+        "httpRequestMethod": "GET",
+        "httpRequestMethod:name": "GET",
+        "httpRequestMethod_name": "GET",
+        "httpContentType": "None",
+        "httpContentType:name": "None",
+        "httpContentType_name": "None",
+        "contentType": "JSON",
+        "contentType_name": "JSON",
+        "httpRequestHeaders": {}
+      }
+    },
+    {
+      "id": "check-tier",
+      "name": "IsVIP",
+      "activityType": "enum-gateway",
+      "group": "enum-gateway",
+      "properties": {
+        "activityName": "condition-activity",
+        "expression": "{{customerTier == vip}}"
+      }
+    },
+    {
+      "id": "vip-msg",
+      "name": "VIPMessage",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "play-message",
+        "toggle": true,
+        "promptsTts": [
+          {
+            "name": "Welcome back, valued customer. We are connecting you to a priority agent.",
+            "type": "tts",
+            "value": "Welcome back, valued customer. We are connecting you to a priority agent."
+          }
+        ],
+        "connector": "Cisco Cloud Text-to-Speech",
+        "connector_name": "Cisco Cloud Text-to-Speech",
+        "connector:name": "Cisco Cloud Text-to-Speech",
+        "connector_type": "Cisco Cloud Text-to-Speech",
+        "connector:type": "Cisco Cloud Text-to-Speech",
+        "speakingRate": 1,
+        "volumeGainDb": 0
+      }
+    },
+    {
+      "id": "queue-vip",
+      "name": "VIPQueue",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "queue-contact",
+        "queueId": "00000000-0000-0000-0000-000000000001",
+        "channelType": "TELEPHONY"
+      }
+    },
+    {
+      "id": "queue-standard",
+      "name": "StandardQueue",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "queue-contact",
+        "queueId": "00000000-0000-0000-0000-000000000002",
+        "channelType": "TELEPHONY"
+      }
+    },
+    {
+      "id": "hold-music",
+      "name": "HoldMusic",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "play-music",
+        "prompt": "defaultmusic_on_hold.wav",
+        "audioRadioGroup": "audioFile"
+      }
+    },
+    {
+      "id": "disconnect",
+      "name": "Disconnect",
+      "activityType": "action",
+      "group": "terminating-action",
+      "properties": {
+        "activityName": "disconnect-contact"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "NewPhoneContact",
+      "to": "CollectAccount"
+    },
+    {
+      "id": "e2",
+      "from": "CollectAccount",
+      "to": "LookupCustomer"
+    },
+    {
+      "id": "e3",
+      "from": "CollectAccount",
+      "to": "StandardQueue",
+      "condition": "timeout"
+    },
+    {
+      "id": "e5",
+      "from": "LookupCustomer",
+      "to": "IsVIP",
+      "condition": "default"
+    },
+    {
+      "id": "e6",
+      "from": "IsVIP",
+      "to": "VIPMessage",
+      "condition": "true"
+    },
+    {
+      "id": "e7",
+      "from": "IsVIP",
+      "to": "StandardQueue",
+      "condition": "false"
+    },
+    {
+      "id": "e8",
+      "from": "VIPMessage",
+      "to": "VIPQueue",
+      "condition": "default"
+    },
+    {
+      "id": "e9",
+      "from": "VIPQueue",
+      "to": "HoldMusic"
+    },
+    {
+      "id": "e10",
+      "from": "StandardQueue",
+      "to": "HoldMusic"
+    },
+    {
+      "id": "e11",
+      "from": "HoldMusic",
+      "to": "Disconnect",
+      "condition": "default"
+    }
+  ],
+  "eventFlows": {
+    "GLOBAL_EVENTS": {
+      "id": "GLOBAL_EVENTS",
+      "name": "Global Error Handling",
+      "description": "Runs when the flow raises an unhandled error.",
+      "onEvents": {
+        "GlobalErrorHandling": "OnGlobalError"
+      },
+      "nodes": [
+        {
+          "id": "event-global-error",
+          "name": "OnGlobalError",
+          "activityType": "action",
+          "group": "action",
+          "properties": {
+            "activityName": "Event",
+            "eventSourceName": "WebexContactCenter",
+            "eventClassificationName": "VoiceInteractions",
+            "eventSpecificationName": "GlobalErrorHandling"
+          }
+        },
+        {
+          "id": "err-msg",
+          "name": "ErrorMessage",
+          "activityType": "action",
+          "group": "action",
+          "properties": {
+            "activityName": "play-message",
+            "toggle": true,
+            "promptsTts": [
+              {
+                "name": "We are experiencing technical difficulties.",
+                "type": "tts",
+                "value": "We are experiencing technical difficulties."
+              }
+            ],
+            "connector": "Cisco Cloud Text-to-Speech",
+            "connector_name": "Cisco Cloud Text-to-Speech",
+            "connector:name": "Cisco Cloud Text-to-Speech",
+            "connector_type": "Cisco Cloud Text-to-Speech",
+            "connector:type": "Cisco Cloud Text-to-Speech",
+            "speakingRate": 1,
+            "volumeGainDb": 0
+          }
+        },
+        {
+          "id": "err-disconnect",
+          "name": "ErrorDisconnect",
+          "activityType": "action",
+          "group": "terminating-action",
+          "properties": {
+            "activityName": "disconnect-contact"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "ev-entry",
+          "from": "OnGlobalError",
+          "to": "ErrorMessage",
+          "condition": "out",
+          "properties": {}
+        },
+        {
+          "id": "e12",
+          "from": "ErrorMessage",
+          "to": "ErrorDisconnect",
+          "condition": "default"
+        }
+      ]
+    }
+  }
+}

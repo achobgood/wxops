@@ -258,7 +258,7 @@ wxcli mode-management switch-mode-for-invoke --operating-mode-name "Holiday"   #
 wxcli mode-management switch-to-normal FEATURE_ID
 wxcli mode-management extend-current-operating FEATURE_ID --operating-mode-id MODE_ID --extension-time 30
 ```
-- **Every `mode-management` command is a `/people/me/` endpoint → admin tokens get 404 (error 4008).** This is Known Issue #3: this group is the *user's own* self-service view and needs user-level OAuth.
+- **Every `mode-management` command is a `/people/me/` endpoint → admin tokens get 404 (error 4008).** This is `docs/reference/wxcli-behavior.md` Known Issue #3: this group is the *user's own* self-service view and needs user-level OAuth.
 - **An admin CAN switch a feature's mode — just not through this group.** Use the per-feature admin commands, which are location-scoped (`POST /telephony/config/locations/{locationId}/<feature>/{id}/callForwarding/actions/switchMode/invoke`): `auto-attendant switch-mode-for`, `call-queue switch-mode-for`, `hunt-group switch-mode-for`. Those live in the `configure-features` skill. Do not conclude from this group's 404 that mode switching has no admin path — it does.
 - `--extension-time` must be a multiple of 30 (minutes).
 - **Bare-name trap:** `user-settings list-available-features` is mode-management-specific (`modeManagement/availableFeatures`), not a general feature list.
@@ -303,7 +303,7 @@ wxcli guest-management create --subject "ext-user-42" --display-name "Jane Guest
 ```
 - Requires a **Guest Issuer application** (JWT-signed credentials), not a normal admin token. A standard admin/PAT will not mint guest tokens.
 - `create` outputs the guest token id by default; use `-o json` for the full token payload. Treat the output as a **credential** — do not echo it into logs or reports.
-- **Do NOT confuse with `guestCalling`**, the person setting in Known Issue #4 — that one is user-only (`my-call-settings`) and unrelated to this group.
+- **Do NOT confuse with `guestCalling`**, the person setting in `docs/reference/wxcli-behavior.md` Known Issue #4 — that one is user-only (`my-call-settings`) and unrelated to this group.
 
 ### Command group mapping (do NOT guess — use this table)
 | Setting domain | wxcli group | NOT this group |
@@ -1036,8 +1036,8 @@ Common errors:
 - **405 "Invalid Professional Place" on workspace settings:** The workspace has a Basic license. Most `/telephony/config/workspaces/{id}/` settings require Professional. Only `musicOnHold` and `doNotDisturb` work on Basic. Use the `/workspaces/{id}/features/` path family for Basic workspaces (callForwarding, callWaiting, callerId, intercept, monitoring).
 - **403 on Single Number Reach:** SNR uses `spark-admin:telephony_config_read/write` scopes, not `spark-admin:people_read/write`. Check token scopes.
 - **Empty/no-effect on MoH:** Both location-level `moh_location_enabled` AND person-level `moh_enabled` must be `true`. If either is false, no music plays. Check both levels.
-- **404 (error 4008) on any `mode-management` command:** Every command in that group is a `/telephony/config/people/me/` endpoint — admin tokens always 404 (Known Issue #3). Use a user-level OAuth token. If you only need to assign mode-manageable features, use the admin path `user-settings update-mode-management PERSON_ID` instead.
-- **404 on `virtual-line-settings` commands:** Confirm the ID is a `VIRTUAL_LINE` ID from `wxcli virtual-line-settings list`, not a person ID. Note the separate `virtual-extensions` group uses a different ID type entirely (Known Issue #9).
+- **404 (error 4008) on any `mode-management` command:** Every command in that group is a `/telephony/config/people/me/` endpoint — admin tokens always 404 (`docs/reference/wxcli-behavior.md` Known Issue #3). Use a user-level OAuth token. If you only need to assign mode-manageable features, use the admin path `user-settings update-mode-management PERSON_ID` instead.
+- **404 on `virtual-line-settings` commands:** Confirm the ID is a `VIRTUAL_LINE` ID from `wxcli virtual-line-settings list`, not a person ID. Note the separate `virtual-extensions` group uses a different ID type entirely (`docs/reference/wxcli-behavior.md` Known Issue #9).
 - **`person-call-settings list` returns only monitoring data:** That is correct behavior, not a bug — the group covers `/people/{id}/features/monitoring` only. For other person settings use `user-settings`.
 - **`guest-management create` fails with 401/403 on an admin token:** Guest tokens require a Guest Issuer application (JWT-signed credentials). A standard admin token or PAT cannot mint them.
 - **404 on `my-call-settings` commands:** The authenticated user must have a Webex Calling license. These are `/people/me/` endpoints and require user-level OAuth tokens (`spark:people_read` / `spark:people_write`), not admin tokens.

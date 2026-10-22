@@ -167,6 +167,9 @@ def test_enforce_exit_code_follows_check_8(monkeypatch, capsys, untracked, expec
     monkeypatch.setattr(drift_check, "check_doc_value_types", lambda *a, **k: [])
     # Check 30 reads the same invocations and would be BLIND for the same reason.
     monkeypatch.setattr(drift_check, "check_doc_body_keys", lambda *a, **k: ([], 0))
+    # Check 34 (Plan 2) resolves the command-map rows against the CLI surface;
+    # with that surface stubbed empty above, none of the 77 rows resolve.
+    monkeypatch.setattr(drift_check, "check_command_map", lambda *a, **k: [])
     monkeypatch.setattr(sys, "argv", ["drift_check.py", "--enforce"])
 
     assert drift_check.main() == expected_exit

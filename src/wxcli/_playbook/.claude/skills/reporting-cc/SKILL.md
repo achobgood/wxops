@@ -4,8 +4,8 @@ description: |
   Query and analyze Webex Contact Center analytics: CC queue statistics, CC agent statistics,
   estimated wait time, agent summaries, task search, and real-time CC monitoring.
   CC scopes (cjp:config_read) are required; a full-admin PAT was observed to work on 2026-10-13.
-  NOT for: Webex Calling CDR/queue/AA stats (use reporting skill) or
-  meetings/workspace analytics (use reporting-meetings skill).
+  NOT for: Webex Calling CDR/queue/AA stats (reporting) or meetings/workspace analytics
+  (reporting-meetings).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [cc-report-type]
 ---
@@ -53,7 +53,7 @@ Available regions: us1, eu1, eu2, anz1, ca1, jp1, sg1.
 | AI-generated interaction summaries | `cc-agent-summaries` | `create`, `create-list` |
 | Historical task/contact search | `cc-search` | `create` |
 | Which fields a search may filter, sort, group or aggregate on | `cc-search-metadata` | `list` |
-| Real-time queue/agent state | `cc-realtime` | `create` |
+| Real-time notifications (opens a websocket subscription — a change, not a read; see CC-9) | `cc-realtime` | `create` |
 | Call monitoring | `cc-call-monitoring` | 7 commands |
 | Consumption/billing extract for a resource type over a date range | `usage-reports` | `list-resource-types`, `create`, `show`, `list-download` |
 
@@ -62,27 +62,21 @@ Available regions: us1, eu1, eu2, anz1, ca1, jp1, sg1.
 ### Queue Statistics
 
 ```bash
-wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json
+wxcli cc-queue-stats list --from 1784592000000 --to 1784677500000 -o json
 ```
+
+Queue statistics answer at most 24 hours per call (live 400 `Querying only supported for 24 hours at a time`, 2026-10-20). The spec says the window must be **less than** 24 hours (86,400,000 ms) and rounds `--to` down to a 15-minute mark, so every example here asks for 23 h 45 min; for a longer period, make one call per day.
 
 #### Recipe CC-1 — Queue volume ranking
 Question: "Which queue gets the most tasks offered?"
 ```bash
-wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-items = data if isinstance(data, list) else data.get('items', [data])
-for q in sorted(items, key=lambda x: x.get('totalOfferedTasks', 0), reverse=True):
-    name = q.get('queueName', q.get('name', '?'))
-    offered = q.get('totalOfferedTasks', 0)
-    print(f'{name}: {offered} tasks offered')
-"
+wxcli cc-queue-stats list --from 1784592000000 --to 1784677500000 --fields 'reverse(sort_by(@, &totalOfferedTasks))[].{queueName: queueName, totalOfferedTasks: totalOfferedTasks}' -o table
 ```
 
 #### Recipe CC-2 — Queue abandonment rate
 Question: "What's our abandonment rate per queue?"
 ```bash
-wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
+wxcli cc-queue-stats list --from 1784592000000 --to 1784677500000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -98,41 +92,28 @@ for q in items:
 #### Recipe CC-3 — Average wait time per queue
 Question: "How long are callers waiting?"
 ```bash
-wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-items = data if isinstance(data, list) else data.get('items', [data])
-for q in sorted(items, key=lambda x: x.get('averageEnqueuedTime', 0), reverse=True):
-    name = q.get('queueName', q.get('name', '?'))
-    wait = q.get('averageEnqueuedTime', 0)
-    print(f'{name}: avg {wait}ms in queue')
-"
+wxcli cc-queue-stats list --from 1784592000000 --to 1784677500000 --fields 'reverse(sort_by(@, &averageEnqueuedTime))[].{queueName: queueName, averageEnqueuedTime: averageEnqueuedTime}' -o table
 ```
+`averageEnqueuedTime` is in milliseconds.
 
 #### Recipe CC-4 — Service level by queue
 Question: "Are we meeting our SLA?"
 ```bash
-wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-items = data if isinstance(data, list) else data.get('items', [data])
-for q in items:
-    name = q.get('queueName', q.get('name', '?'))
-    sl = q.get('serviceLevelThresholdPercentage', 'N/A')
-    print(f'{name}: {sl}% service level')
-"
+wxcli cc-queue-stats list --from 1784592000000 --to 1784677500000 --fields '[].{queueName: queueName, serviceLevelThresholdPercentage: serviceLevelThresholdPercentage}' -o table
 ```
 
 ### Agent Statistics
 
 ```bash
-wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json
+wxcli cc-agents list-statistics --from 1784592000000 --to 1784677500000 -o json
 ```
+
+> **Unverified:** the spec gives `cc-agents list-statistics` the same limit (the window must be less than 24 hours, 86,400,000 ms); not measured live. The examples use the same 23 h 45 min window.
 
 #### Recipe CC-5 — Agent handle time ranking
 Question: "Which agents are fastest/slowest?"
 ```bash
-wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
+wxcli cc-agents list-statistics --from 1784592000000 --to 1784677500000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -146,7 +127,7 @@ for name, channel, aht in sorted(rows, key=lambda r: r[2], reverse=True):
 #### Recipe CC-6 — Agent utilization
 Question: "How busy is each agent?"
 ```bash
-wxcli cc-agents list-statistics --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
+wxcli cc-agents list-statistics --from 1784592000000 --to 1784677500000 -o json | python3.11 -c "
 import json, sys
 data = json.load(sys.stdin)
 items = data if isinstance(data, list) else data.get('items', [data])
@@ -162,16 +143,11 @@ for name, accepted in sorted(rows, key=lambda r: r[1], reverse=True):
 #### Recipe CC-7 — Current wait time check
 Question: "What's the current wait for queue X?"
 ```bash
-wxcli cc-ewt show --queue-id QUEUE_ID --lookback-minutes 30 -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-if isinstance(data, dict):
-    print(f\"Estimated wait time: {data.get('estimatedWaitTime', data.get('ewt', 'N/A'))}s\")
-else:
-    for q in data:
-        print(f\"{q.get('queueName', '?')}: {q.get('estimatedWaitTime', q.get('ewt', 'N/A'))}s\")
-"
+wxcli cc-ewt show --queue-id QUEUE_ID --lookback-minutes 30 --fields '{estimatedWaitTime: estimatedWaitTime || ewt}' -o json
 ```
+`null` means the API returned no estimate: it answers `204` when there are too few recent samples, and also for an unknown queue ID. The value is in **milliseconds**.
+
+> **Unverified:** the spec says milliseconds; not measured live.
 
 ### Usage Reports
 
@@ -215,17 +191,8 @@ here. `orgId` is the bare CC org UUID. Full detail: `docs/reference/contact-cent
 
 #### Recipe CC-9 — Real-time queue depth
 Question: "How many callers are waiting right now?"
-```bash
-wxcli cc-realtime create -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-if isinstance(data, list):
-    for q in data:
-        print(f\"{q.get('queueName', '?')}: {q.get('callsInQueue', q.get('waitingCalls', 0))} waiting\")
-else:
-    print(json.dumps(data, indent=2))
-"
-```
+
+No read command returns live queue depth today; `cc-realtime create` opens a subscription (a change, so only the `wxops` agent may run it). `cc-queue-stats list` returns totals and averages over a time window (`totalEnqueuedTasks`, `averageEnqueuedTime` and the rest), not the number of callers waiting now. Say so rather than answering from it.
 
 #### Recipe CC-10 — Agent availability status
 Question: "Who's available right now?"
@@ -245,6 +212,8 @@ for state, count in states.most_common():
 "
 ```
 
+> **Unverified:** the spec says the `--to` minus `--from` window of `cc-agents list-activities` must be less than 24 hours (86,400,000 ms), and `--to` defaults to now. For "right now", pass a `--from` (epoch ms) within the last 24 hours; the fixed `--from` above is only an example date. Not measured live.
+
 ### Historical Search
 
 #### Recipe CC-11 — Search tasks by date range
@@ -260,16 +229,9 @@ Queue statistics expose no per-task maximum wait — `averageEnqueuedTime` is th
 only wait metric in the response, so the peak wait of a single contact cannot be
 answered here.
 ```bash
-wxcli cc-queue-stats list --from 1784592000000 --to 1785196800000 -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-items = data if isinstance(data, list) else data.get('items', [data])
-worst = max(items, key=lambda x: x.get('averageEnqueuedTime', 0), default={})
-name = worst.get('queueName', worst.get('name', '?'))
-wait = worst.get('averageEnqueuedTime', 0)
-print(f'Worst average wait: {wait}ms in queue {name}')
-"
+wxcli cc-queue-stats list --from 1784592000000 --to 1784677500000 --fields 'max_by(@, &averageEnqueuedTime).{queueName: queueName, averageEnqueuedTime: averageEnqueuedTime}' -o table
 ```
+`averageEnqueuedTime` is in milliseconds.
 
 ---
 
@@ -277,7 +239,7 @@ print(f'Worst average wait: {wait}ms in queue {name}')
 
 1. **CC scopes (`cjp:config_read` / `cjp:config_write`) are required; a 403 means they are missing.** Fix: OAuth Integration or Service App with those scopes (both supported). Observed 2026-10-13: a full-admin PAT got no 403 on any analytics endpoint tried (queue stats, agent stats, agent activities, EWT, task search, search metadata, agent summaries), so do not assume a PAT is blocked.
 2. **Region must be set.** CC APIs route to regional endpoints. Default is us1.
-3. **Response shapes vary.** CC APIs may return objects or arrays. Recipes handle both with `isinstance` checks.
+3. **Response shapes vary.** CC APIs may return objects or arrays. The Python recipes handle both with `isinstance` checks; the `--fields` recipes rely on `cc-queue-stats list` printing an array and `cc-ewt show` printing one object, and CC-9 branches on `type(@)`.
 4. **Field names vary.** Different CC API versions use different field names (e.g., `avgWaitTime` vs `averageWaitTime`). Recipes use fallbacks with `x.get('field1', x.get('field2', 0))`.
 5. **Real-time data is ephemeral.** Snapshot of current state, not historical.
 6. **401 "Token does not have access to OrgId:<base64 id>" is NOT a scope problem, and is FIXED in the CLI (2026-10-13).** Older wxcli builds sent the saved base64 Spark org id as `orgId` on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-ewt show` and `cc-search create`, and the CC API rejected it. The CLI now sends the bare UUID; verified 200 on `cc-queue-stats list`, `cc-agents list-statistics`/`list-activities`, `cc-tasks list`, `cc-subscriptions` and 204 on `cc-ewt show`, and 200 on `cc-search create` (GraphQL task query). If you still see this 401, upgrade wxcli and check `wxcli whoami`'s Target org; raw HTTP with the bare UUID `orgId` (or none) is the fallback.

@@ -18,6 +18,11 @@ BASE_URL = "https://webexapis.com/v1"
 BASE_URL_NO_V1 = "https://webexapis.com"
 BASE_URL_ANALYTICS = "https://analytics-calling.webexapis.com/v1"
 BASE_URL_CC = "{cc_base_url}"  # Resolved at runtime from config
+# The WxCC Flow Store host. Resolved at runtime by get_flow_store_base_url()
+# (WXCLI_FLOW_STORE_URL, then the flow_store_url config key, then the default).
+# It is a Contact Center host, so the orgId it takes is the bare UUID too.
+BASE_URL_FS = "{fs_base_url}"
+_CC_HOST_BASES = (BASE_URL_CC, BASE_URL_FS)
 
 # Path prefixes that use the base URL without /v1
 NO_V1_PREFIXES = ("identity/", "Schemas/")
@@ -117,6 +122,18 @@ class UnboundUrlPlaceholderError(Exception):
     `trackingCodeId`). This guard is the backstop for cases inference can't
     heal — no sibling declares the var either — so a future spec defect
     fails the build loudly instead of shipping a runtime crash.
+    """
+
+
+class OperationOverrideRenderError(ValueError):
+    """An `operation_overrides` entry that matches a spec operation but cannot
+    apply to the command that operation renders: `param_help` naming no flag
+    of the command, `multipart` on anything but a POST, `body_transform` on a
+    command that sends no body, `exit_code_from` on a list.
+
+    generate_commands.resolve_operation_overrides checks the entry against the
+    spec; this checks it against the rendered command. Raised at generation
+    time, so the entry cannot sit in the YAML doing nothing.
     """
 
 
@@ -229,6 +246,10 @@ def _can_verify(ep) -> bool:
     worse than no flag: it converts an unchecked write into one that LOOKS
     checked. So the flag is only offered where it can actually do its job.
     """
+    # A json-string body (`body_transform`) is a str on the wire; a read-back
+    # cannot be compared field by field against it.
+    if (getattr(ep, "op_overrides", None) or {}).get("body_transform"):
+        return False
     return ep.method.upper() in ("PUT", "PATCH") and ep.url_path in _active_get_paths
 
 
@@ -251,7 +272,8 @@ def _expansion_kwargs(ep) -> str:
 
 def _render_imports(include_org_id: bool = False, include_org_id_path: bool = False,
                     include_cc_url: bool = False, include_cc_org_id: bool = False,
-                    include_verify: bool = False) -> str:
+                    include_verify: bool = False, include_fs_url: bool = False,
+                    include_path: bool = False) -> str:
     lines = '''import json
 import httpx
 import typer
@@ -267,6 +289,8 @@ from wxcli.common import emit, load_json_body
         config_imports.append('resolve_org_id')
     if include_cc_url:
         config_imports.append('get_cc_base_url')
+    if include_fs_url:
+        config_imports.append('get_flow_store_base_url')
     if include_cc_org_id:
         config_imports.append('get_cc_org_id')
     if config_imports:
@@ -275,6 +299,9 @@ from wxcli.common import emit, load_json_body
     # header -- a tree-wide import churn would bury the real diff on every regen.
     if include_verify:
         lines += 'from wxcli.common import verify_write\n'
+    # Only a module with a multipart upload (`--file PATH`) needs it.
+    if include_path:
+        lines += 'from pathlib import Path\n'
     return lines
 
 
@@ -307,6 +334,8 @@ def _render_url_expr(url_path: str, path_vars: list[str], method: str | None = N
     # before the URL line runs, so it is bound too.
     if _active_base_url_override == BASE_URL_CC:
         bound.add("cc_base_url")
+    elif _active_base_url_override == BASE_URL_FS:
+        bound.add("fs_base_url")
     unresolved = [name for name in _URL_PLACEHOLDER_RE.findall(expr) if name not in bound]
     if unresolved:
         raise UnboundUrlPlaceholderError(
@@ -344,7 +373,7 @@ def _render_auto_inject_params(ep: Endpoint) -> list[str]:
     if "orgId" in getattr(ep, "auto_inject_params", []):
         lines.append("    org_id = get_org_id()")
         lines.append("    if org_id is not None:")
-        if _active_base_url_override == BASE_URL_CC:
+        if _active_base_url_override in _CC_HOST_BASES:
             # The Contact Center host wants the bare org UUID. The saved org id
             # is the base64 Webex id, and sending that got 401 "Token does not
             # have access to OrgId:Y2lz..." on every CC runtime/analytics
@@ -364,10 +393,12 @@ def _render_path_inject(ep: Endpoint) -> list[str]:
     lines = []
     if _active_base_url_override == BASE_URL_CC:
         lines.append("    cc_base_url = get_cc_base_url()")
+    elif _active_base_url_override == BASE_URL_FS:
+        lines.append("    fs_base_url = get_flow_store_base_url()")
     for var in getattr(ep, "auto_inject_path_params", []):
         param = _path_var_to_param(var)
         if var.lower() == "orgid":
-            if _active_base_url_override == BASE_URL_CC:
+            if _active_base_url_override in _CC_HOST_BASES:
                 lines.append(f"    {param} = get_cc_org_id(api.session)")
             else:
                 lines.append(f"    {param} = resolve_org_id(api.session)")
@@ -627,7 +658,11 @@ def _clean_desc(text: str, max_desc: int = 300) -> str:
 
 
 def _enum_help(field: EndpointField, max_desc: int = 300) -> str:
-    """Build help text for a field, showing enum choices if available."""
+    """Build help text for a field, showing enum choices if available.
+
+    A per-operation `param_help` (field.help_override) replaces both."""
+    if getattr(field, "help_override", None):
+        return _escape_help(_clean_desc(field.help_override, max_desc))
     if field.enum_values:
         deduped = _dedup_enum_values(field.enum_values)
         if len(deduped) <= 12:
@@ -763,6 +798,9 @@ SPEC_PRODUCT = {
     "webex-meetings.json": "Meetings",
     "webex-admin.json": "Admin",
     "webex-contact-center.json": "Contact Center",
+    # The WxCC Flow Store snapshot (Plan 2, P2-5). Deliberately NOT the retired
+    # webex-flow-store.json name above, which must stay absent.
+    "webex-cc-flow-store.json": "Contact Center",
     "webex-ucm.json": "UCM",
     "webex-broadworks.json": "BroadWorks",
     "webex-wholesale.json": "Wholesale",
@@ -892,6 +930,11 @@ def build_producer_index(specs_dir: Path | None = None) -> dict:
                 # derived before that reclassification, so the name says so.
                 if ep.command_type != "list" and not (
                         ep.method == "GET" and ep.command_name.startswith("list")):
+                    continue
+                # `producer: {<command>: false}` (Plan 2 Task 14): a list that
+                # does not return the ids its sub-paths take. `cc-flow-projects
+                # list` omits the system project every PROJECT_ID argument uses.
+                if (tag_ovr.get("producer") or {}).get(ep.command_name) is False:
                     continue
                 by_path.setdefault(ep.url_path, f"{group} {ep.command_name}")
                 literals = _path_literals(ep.url_path)
@@ -1099,6 +1142,8 @@ def _render_example(ep: Endpoint) -> str | None:
         if ep.command_type == "list" and qp.name in _SUPPRESS_SPEC_PAGING_NAMES:
             continue
         tokens.append(f"--{qp.python_name} {_flag_value(qp)}")
+    if _multipart_part(ep):
+        tokens.append("--file FILE")
     body_via_json = _example_json_body(ep)
     if not body_via_json:
         used_names = _used_param_names(ep)
@@ -1558,7 +1603,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             "):",
             _render_docstring(ep),
             *offset_guard,
-            "    api = get_api(debug=debug)",
+            *_render_api_setup(ep),
             *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
             *param_build,
@@ -1575,7 +1620,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
             "):",
             _render_docstring(ep),
             *offset_guard,
-            "    api = get_api(debug=debug)",
+            *_render_api_setup(ep),
             *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
             *param_build,
@@ -1670,6 +1715,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
     # dict branch).
     show_output = [
         f"    emit(result, output=output, fields=fields{_expansion_kwargs(ep)})",
+        *_render_exit_code_from(ep),
     ]
 
     has_params = bool(qp_build) or bool(_render_auto_inject_params(ep))
@@ -1683,7 +1729,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
             *params,
             "):",
             _render_docstring(ep),
-            "    api = get_api(debug=debug)",
+            *_render_api_setup(ep),
             *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
             *param_init,
@@ -1700,7 +1746,7 @@ def _render_show_command(ep: Endpoint, folder_overrides: dict | None = None) -> 
             *params,
             "):",
             _render_docstring(ep),
-            "    api = get_api(debug=debug)",
+            *_render_api_setup(ep),
             *_render_path_inject(ep),
             f'    url = f"{url_expr}"',
             "    try:",
@@ -1844,7 +1890,7 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "):",
         _render_docstring(ep),
         *generate_json_body_check,
-        "    api = get_api(debug=debug)",
+        *_render_api_setup(ep),
         *_render_path_inject(ep),
         *_render_destructive_gate(ep),
         f'    url = f"{url_expr}"',
@@ -1852,10 +1898,12 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         *auto_inject,
         *body_build,
         *body_default_lines,
+        *_render_body_transform(ep),
         "    try:",
         f"        {post_call}",
         _render_error_handler("    "),
         _render_create_id_extraction(ep, folder_overrides),
+        *_render_exit_code_from(ep),
     ]
     return "\n".join(lines)
 
@@ -1960,13 +2008,14 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "):",
         _render_docstring(ep),
         *generate_json_body_check,
-        "    api = get_api(debug=debug)",
+        *_render_api_setup(ep),
         *_render_path_inject(ep),
         *_render_destructive_gate(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
         *body_build,
+        *_render_body_transform(ep),
         "    try:",
         f"        {method_call}",
         _render_error_handler("    "),
@@ -1982,6 +2031,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         f'        typer.echo(f"{_success_message(ep, "Updated.")}")',
         "    else:",
         f"        emit({_no_body_result_expr(ep, 'Updated.')}, output=output, fields=fields)",
+        *_render_exit_code_from(ep),
     ]
     return "\n".join(lines)
 
@@ -2149,7 +2199,9 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     # /telephony/config/supervisors — 400, errorCode 25024, "Required request
     # body is missing". They could never have worked.
     used_names = _used_param_names(ep)
-    has_body = bool(ep.body_fields)
+    # A body that is a bare JSON array has no body_fields but is still a body:
+    # the Flow Store's tag and preference DELETEs take a list of names.
+    has_body = bool(ep.body_fields) or ep.declares_json_body
     # The flag and its early-exit block below must share this exact condition —
     # never test ep.json_body_example alone here. json_body_example is normally
     # only set when body_fields is non-empty (openapi_parser only populates it
@@ -2243,7 +2295,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "):",
         _render_docstring(ep),
         *generate_json_body_check,
-        "    api = get_api(debug=debug)",
+        *_render_api_setup(ep),
         *_render_path_inject(ep),
         "    if not force:",
         confirm_line,
@@ -2260,6 +2312,7 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
         echo_line,
         "    else:",
         f"        emit({_no_body_result_expr(ep, 'Deleted.')}, output=output, fields=fields)",
+        *_render_exit_code_from(ep),
     ]
     return "\n".join(lines)
 
@@ -2320,17 +2373,212 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         "):",
         _render_docstring(ep),
         *generate_json_body_check,
-        "    api = get_api(debug=debug)",
+        *_render_api_setup(ep),
         *_render_path_inject(ep),
         *_render_destructive_gate(ep),
         f'    url = f"{url_expr}"',
         *qp_build,
         *auto_inject,
         *body_build,
+        *_render_body_transform(ep),
         "    try:",
         f"        {post_call}",
         _render_error_handler("    "),
         "    emit(result, output=output, fields=fields)",
+        *_render_exit_code_from(ep),
+    ]
+    return "\n".join(lines)
+
+
+def _render_api_setup(ep: Endpoint) -> list[str]:
+    """The `api = get_api(...)` line every renderer emits before its request,
+    preceded by an `operation_overrides` `warn` banner on stderr if one is set.
+    With no warn the output is the one line it always was."""
+    lines = []
+    warn = (getattr(ep, "op_overrides", None) or {}).get("warn")
+    if warn:
+        msg = "Warning: " + " ".join(str(warn).split())
+        lines.append(f"    typer.echo({msg!r}, err=True)")
+    lines.append("    api = get_api(debug=debug)")
+    return lines
+
+
+def _render_blocked_command(ep: Endpoint) -> str:
+    """A visible command that refuses to run: `operation_overrides` `blocked`.
+
+    For an operation measured to be harmful or a silent no-op, where hiding it
+    would only send the caller looking for it. The stub accepts any arguments
+    and options, so whatever the caller types they get the message and exit 2
+    instead of a usage error, and it makes no HTTP call.
+    """
+    msg = " ".join(str(ep.op_overrides["blocked"]).split())
+    ctx = '{"allow_extra_args": True, "ignore_unknown_options": True}'
+    decorator = "\n".join(
+        line[:-1] + f", context_settings={ctx})"
+        for line in _command_decorator(ep).splitlines())
+    doc = " ".join((ep.name or "").split())
+    if doc and not doc.endswith("."):
+        doc += "."
+    doc += f"\\n\\nBLOCKED: {_escape_help(msg)}"
+    return "\n".join([
+        decorator,
+        f"def {_safe_func_name(ep.command_name)}(ctx: typer.Context):",
+        f'    """{doc}"""',
+        f"    typer.echo({msg!r}, err=True)",
+        "    raise typer.Exit(2)",
+    ])
+
+
+def _op_ovr(ep: Endpoint) -> dict:
+    return getattr(ep, "op_overrides", None) or {}
+
+
+def _override_error(ep: Endpoint, why: str) -> OperationOverrideRenderError:
+    return OperationOverrideRenderError(
+        f"operation_overrides -> {ep.method} /{ep.url_path} (command "
+        f"{ep.command_name!r}): {why}")
+
+
+def _multipart_part(ep: Endpoint) -> str | None:
+    """The multipart part name `multipart` sends the file as, or None."""
+    mp = _op_ovr(ep).get("multipart")
+    if not mp:
+        return None
+    return mp["field"] if isinstance(mp, dict) else "file"
+
+
+def _flag_fields(ep: Endpoint) -> list[EndpointField]:
+    """The query params and body fields this command renders as flags."""
+    flags = [qp for qp in ep.query_params
+             if not (ep.command_type == "list" and qp.name in _SUPPRESS_SPEC_PAGING_NAMES)]
+    if ep.command_type in ("create", "update", "settings-update", "delete", "action"):
+        used = _used_param_names(ep)
+        flags += [bf for bf in ep.body_fields
+                  if bf.field_type not in ("object", "array")
+                  and _safe_param_name(bf.python_name) not in used]
+    return flags
+
+
+def _apply_render_overrides(endpoints: list[Endpoint]) -> None:
+    """Check and apply Plan 2 Task 10's `operation_overrides` keys before any
+    renderer runs. Must follow _apply_param_name_overrides, which renames flags.
+
+    * `multipart`: the spec's request body describes the uploaded part
+      (`{file: binary}`, which the Flow Store spec labels application/json),
+      not a JSON body. So the command gets no body flags, no --json-body and
+      no skeleton, only `--file PATH`.
+    * `param_help` (per operation): replaces the flag's help, enum choices
+      included. Keyed by wire name; naming no flag of the command raises.
+    * `_all.param_help`: fills only flags whose spec help is empty. Not
+      checked for unknown names: one tag sees only some of the spec's flags.
+    """
+    for ep in endpoints:
+        ovr = _op_ovr(ep)
+        if ovr.get("blocked"):
+            continue
+        if _multipart_part(ep):
+            if ep.method != "POST" or ep.command_type not in ("create", "action"):
+                raise _override_error(ep, f"multipart needs a POST; this is a {ep.method} "
+                                          f"rendered as {ep.command_type}")
+            if ovr.get("body_transform"):
+                raise _override_error(ep, "multipart sends a file, so body_transform cannot apply")
+            if "file" in _used_param_names(ep):
+                raise _override_error(ep, "multipart adds --file, which a path or query "
+                                          "parameter of this command already uses")
+            ep.body_fields = []
+            ep.json_body_example = None
+            ep.json_body_minimal_example = None
+            ep.json_body_truncations = []
+        if ovr.get("body_transform") and ep.command_type not in (
+                "create", "update", "settings-update", "action"):
+            raise _override_error(ep, f"body_transform needs a command that sends a body; "
+                                      f"this is a {ep.command_type}")
+        if ovr.get("exit_code_from") and ep.command_type == "list":
+            raise _override_error(ep, "exit_code_from reads one JSON object; this is a list")
+        per_op = ovr.get("param_help") or {}
+        fill = (ovr.get("_all") or {}).get("param_help") or {}
+        if not (per_op or fill):
+            continue
+        flags = _flag_fields(ep)
+        unknown = sorted(set(per_op) - {f.name for f in flags})
+        if unknown:
+            raise _override_error(
+                ep, f"param_help names {', '.join(unknown)}, not a flag of this command "
+                    f"(path parameters are positional arguments; auto-injected "
+                    f"parameters have no flag)")
+        for f in flags:
+            if f.name in per_op:
+                f.help_override = per_op[f.name]
+            elif f.name in fill and not _enum_help(f):
+                f.description = fill[f.name]
+
+
+def _render_body_transform(ep: Endpoint) -> list[str]:
+    """`body_transform: json-string`: send the finished body as a JSON string
+    (the JSON text of the body, encoded again), as the Flow Store's consume
+    operation requires (wxcc verified live, its Phase 3)."""
+    if _op_ovr(ep).get("body_transform") == "json-string":
+        return ["    body = json.dumps(body)"]
+    return []
+
+
+def _render_exit_code_from(ep: Endpoint) -> list[str]:
+    """`exit_code_from: {json_key, invert}`: after the output is printed, exit 1
+    when bool(result[json_key]) != invert. With invert, `isUnique: false` (or
+    no isUnique at all) exits 1. A response that is not an object has no key to
+    read and leaves the exit code alone."""
+    ecf = _op_ovr(ep).get("exit_code_from")
+    if not ecf:
+        return []
+    invert = bool(ecf.get("invert", False))
+    return [f"    if isinstance(result, dict) and bool(result.get({ecf['json_key']!r})) != {invert}:",
+            "        raise typer.Exit(1)"]
+
+
+def _render_multipart_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
+    """A POST that uploads one file as multipart/form-data (`multipart`)."""
+    _check_reserved_collisions(ep)
+    part = _multipart_part(ep)
+    func_name = _safe_func_name(ep.command_name)
+    params = []
+    params.extend(_render_path_arguments(ep))
+    qp_defs, qp_build = _render_query_params(ep)
+    params.extend(qp_defs)
+    params.append(
+        '    file: Path = typer.Option(..., "--file", exists=True, dir_okay=False, readable=True, '
+        f'help="Path of the file to upload, sent as the multipart \'{part}\' part."),')
+    params.extend(_render_force_option(ep))
+    params.extend(_render_output_options("id" if ep.command_type == "create" else "json"))
+    params.append('    debug: bool = typer.Option(False, "--debug"),')
+
+    url_expr = _render_url_expr(ep.url_path, ep.path_vars, method=ep.method,
+                                spec_v1=ep.raw_path[:1] == ["v1"])
+    if not qp_build:
+        qp_build = ["    params = {}"]
+    call = (f'result = api.session.rest_post_multipart(url, files={{"{part}": (Path(file).name, '
+            f'Path(file).read_bytes(), "application/json")}}, params=params)')
+    if ep.command_type == "create":
+        output = _render_create_id_extraction(ep, folder_overrides)
+    else:
+        output = "    emit(result, output=output, fields=fields)"
+
+    lines = [
+        _command_decorator(ep),
+        f"def {func_name}(",
+        *params,
+        "):",
+        _render_docstring(ep),
+        *_render_api_setup(ep),
+        *_render_path_inject(ep),
+        *_render_destructive_gate(ep),
+        f'    url = f"{url_expr}"',
+        *qp_build,
+        *_render_auto_inject_params(ep),
+        "    try:",
+        f"        {call}",
+        _render_error_handler("    "),
+        output,
+        *_render_exit_code_from(ep),
     ]
     return "\n".join(lines)
 
@@ -2369,6 +2617,39 @@ def _infer_missing_path_vars(endpoints: list[Endpoint]) -> None:
         for name in _URL_PLACEHOLDER_RE.findall(ep.url_path):
             if name not in ep.path_vars and name in vars_by_path.get(ep.url_path, ()):
                 ep.path_vars.append(name)
+
+    # Second pass, by NAME within the tag (Plan 2 Task 14). The WxCC Flow
+    # Store spec omits a path variable on 7 operations where no same-path
+    # sibling declares it either: projectId on the 4 .../preferences ops,
+    # .../tagHistories and .../flows/versions; orgId on flows:variable-mapping,
+    # which declares it as a query parameter only. Every other operation in
+    # the same tag declares the same name, for the same {orgId}/project/
+    # {projectId} prefix. The donor's auto-inject status and value metadata
+    # travel with the name, so a borrowed orgId is injected, not an argument,
+    # and the borrowed vars take their URL-template position so a positional
+    # argument lands where its siblings put it (cc-flow-prefs list P F, not
+    # F P). Only a placeholder that would otherwise be unbound is touched, so
+    # every URL that rendered before renders the same.
+    donors: dict[str, Endpoint] = {}
+    for ep in endpoints:
+        for name in ep.path_vars:
+            if name in (ep.path_var_meta or {}):
+                donors.setdefault(name, ep)
+    for ep in endpoints:
+        template = _URL_PLACEHOLDER_RE.findall(ep.url_path)
+        borrowed = [n for n in template if n not in ep.path_vars and n in donors]
+        if not borrowed:
+            continue
+        for name in borrowed:
+            donor = donors[name]
+            if name in (donor.path_var_meta or {}):
+                ep.path_var_meta = {**(ep.path_var_meta or {}),
+                                    name: donor.path_var_meta[name]}
+            if name in getattr(donor, "auto_inject_path_params", []):
+                ep.auto_inject_path_params = [*ep.auto_inject_path_params, name]
+        have = set(ep.path_vars) | set(borrowed)
+        ep.path_vars = ([n for n in template if n in have]
+                        + [n for n in ep.path_vars if n not in template])
 
 
 class CommandHelpNoteError(Exception):
@@ -2470,7 +2751,8 @@ def render_command_file(
     _active_get_paths = {e.url_path for e in endpoints if e.method.upper() == "GET"}
     needs_verify = any(_can_verify(e) for e in endpoints)
     needs_cc_url = base_url_override == BASE_URL_CC
-    needs_cc_org_id = needs_cc_url and needs_org_id
+    needs_fs_url = base_url_override == BASE_URL_FS
+    needs_cc_org_id = base_url_override in _CC_HOST_BASES and needs_org_id
     # The group-help label names the product of the SPEC the group comes from.
     # It used to be guessed from the CLI-name prefix ("cc-" -> Contact Center,
     # "meeting" -> Meetings, everything else -> Calling), which labelled every
@@ -2487,15 +2769,25 @@ def render_command_file(
     sections = [
         _render_imports(include_org_id=needs_org_id_query, include_org_id_path=needs_org_id_path,
                         include_cc_url=needs_cc_url, include_cc_org_id=needs_cc_org_id,
-                        include_verify=needs_verify),
+                        include_verify=needs_verify, include_fs_url=needs_fs_url,
+                        include_path=any(_multipart_part(e) for e in endpoints)),
         f'app = typer.Typer(help="Manage {product} {cli_name}.")\n',
     ]
 
     # Before any renderer runs: a rename must be visible to every render path
     # and to _check_reserved_collisions alike.
     _apply_param_name_overrides(endpoints, folder_overrides)
+    _apply_render_overrides(endpoints)
 
     for ep in endpoints:
+        if (getattr(ep, "op_overrides", None) or {}).get("blocked"):
+            sections.append(_render_blocked_command(ep))
+            sections.append("")
+            continue
+        if _multipart_part(ep):
+            sections.append(_render_multipart_command(ep, folder_overrides))
+            sections.append("")
+            continue
         renderer = RENDERERS.get(ep.command_type)
         if renderer is None:
             sections.append(f"# SKIPPED: {ep.name} — unknown command type {ep.command_type}\n")

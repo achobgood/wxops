@@ -81,6 +81,35 @@ def test_refresh_replaces_deletes_owned_and_spares_user_files(bundle, tmp_path):
     assert (pb / "my-notes.md").read_text() == "mine\n"          # non-owned → untouched
 
 
+def test_refresh_removes_retired_agent_files(bundle_both, tmp_path):
+    """Plan 5 renamed the builder agent. A customer folder initialised before
+    the rename must lose the old agent files on refresh, or Claude Code and
+    Codex keep offering an agent the safety hook no longer exempts."""
+    old_claude = ".claude/agents/wxc-calling-builder.md"
+    old_codex = ".codex/agents/wxc-calling-builder.toml"
+    for rel in (old_claude, old_codex):
+        (bundle_both / rel).parent.mkdir(parents=True, exist_ok=True)
+        (bundle_both / rel).write_text("old agent\n")
+    pb = tmp_path / "pb"
+    assert _init(str(pb), "--yes").exit_code == 0
+    assert (pb / old_claude).exists() and (pb / old_codex).exists()
+    (pb / ".claude/agents/my-agent.md").write_text("mine\n")       # user-added, beside them
+    (pb / ".codex/agents/my_agent.toml").write_text("mine\n")
+    # new bundle version: the agent is renamed
+    for rel in (old_claude, old_codex):
+        (bundle_both / rel).unlink()
+    (bundle_both / ".claude/agents/wxops.md").write_text("new agent\n")
+    (bundle_both / ".codex/agents/wxops.toml").write_text("new agent\n")
+    r = _init(str(pb), "--yes")
+    assert r.exit_code == 0, r.output
+    assert not (pb / old_claude).exists()                         # retired → deleted
+    assert not (pb / old_codex).exists()
+    assert (pb / ".claude/agents/wxops.md").read_text() == "new agent\n"
+    assert (pb / ".codex/agents/wxops.toml").read_text() == "new agent\n"
+    assert (pb / ".claude/agents/my-agent.md").read_text() == "mine\n"   # unowned → untouched
+    assert (pb / ".codex/agents/my_agent.toml").read_text() == "mine\n"
+
+
 def test_uninstall_removes_exactly_manifest_set(bundle, tmp_path):
     pb = tmp_path / "pb"
     assert _init(str(pb), "--yes").exit_code == 0

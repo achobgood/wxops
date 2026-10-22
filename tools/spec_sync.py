@@ -7,7 +7,10 @@ for every git-tracked spec (registration manifest updates as a side effect)
 suite, then land everything as ONE commit:
 
     python3.14 tools/spec_sync.py [--skip-update] [--run-dir DIR]
-    git add -u specs src/wxcli/commands src/wxcli/_playbook tools/spec_semantics.json tools/command_name_lock.json docs/arch/deliberate-gaps.md CLAUDE.md README.md
+    git add -u specs src/wxcli/commands src/wxcli/_playbook tools/spec_semantics.json tools/command_name_lock.json CLAUDE.md README.md
+
+(docs/arch/deliberate-gaps.md is local-only and gitignored; naming it makes
+`git add -u` exit 128 and stage nothing.)
 
 Only git-tracked specs are regenerated. The WxCC Flow Store spec
 (webex-flow-store.json) and its fs-* groups are RETIRED (ADR-11 in
@@ -32,6 +35,7 @@ PREFERRED_ORDER = [
     "webex-messaging.json",
     "webex-ucm.json",
     "webex-contact-center.json",
+    "webex-cc-flow-store.json",
     "webex-admin.json",
     "webex-meetings.json",
 ]

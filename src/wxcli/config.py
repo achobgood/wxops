@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 from pathlib import Path
 
 DEFAULT_CONFIG_PATH = Path.home() / ".wxcli" / "config.json"
@@ -39,7 +40,7 @@ def decode_webex_id(encoded_id: str) -> str:
     """Decode a base64-encoded Webex Spark ID to its UUID suffix.
 
     Webex Calling APIs return orgId as a base64 URN like:
-      Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTE=...
+      Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8xMTExMTExMS0xMTExLTExMTEt...
     which decodes to: ciscospark://us/ORGANIZATION/11111111-1111-1111-1111-...
 
     The Contact Center API requires the bare UUID (after the last '/'),
@@ -107,4 +108,31 @@ def save_org(org_id: str | None, org_name: str | None, path: Path = DEFAULT_CONF
     else:
         profile.pop("org_id", None)
         profile.pop("org_name", None)
+    save_config(config, path)
+
+
+# Flow Store (Flow Designer) API base. The default is the host proven live in
+# docs/merge/flow-store-host-map.md § Decision (P2-8). It is a US host, so a tenant
+# outside the US sets `flow_store_url` (or WXCLI_FLOW_STORE_URL). A value may be
+# written in the gateway form "{cc_base_url}/flow-store", which follows the saved
+# cc_region.
+FLOW_STORE_DEFAULT_URL = "https://flow-store.produs1.ciscoccservice.com/flow-store"
+
+def get_flow_store_base_url(path: Path = DEFAULT_CONFIG_PATH) -> str:
+    config = load_config(path)
+    profile = config.get("profiles", {}).get("default", {})
+    url = (os.environ.get("WXCLI_FLOW_STORE_URL")
+           or profile.get("flow_store_url")
+           or FLOW_STORE_DEFAULT_URL)
+    if "{cc_base_url}" in url:
+        url = url.replace("{cc_base_url}", get_cc_base_url(path))
+    return url.rstrip("/")
+
+def save_flow_store_url(url: str | None, path: Path = DEFAULT_CONFIG_PATH) -> None:
+    config = load_config(path)
+    profile = config.setdefault("profiles", {}).setdefault("default", {})
+    if url:
+        profile["flow_store_url"] = url
+    else:
+        profile.pop("flow_store_url", None)
     save_config(config, path)

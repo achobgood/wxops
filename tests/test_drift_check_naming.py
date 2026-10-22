@@ -85,6 +85,17 @@ def test_numeric_suffix_findings_skip_hidden_rename_aliases():
     assert names == ["list-1"]
 
 
+def test_flow_store_base_is_not_a_path_segment():
+    """Flow Store modules build URLs on `{fs_base_url}` (BASE_URL_FS) as CC
+    modules do on `{cc_base_url}`; left in, it reads as a resource segment."""
+    from tools import verb_naming as vn
+    rest = "/{org_id}/project/{project_id}/widgets"
+    assert vn.url_path("{fs_base_url}" + rest) == vn.url_path("{cc_base_url}" + rest)
+    assert vn.url_path("{fs_base_url}" + rest) == [
+        "{org_id}", "project", "{project_id}", "widgets"]
+    assert "{fs_base_url}" in vn.SKIP_SEG
+
+
 def test_the_live_tree_has_no_unacked_or_stale_names():
     """Zero here means every shipping name is either honest or acknowledged."""
     unacked, stale, _ = dc.check_naming(

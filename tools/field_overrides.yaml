@@ -888,18 +888,37 @@ skip_tags:
     - "People"           # canonical: webex-cloud-calling.json
     - "Recording Report" # canonical: webex-cloud-calling.json
     - "Recordings"       # canonical: webex-admin.json (same 14 /recordings ops in both specs)
-  webex-contact-center.json:
-    - "Functions"        # colon-action paths (/functions/{id}:publish) — generator cannot
-                         # render ':' path segments yet; deliberate gap until colon-path
-                         # support lands (refactor-plan S1.3). 11 ops.
-    - "Templates"        # Flow Store template catalog embedded in the CC spec. Deliberately
-                         # NOT exposed: the WxCC Flow Store CLI was retired 2026-10-13
-                         # (ADR-11); keep this skipped so spec-sync cannot bring that
-                         # surface back through the CC spec. 2 ops. The sibling
-                         # "Activities"/"Events" tags (4 ops) were carved out the same
-                         # day — they work on the CC host — and render into cc-flow via
-                         # tag_merge (see the webex-contact-center.json block there).
-                         # cc-flow / cc-legacy-flows are the supported flow surface.
+  webex-contact-center.json: []
+    # "Functions" (10 ops) was skipped here as "colon-action paths (/functions/
+    # {id}:publish) — generator cannot render ':' path segments yet". Plan 2
+    # Task 15 un-skipped it: colon paths render since cc-flow (create-lock calls
+    # flows/{flow_id}:lock), and multipart uploads since Plan 2 T10 (importFn).
+    # It renders as cc-functions; the 11th command, `test`, is hand-written
+    # (cc_functions_test.py), because the operation left the spec upstream.
+    # "Templates" (GET /templates, /templates/{id}; 2 ops) was skipped here from
+    # 2026-10-13 (ADR-11) to keep the retired Flow Store surface out. Plan 2
+    # Task 14 (2026-10-19) un-skipped it: it renders as cc-flow-templates. Task 3
+    # measured both ops ROUTED 200 on the CC gateway (docs/merge/flow-store-
+    # host-map.md, § Decision: TEMPLATES_SOURCE = webex-contact-center.json), so
+    # the catalog comes from this spec and the Flow Store spec's "Flow Template
+    # APIs" tag is skipped instead (webex-cc-flow-store.json below).
+  webex-cc-flow-store.json:
+    # The WxCC Flow Store spec (moved from wxcc/specs/flow-store-api-docs.json,
+    # Plan 2 Task 14; ADR-19 amends ADR-11). Reasons carried verbatim from
+    # wxcc/tools/generator/flow-store-overrides.yaml.
+    - "admin-flow-controller"   # 12 internal admin ops — 403 RBAC verified live
+    - "prometheus-controller"   # /metrics Prometheus scrape
+    - "Flow Template APIs"      # 5 ops. The two reads come from the CC spec's
+                                # "Templates" tag (cc-flow-templates; § Decision
+                                # above). The three writes were wxcc
+                                # skip_endpoints, reasons verbatim:
+                                #   createTemplate: "shared-catalog mutation —
+                                #     creating templates affects every org user"
+                                #   updateTemplate: "shared-catalog mutation"
+                                #   deleteFlowTemplate: "shared-catalog mutation"
+                                # They live here, not in operation_overrides,
+                                # because a skip on an op whose tag is skipped is
+                                # inert and drift check 15 fails it.
 
 # Drop spurious tag/operation pairings present in the upstream spec.
 # tag -> list of path globs that carry the tag but do not belong to it.
@@ -1022,6 +1041,15 @@ spec_authority:
   "GET /partner/reports/templates":
     spec: union
     basis: unverified
+  # Plan 2 Task 15c. The CC spec's template item declares `type`, which is null
+  # on all 39 live templates; the field the server fills is `flowType` (31 FLOW,
+  # 8 SUBFLOW; Task 15b row 7c, and GW GET /templates?flowType=SUBFLOW ->
+  # GTWY_2e46669b-621a-412f-96bb-5502e41e6d86, 2026-10-19). It backs the
+  # cc-flow-templates list `Type` column.
+  "GET /templates":
+    spec: webex-contact-center.json
+    basis: live
+    live_fields: flowType:string
 
 # Merge split tags into a single CLI group
 tag_merge:
@@ -1105,7 +1133,8 @@ tag_merge:
     # inputs/{input}/choices, .../v2/event-specifications. They are the catalog
     # a flow author needs (which activities exist, their inputs, the allowed
     # values), so they render into cc-flow, not a group of their own.
-    # "Templates" (GET /templates, /templates/{id}) stays in skip_tags.
+    # "Templates" (GET /templates, /templates/{id}) renders as its own group,
+    # cc-flow-templates, since Plan 2 Task 14 (see skip_tags).
     # Narrowness is GATED, not assumed: tests/test_generate_commands.py pins the
     # exact operationIds these two tags carry, so an upstream addition (e.g. the
     # .../activities/{name}/schema path, which 404s live) fails CI instead of
@@ -1114,6 +1143,24 @@ tag_merge:
     "Flows":
       - "Activities"
       - "Events"
+  webex-cc-flow-store.json:
+    # Plan 2 Task 14, translated from wxcc's `groups:` block. wxcc had 11
+    # groups; the flow, flows-v2 and util groups fold into one, and project,
+    # resource-collection and user-preference reads into another. The other
+    # controller tags map 1:1 (named in cli_name_overrides). "Flow APIs" is the
+    # second tag on 2 ops already tagged "Flow"; both land here.
+    "Flow Store":
+      - "Flow"
+      - "Flow APIs"
+      - "Flow V2"
+      - "expression-test-controller"
+      - "buid-info-controller"
+      - "health-controller"
+      - "auth-controller"
+    "Flow Store Projects":
+      - "project-controller"
+      - "Flow Resource Collection APIs"
+      - "User Preferences"
 
 # Human-friendly CLI group names (OpenAPI tag → CLI name)
 cli_name_overrides:
@@ -1293,12 +1340,24 @@ cli_name_overrides:
     # (contact-center skill cites it)
     "Flows": "cc-flow"
     "Legacy Flows": "cc-legacy-flows"
+    "Functions": "cc-functions"
     # CC spec tags are literally "Site"/"Data Sources" — per-spec overrides
     # resolve the collisions with meetings (Site -> meeting-site) and admin
     # (Data Sources -> data-sources); retires the manual regen-order hack
     # (tools/CLAUDE.md known issues #16/#17)
     "Site": "cc-site"
     "Data Sources": "cc-data-sources"
+    # The Flow Store template catalog, rendered from this spec since Plan 2
+    # Task 14 (fate table rows 49-50: `cc-flow-templates show ID` / `list`).
+    "Templates": "cc-flow-templates"
+  webex-cc-flow-store.json:
+    # Plan 2 command fate table, "New groups". cc- prefix (Global Constraints).
+    "Flow Store": "cc-flow-store"
+    "Flow Store Projects": "cc-flow-projects"
+    "flow-version-controller": "cc-flow-versions"
+    "Flow Tracing APIs": "cc-flow-tracing"
+    "flow-property-controller": "cc-flow-prefs"
+    "connector-controller": "cc-flow-connectors"
 
 # CLI commands whose endpoints are ahead of the published spec — kept
 # deliberately. Each entry excuses one (method, path) from the drift gate's
@@ -1341,6 +1400,15 @@ keep_endpoints:
   # baseline from 176 command sets / 1872 commands to 175 / 1871, which
   # this plan's gate is specified to match exactly.
   - "POST /event"   # cc-ai-assistant create ({cc_base_url}/event)
+  # Plan 2 Task 15. cc-functions test, hand-written in cc_functions_test.py (the
+  # register() pattern above). Upstream removed POST .../functions/{id}:test
+  # from the published CC spec on 2026-07-26; wxcc-flow's functions test calls it
+  # and it was verified live 2026-07-25 to be routed and to parse the body
+  # ({"inputs": {...}} and {} parse; {"inputs": []} -> "request body is not
+  # readable"). It then returns 400 "Failed to test custom fn" from the execution
+  # backend on some orgs, so it is reachable but not known to succeed. Stale if
+  # upstream publishes the operation again (the spec would then render it).
+  - "POST /v1/{orgId}/functions/{id}:test"   # cc-functions test
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # inert_tag_ack — tag-keyed config that cannot resolve today, kept on purpose
@@ -1387,6 +1455,135 @@ undeclared_paging_ack:
     `start`, and whether this endpoint reads `start` is UNVERIFIED — proving it
     needs an org with more contacts than one page. Same fix and same staleness
     condition as the entry above.
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Per-operation overrides (Plan 2 Tasks 8 and 10; resolve_operation_overrides)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Keyed by a unique operationId (or "METHOD /path"), re-validated against the
+# spec on every regen. skip = no command; blocked = a visible stub that exits 2;
+# warn = a stderr banner before the call; plus multipart, param_help,
+# body_transform, exit_code_from. `_all.param_help` only fills a parameter whose
+# spec description is empty.
+operation_overrides:
+  webex-cc-flow-store.json:
+    # Translated from wxcc/tools/generator/flow-store-overrides.yaml by Plan 2
+    # Task 14. Fates: the Plan 2 command fate table; evidence: docs/merge/
+    # flow-store-host-map.md and docs/merge/activities-flowtype-check.md.
+    _all:
+      param_help:
+        flowType: "FLOW or SUBFLOW (server default: FLOW)"
+
+    # ── wxcc skip_endpoints, reasons verbatim (19 of 22; the 3 template
+    #    mutations sit under skip_tags "Flow Template APIs") ──────────────────
+    auth: {skip: "GET /auth — browser-login redirect helper; getCurrentUser (whoami) generates instead"}
+    createProject: {skip: "destructive on the system-provisioned project entity"}
+    updateProject: {skip: "destructive on the system-provisioned project entity"}
+    deleteProject: {skip: "destructive on the system-provisioned project entity"}
+    patchProject: {skip: "destructive on the system-provisioned project entity (json-patch)"}
+    saveConnector: {skip: "Control-Hub-managed; risks breaking live integrations"}
+    updateConnector: {skip: "Control-Hub-managed; risks breaking live integrations"}
+    deleteConnector: {skip: "Control-Hub-managed; risks breaking live integrations"}
+    saveFlow: {skip: "requires generating proprietary v1 Flow JSON (repo hard rule)"}
+    updateFlowById: {skip: "requires generating proprietary v1 Flow JSON (repo hard rule)"}
+    getOrCreateDraft: {skip: "v1 draft shape — v2 getDraft covers it"}
+    saveDraft_1: {skip: "v1 draft shape — v2 saveDraft covers it"}
+    exportFlowVersion_2: {skip: "trailing-slash duplicate of exportFlowVersion_1"}
+    copyFlow_1: {skip: "trailing-slash duplicate of copyFlow"}
+    removeRoutingStrategyFromFlow: {skip: "destructive routing-strategy detach"}
+    searchFlows: {skip: "exact/case-sensitive only; the list command uses partialNameSearch"}
+    createUserPreferences: {skip: "clobbers Flow Designer UI state"}
+    updateUserPreferences: {skip: "clobbers Flow Designer UI state"}
+    deleteUserPreferences: {skip: "clobbers Flow Designer UI state"}
+
+    # ── fate (a): an existing cc-flow command performs the same operation and
+    #    returns the same thing (one command per operation, spec §7.4; P2-1).
+    #    wxcc's param_help for removeFlowById ("force": "Sets the server's
+    #    `force` query param (spec default: no)"; "skipRsEPCheck": "Sets the
+    #    `skipRsEPCheck` query param — routing-strategy / entry-point usage
+    #    check (server default: true)") and its warn texts for dryRunValidate,
+    #    validateFlowVersionById and patchDraft belong to skipped operations,
+    #    and a skip takes no other key; they are kept here as the record. ───────
+    removeFlowById: {skip: "fate (a): served by wxcli cc-flow delete — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    findFlows: {skip: "fate (a): served by wxcli cc-flow list — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    unlockFlow: {skip: "fate (a): served by wxcli cc-flow create-unlock — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    publishFlowVersion: {skip: "fate (a): served by wxcli cc-flow publish — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    lockFlow: {skip: "fate (a): served by wxcli cc-flow create-lock — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    dryRunValidate: {skip: "fate (a): served by wxcli cc-flow create-validate — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    importFlowVersion: {skip: "fate (a): served by wxcli cc-flow create-import — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    getDraft: {skip: "fate (a): served by wxcli cc-flow show — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    saveDraft: {skip: "fate (a): served by wxcli cc-flow create-flows — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    patchDraft: {skip: "fate (a): served by wxcli cc-flow update — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    validateFlowVersionById: {skip: "fate (a): served by wxcli cc-flow list-validate — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    exportFlowVersion: {skip: "fate (a): served by wxcli cc-flow export — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    listEventSpecifications: {skip: "fate (a): served by wxcli cc-flow list-event-specifications — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3/T5)"}
+    getActivityDefinitions: {skip: "fate (a): served by wxcli cc-flow list-activities --flow-type — the gateway honours flowType, docs/merge/activities-flowtype-check.md (Plan 2 T3b, T5 Step 2c)"}
+    describeActivity: {skip: "fate (a): served by wxcli cc-flow show-activity --flow-type — the gateway honours flowType, docs/merge/activities-flowtype-check.md (Plan 2 T3b, T5 Step 2c)"}
+    getChoicesForInput: {skip: "fate (a): served by wxcli cc-flow list-activity-choices --flow-type — the gateway honours flowType, docs/merge/activities-flowtype-check.md (Plan 2 T3b, T5 Step 2c)"}
+
+    # ── fate (c): rows 8 and 17, served through the CC spec's cc-legacy-flows.
+    #    wxcc's multipart flag and associatedRcs param_help for
+    #    importFlowVersion_1 move with it (Task 15). ─────────────────────────────
+    importFlowVersion_1: {skip: "fate (c): served by wxcli cc-legacy-flows import-ui (Plan 2 T15) — the gateway accepted the v1 multipart import, docs/merge/flow-store-host-map.md § v1 UI import route (Plan 2 T5)"}
+    exportFlowVersion_1: {skip: "fate (c): served by wxcli cc-legacy-flows list (renamed export-ui in Plan 2 T15) — EQUAL in docs/merge/flow-store-host-map.md (Plan 2 T3)"}
+
+    # ── fate (b): rendered, with wxcc's behaviour carried over ─────────────────
+    mergePatchFlow:
+      blocked: "mergePatchFlow is a verified silent no-op for name/description (200, only lastModifiedDate changes). Use: wxcli cc-flow update P F --json-body '{\"name\":…}'"
+    findAllLatestFlowVersions:
+      warn: "500s org-wide when never-published flows exist; fall back to paged 'wxcli cc-flow-versions list-all'"
+    consumeFlowFromTemplate:
+      warn: "SUBFLOW templates 404 (feature-flag 'flow-control-draft-templates' gated)"
+    consumeFlowFromJson:
+      body_transform: json-string
+    checkFlowNameUniqueness:
+      exit_code_from: {json_key: isUnique, invert: true}
+      param_help:
+        flowId: "Exclude this flow ID (for renames)"
+    findFlowById:
+      param_help:
+        view: "Response view (server default: basic)"
+    performFlowVariableAutoMapping:
+      param_help:
+        handOffTagId: "Hand-off tag ID"
+        handOffVariableSource: "Hand-off variable source"
+    copyFlow:
+      param_help:
+        associatedRcs: "Sets the `associatedRcs` query param (associated resource collections)"
+    findFlows_1:
+      param_help:
+        view: "Response view (server default: basic)"
+        skillId: "Find flows using this skill ID"
+        epId: "Find flows attached to this entry point ID"
+        flowId: "Restrict to one flow ID"
+        globalVar: "Find flows using this global variable"
+        search: "Search term"
+        businessHour: "Find flows using this business-hours entity"
+        flowType: "FLOW, SUBFLOW, or ALL (server default: ALL)"
+        # wxcc's param_flag_inversions block: the wire values are yes/no; the
+        # server accepts "true" without a 400 but silently treats it as the
+        # default "no" (wxcc audit F1).
+        withDraftVersions: "yes or no (server default: no) — the server treats `true` as no"
+    getGlobalVariables:
+      param_help:
+        search: "Filter by name"
+        validate: "Sets the `validate` query param"
+    getPublishedFlowVersions:
+      param_help:
+        sort: "Sets the `sort` query param (sort order)"
+    getAllFlowVersions:
+      param_help:
+        searchBy: "Filter (sets the `searchBy` query param)"
+        sort: "Sets the `sort` query param (sort order)"
+
+  # Plan 2 Task 15. Both are uploads: the spec labels the body multipart/form-data
+  # and the server wants a file part (rest_post_multipart, Task 10).
+  webex-contact-center.json:
+    "POST /v1/{orgId}/functions:import": {multipart: true}
+    # Row 8 of the fate table: the v1 UI import. The gateway accepted it
+    # (HTTP 201, docs/merge/flow-store-host-map.md § v1 UI import route), so this
+    # command serves wxcc-flow import-ui. The Flow Store spec's twin
+    # (importFlowVersion_1) is skipped under webex-cc-flow-store.json above.
+    "POST /flow-store/{orgId}/project/{projectId}/flows:import": {multipart: true, param_help: {associatedRcs: "Sets the `associatedRcs` query param (associated resource collections)"}}
 
 # Per-spec tag-level overrides (command_name_overrides, body_defaults, etc.)
 # Needed when a tag name collides across specs (e.g. "Flow"), since a top-level
@@ -1652,6 +1849,30 @@ tag_overrides:
         "show-guest": "show-hoteling-guest"
         "update-guest": "update-hoteling-guest"
   webex-contact-center.json:
+    # Plan 2 Task 15. The spec's `fields` query param on GET /v1/{orgId}/functions
+    # ("id,name,status", evaluated by the API) is not wxcli's client-side --fields
+    # JMESPath filter; spelled --function-fields, the wire still gets `fields`.
+    "Functions":
+      # The five POST actions derive create-*; named as wxcc-flow named them
+      # (fate table, Custom Functions). Pinned so the lock keeps them.
+      command_name_overrides:
+        "create-export": "export"
+        "create-import": "import"
+        "create-lock": "lock"
+        "create-publish": "publish"
+        "create-unlock": "unlock"
+      param_name_overrides:
+        list:
+          fields: function-fields
+    # The v1 UI export. `list` returned one exported flow, not a list — the same
+    # defect shape as `Agents` below. Renamed for the wxcc `export-ui` workflow
+    # (export-ui -> remap -> import-ui); Task 3 measured it EQUAL to wxcc-flow
+    # export-ui (docs/merge/flow-store-host-map.md, row 17). `list` survives as
+    # the automatic hidden alias.
+    "Legacy Flows":
+      command_name_overrides:
+        "list": "export-ui"
+        "create": "import-ui"
     "Agent Personal Greeting Files":
       command_name_overrides:
         "create": "delete-references-agent"
@@ -1790,6 +2011,29 @@ tag_overrides:
         "list-choices": "list-activity-choices"
         "list-flows": "list"
         "show-flows": "show"
+      # Plan 2 Task 14 (Task 3b amendment, 2026-10-19). The CC spec declares
+      # only orgId/projectId on these three reads, but the gateway honours
+      # parameters the Flow Store spec documents: docs/merge/
+      # activities-flowtype-check.md § Calls #1-#3, #5, #8, #9, § Choices and
+      # `flowType` #1-#3, and § `activityName`. Adam's rule (2026-10-19): a
+      # command maps to a working endpoint, and a wrong command on a working
+      # endpoint is fixed, not kept as a trap. His decision 2 (2026-10-19): an
+      # option measured to work gets a flag whose help says what it did live.
+      # So no `searchBy` flag: the gateway ignored it (#4). No CLI default:
+      # unset sends nothing and the server's FLOW applies (#3 equals #2). Safe
+      # unlike the deleted Call Queue add_query_params block: the CC spec
+      # declares no flowType, checkUiEnabled or activityName on these
+      # operations, so there is no body field to shadow. Keys are the renamed
+      # names: command_name_overrides applies first.
+      add_query_params:
+        list-activities:
+          - {name: flowType, type: str, description: "FLOW or SUBFLOW. Omitted, the server returns the FLOW list (54 activities on 2026-10-19); pass SUBFLOW for the 29 a subflow can use."}
+          - {name: checkUiEnabled, type: str, description: "true or false. Measured 2026-10-19 (activities-flowtype-check.md #5): true returned 57 activities, the default 54 plus LiveCallerSentiment, flow-test-activity and queue-reservation. The spec says the opposite; trust the measurement."}
+          - {name: activityName, type: str, description: "An activity name, e.g. queue-contact; the list then holds only that activity. Measured 2026-10-19: queue-contact returned 1 activity instead of 54."}
+        show-activity:
+          - {name: flowType, type: str, description: "FLOW or SUBFLOW. Omitted, the server uses FLOW; an activity a subflow cannot use returns 404 under SUBFLOW."}
+        list-activity-choices:
+          - {name: flowType, type: str, description: "FLOW or SUBFLOW. Omitted, the server uses FLOW; an activity a subflow cannot use returns 400 'not found in registry' under SUBFLOW."}
       command_help_notes:
         list-activity-choices: >
           a dependent input (e.g. queue-contact destination) returns 400
@@ -1809,7 +2053,249 @@ tag_overrides:
     "Users":
       command_name_overrides:
         "update-update-dynamic-skill": "update-dynamic-skill"
+    # cc-flow-templates (Plan 2 Task 14). This spec gives GET /templates no
+    # paging parameters; the Flow Store spec's copy of the same path declares
+    # page/size (wxcc's shipped config walked it with them: findAll_1 in
+    # wxcc/tools/generator/flow-store-overrides.yaml). One live read settled
+    # it, Adam's decision 2 (2026-10-19): GW GET /templates?page=0&size=1 ->
+    # 200, a bare list of 1 template ("Hello World"), 40,321 bytes,
+    # GTWY_af319663-315c-43d2-b8e3-e9843a2c6388, against 32 for the unpaged
+    # catalog (docs/plans/eval/goldens/templates.txt, local-only, same org). Honoured,
+    # so the list walks with --all and sends --limit as `size`.
+    "Templates":
+      paging:
+        list: {page: page, size: size}
+      # Plan 2 Task 15c. The spec's `type` filter is ignored: `type=subflow`
+      # returned all 39 templates, the same as no filter (31 FLOW, 8 SUBFLOW;
+      # Task 15b, docs/merge/e2e-flow-lifecycle.md row 7c). The server filters
+      # on `flowType`, the Flow Store spec's name: GW GET
+      # /templates?flowType=SUBFLOW -> 200, a bare list of exactly the 8
+      # SUBFLOW templates, GTWY_2e46669b-621a-412f-96bb-5502e41e6d86
+      # (2026-10-19). FLOW was not measured as a filter value.
+      drop_query_params:
+        list:
+          type: "ignored live 2026-10-19: type=subflow returned all 39 templates (Task 15b row 7c)"
+      add_query_params:
+        list:
+          - {name: flowType, type: str, description: "SUBFLOW or FLOW. Measured 2026-10-19: SUBFLOW returned only the 8 SUBFLOW templates of 39. Omitted, every template is returned."}
+      # Every template carries `flowType`; `type` is null on all 39 (Task 15b).
+      table_columns:
+        list:
+          - ["ID", "id"]
+          - ["Name", "name"]
+          - ["Description", "description"]
+          - ["Type", "flowType"]
 
+  webex-cc-flow-store.json:
+    # Plan 2 Task 14. Every visible name below is the Plan 2 command fate
+    # table's (rows 1-60, fate b); keys are the names the generator derives,
+    # previewed with --name-lock-diff before the regen. Keyed on the MERGED
+    # tag names from tag_merge.
+    "Flow Store":
+      command_name_overrides:
+        "show": "show-metadata"                       # row 1  findFlowById
+        "update": "update-metadata"                   # row 2  mergePatchFlow (blocked)
+        "create": "map-variables"                     # row 6  performFlowVariableAutoMapping
+        "create-unique-name": "check-name"            # row 7  checkFlowNameUniqueness
+        "create-copy": "copy"                         # row 9
+        "create-consume": "consume"                   # row 10
+        "create-consume-template": "consume-template" # row 11
+        "create-revert": "revert"                     # row 13
+        "show-check": "list-usages"                   # row 16 findFlows_1
+        "show-global-variables": "list-global-variables"  # row 18
+        "create-expression-test": "test-expression"   # row 57
+        "list-build_info": "show-build-info"          # row 58
+        "list": "show-health"                         # row 59 (plain-text body)
+        "show-user": "show-current-user"              # row 60
+      # buildInfo's 200 is `BuildInfo` = {} and health's is a text/plain
+      # string, so the parser read neither as one object and rendered a list
+      # that printed [] (Task 14 review B1). The wire is one object (buildInfo,
+      # FS 200 in docs/merge/flow-store-host-map.md) and a text body (health;
+      # wxcli sends no JSON Accept header, so the measured 406 does not apply).
+      command_type_overrides:
+        show-build-info: show
+        show-health: show
+      # Task 14 review M1: wxcc's table_columns / response_list_keys, carried
+      # from wxcc/tools/generator/flow-store-overrides.yaml:262-282 ("columns
+      # use only field accessors verified live in Phase A"), not re-measured.
+      # wxcc rendered findFlows_1 as a list by its table_columns (bare list
+      # or `items`). getGlobalVariables (wxcc: a list under `variables`) stays
+      # a single read: its spec 200, FlowVariablesPaginated, declares only
+      # searchEnabled, so drift check 27 (no ack) refuses a `variables`
+      # extractor; the show rendering prints the whole object, variables
+      # included.
+        list-usages: list
+      table_columns:
+        list-usages:
+          - ["ID", "id"]
+          - ["Name", "name"]
+          - ["Status", "status"]
+          - ["Type", "flowType"]
+          - ["Updated", "lastModifiedDate"]
+      command_help_notes:
+        list-usages: >
+          Provide at least one filter (--global-var, --ep-id, --skill-id,
+          --business-hour, --search, --flow-id) — the server rejects
+          unfiltered calls (400 'No search parameter provided').
+        test-expression: >
+          the body is {"expr": "...", "variables": {name: value}} — variables
+          is a MAP, e.g. --json-body '{"expr":"{{ foo }}","variables":{"foo":"bar"}}'
+          returns generatedValue "bar". The array shape
+          [{"name","value","type"}] returns HTTP 400 "request body is not
+          readable" (verified live 2026-07-23, wxcc-flow test-expr).
+    "Flow Store Projects":
+      command_name_overrides:
+        "list": "show-user-preferences"               # row 56 (the projectId source, P2-2)
+        "show-project": "list"                        # row 55 findAll
+      # findAll's 200 schema is springfox's Scala-Seq placeholder
+      # ({empty, traversableAgain}), so the parser reads a single object; the
+      # wire is a bare list (docs/plans/eval/goldens/projects.txt, local-only). wxcc's
+      # shipped config walked it by page/size (pagination: findAll, item_key
+      # projects), carried here, not re-measured (Adam's decision 3).
+      # userPreferences' 200 is `UserPreferences` = {}; the wire is one
+      # object carrying projectId (FS 200, Task 3 probe record), which the
+      # list extractor dropped to [] (Task 14 review B1).
+      command_type_overrides:
+        list: list
+        show-user-preferences: show
+      response_list_keys:
+        list: projects
+      # Task 14 review M1: wxcc's table_columns / response_list_keys, carried
+      # from wxcc/tools/generator/flow-store-overrides.yaml:262-282 ("columns
+      # use only field accessors verified live in Phase A"), not re-measured.
+      table_columns:
+        list:
+          - ["ID", "id"]
+          - ["Name", "name"]
+          - ["Default", "default"]
+          - ["Created By", "createdBy"]
+      # Not an id source for PROJECT_ID arguments (Adam's decision 1): this
+      # list holds user-created projects only. The system project every
+      # cc-flow / Flow Store command takes answers findProject 404 "Project
+      # with id 5e5c9ad6d61f870d6d778c1b not found" (docs/merge/flow-store-
+      # host-map.md, row findProject), and wxcc/CLAUDE.md: "project-controller
+      # and connector-controller only see user-created projects". The id comes
+      # from show-user-preferences (P2-2).
+      producer:
+        list: false
+      command_help_notes:
+        show: >
+          the system-provisioned project (the projectId from
+          show-user-preferences) answers 404 "Project with id ... not found";
+          this works on user-created projects (Plan 2 T3, host map).
+    "flow-version-controller":
+      command_name_overrides:
+        "show": "list"                                # row 32 getPublishedFlowVersions
+        "show-versions-flows": "show"                 # row 33 getFlowVersionById
+        "show-versions-flows-1": "list-all"           # row 36 getAllFlowVersions
+        "show-all-latest": "list-all-latest"          # row 37 (warn)
+      # getPublishedFlowVersions and getAllFlowVersions declare page/size but a
+      # springfox Scala-Seq placeholder 200 ({empty, traversableAgain}), so the
+      # parser reads a single object; the wire is a bare list (docs/plans/
+      # eval/goldens/versions.txt, local-only). wxcc's shipped config walked both by
+      # page/size (pagination: item_key versions), carried here, not
+      # re-measured (Adam's decision 3).
+      command_type_overrides:
+        list: list
+        list-all: list
+      response_list_keys:
+        list: versions
+        list-all: versions
+      # Task 14 review M1: wxcc's table_columns / response_list_keys, carried
+      # from wxcc/tools/generator/flow-store-overrides.yaml:262-282 ("columns
+      # use only field accessors verified live in Phase A"), not re-measured.
+      table_columns:
+        # Version ID (ObjectId) leads: it is what `cc-flow-store revert` and
+        # `cc-flow-versions show` consume (wxcc's own comment).
+        list:
+          - ["Version ID", "id"]
+          - ["Version", "version"]
+          - ["Tag", "tag"]
+          - ["Published", "publishedDate"]
+          - ["Created By", "createdBy"]
+        list-all:
+          - ["Version ID", "id"]
+          - ["Name", "name"]
+          - ["Version", "version"]
+          - ["Type", "flowType"]
+          - ["Created", "createdDate"]
+    "Flow Tracing APIs":
+      command_name_overrides:
+        "show": "show-interaction"                    # row 38
+        "list": "list-traces"                         # row 39
+        "list-decrypt": "list-traces-decrypted"       # row 40
+        "list-analytics": "show-analytics"            # row 41
+      # getAnalytics declares no 200 schema, so the parser fell back to a
+      # list that printed [] for the FS 200 object (Task 14 review B1).
+      command_type_overrides:
+        show-analytics: show
+      command_help_notes:
+        list-traces-decrypted: >
+          Returns DECRYPTED traces; --process-id is required (get it from the
+          undecrypted traces or the interaction metadata).
+      response_list_keys:
+        # wxcc's pagination item_key for getInteractions; the spec declares
+        # no response schema, so nothing else names the array.
+        list-interactions: interactions
+      table_columns:
+        list-interactions:
+          - ["Interaction ID", "interactionId"]
+          - ["Version", "flowVersionId"]
+          - ["ANI", "ani"]
+          - ["DNIS", "dnis"]
+          - ["Start", "startTime"]
+          - ["End", "endTime"]
+    "flow-property-controller":
+      command_name_overrides:
+        "show": "list"                                # row 43 getFlowPreferences
+        "show-tags": "list-tags"                      # row 47
+        "show-tag-histories": "list-tag-history"      # row 48
+      param_name_overrides:
+        list-tags:
+          # The spec's boolean `all` ("If true, returns all eligible tags.
+          # Otherwise returns tags attached to the flow") collides with the
+          # --all every command carries.
+          all: all-tags
+      # The three bodies are springfox Scala-Seq placeholders (SeqFlowPreference,
+      # SeqString), which openapi_parser now reads as JSON arrays (Task 14
+      # review B2). DELETE's array of names is wxcc's body_positional_list
+      # (flow-store-overrides.yaml:158-161); the {name,value,type} element of
+      # create/update is the help of wxcc's hand-written prefs-set/prefs-add
+      # (wxcc-agent-builder 3034ec6, "all prod-verified"). Not re-measured.
+      command_help_notes:
+        create: >
+          the body is a JSON array of preferences, e.g. --json-body
+          '[{"name":"...","value":"...","type":"..."}]' (shape carried from
+          wxcc, not re-measured in Plan 2).
+        update: >
+          the body is a JSON array of preferences, e.g. --json-body
+          '[{"name":"...","value":"...","type":"..."}]' (shape carried from
+          wxcc, not re-measured in Plan 2).
+        delete: >
+          the body is a JSON array of preference names, e.g.
+          --json-body '["name"]' (shape carried from wxcc, not re-measured in
+          Plan 2).
+    "connector-controller":
+      command_name_overrides:
+        "show-connector": "list"                      # row 53 findAllConnectors
+      # Task 14 review M1: wxcc's table_columns / response_list_keys, carried
+      # from wxcc/tools/generator/flow-store-overrides.yaml:262-282 ("columns
+      # use only field accessors verified live in Phase A"), not re-measured.
+      # findAllConnectors' 200 is the Scala-Seq placeholder (SeqConnector), so
+      # the parser read one object; wxcc rendered a list under `connectors`.
+      command_type_overrides:
+        list: list
+      response_list_keys:
+        list: connectors
+      table_columns:
+        list:
+          - ["ID", "id"]
+          - ["Name", "name"]
+          - ["Type", "type"]
+      command_help_notes:
+        list: >
+          the system-provisioned project answers 404; connectors are listed
+          only for user-created projects (Plan 2 T3, host map).
   webex-admin.json:
     "Recordings":
       command_name_overrides:

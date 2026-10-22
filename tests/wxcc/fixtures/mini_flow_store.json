@@ -1,0 +1,127 @@
+{
+  "openapi": "3.0.1",
+  "info": {"title": "Mini Flow Store fixture", "version": "1.0"},
+  "servers": [{"url": "http://example.test/flow-store"}],
+  "tags": [{"name": "Widgets"}, {"name": "admin-widget-controller"}, {"name": "WidgetTags"}],
+  "paths": {
+    "/{orgId}/project/{projectId}/widgets": {
+      "get": {
+        "tags": ["Widgets"],
+        "operationId": "findWidgets",
+        "summary": "List widgets",
+        "parameters": [
+          {"name": "orgId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "page", "in": "query", "schema": {"type": "integer"}},
+          {"name": "size", "in": "query", "schema": {"type": "integer"}},
+          {"name": "kind", "in": "query", "schema": {"type": "string", "enum": ["A", "B"]}}
+        ],
+        "responses": {"200": {"description": "ok", "content": {"application/json": {"schema": {"type": "object"}}}}}
+      },
+      "post": {
+        "tags": ["Widgets"],
+        "operationId": "createWidget",
+        "summary": "Create a widget",
+        "parameters": [
+          {"name": "orgId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {"content": {"application/json": {"schema": {
+          "type": "object", "required": ["name"],
+          "properties": {"name": {"type": "string"}, "count": {"type": "integer"}, "spec": {"type": "object"}}
+        }}}},
+        "responses": {"201": {"description": "created"}}
+      }
+    },
+    "/{orgId}/project/{projectId}/widgets/{widgetId}": {
+      "get": {
+        "tags": ["Widgets"],
+        "operationId": "getWidget",
+        "summary": "Get a widget",
+        "parameters": [
+          {"name": "orgId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "widgetId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "ok"}}
+      },
+      "patch": {
+        "tags": ["Widgets"],
+        "operationId": "mergeWidget",
+        "summary": "Merge-patch a widget (no-op)",
+        "parameters": [
+          {"name": "orgId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "widgetId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "expectedVersion", "in": "query", "required": false, "schema": {"type": "integer"}, "description": "Optimistic-lock version"},
+          {"name": "flowType", "in": "query", "required": false, "schema": {"type": "string", "default": "FLOW"}}
+        ],
+        "requestBody": {"content": {"application/merge-patch+json": {"schema": {"type": "object"}}}},
+        "responses": {"200": {"description": "ok"}}
+      },
+      "delete": {
+        "tags": ["Widgets"],
+        "operationId": "deleteWidget",
+        "summary": "Delete a widget",
+        "parameters": [
+          {"name": "orgId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "widgetId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "force", "in": "query", "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "ok"}}
+      }
+    },
+    "/{orgId}/project/{projectId}/widgets:import": {
+      "post": {
+        "tags": ["Widgets"],
+        "operationId": "importWidget",
+        "summary": "Import a widget",
+        "parameters": [
+          {"name": "orgId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "Flow Type", "in": "query", "schema": {"type": "string"}},
+          {"name": "overwrite", "in": "query", "schema": {"type": "string"}}
+        ],
+        "requestBody": {"content": {"application/json": {"schema": {
+          "type": "object", "required": ["file"], "properties": {"file": {"type": "string"}}
+        }}}},
+        "responses": {"200": {"description": "ok"}}
+      }
+    },
+    "/{orgId}/project/{projectId}/widgets:refresh": {
+      "post": {
+        "tags": ["Widgets"],
+        "operationId": "refreshWidgets",
+        "summary": "Refresh widgets",
+        "parameters": [
+          {"name": "orgId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "ok"}}
+      }
+    },
+    "/{orgId}/project/{projectId}/widgets/{widgetId}/tags": {
+      "delete": {
+        "tags": ["WidgetTags"],
+        "operationId": "removeWidgetTags",
+        "summary": "Remove widget tags",
+        "parameters": [
+          {"name": "orgId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "widgetId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {"content": {"application/json": {"schema": {"type": "array", "items": {"type": "string"}}}}},
+        "responses": {"200": {"description": "ok"}}
+      }
+    },
+    "/admin/widgets/purge": {
+      "post": {
+        "tags": ["admin-widget-controller"],
+        "operationId": "purgeWidgets",
+        "summary": "Purge (admin)",
+        "responses": {"200": {"description": "ok"}}
+      }
+    }
+  }
+}

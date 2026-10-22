@@ -73,7 +73,7 @@ def _warn_if_projection_emptied(before: Any, after: Any, fields: str | None) -> 
 # Proven pairs only, and deliberately narrow. Two limits worth stating:
 #
 #   1. This catches FIELD expansion, not RECORD expansion. `--has-cx-essentials`
-#      is the same class of trap (CLAUDE.md known issue #7: standard
+#      is the same class of trap (`docs/reference/wxcli-behavior.md` Known Issue #7: standard
 #      `call-queue list` omits CX queues entirely without it) but is invisible
 #      here — nothing in a --fields expression says "I also wanted CX queues",
 #      so there is no signal to check. Do not add record-expanding flags to

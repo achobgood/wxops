@@ -2,20 +2,10 @@
 name: cucm-migrate
 description: |
   Execute a CUCM-to-Webex migration using DB-driven skill delegation. Generates an
-  assessment report first (complexity score, environment inventory, analog gateway review,
-  effort bands), then walks through decision review, executes migration operations
-  by delegating to domain skills (provision-calling, configure-features, etc.), and
-  finally assembles a customer deliverables bundle (assessment report, user diff,
-  user notice, deployment plan, execution report) into a single output directory.
+  assessment report first, walks through decision review, executes migration operations
+  by delegating to domain skills, and assembles a customer deliverables bundle
+  (assessment report, user diff, user notice, deployment plan, execution report).
   Use after running the CUCM analysis pipeline (wxcli cucm discover/normalize/map/analyze).
-
-  Workflow steps:
-    1. Load, verify, assess (assessment report + decision review)
-    2. Auth + preflight
-    3. Present summary + get approval
-    4. Execute via skill delegation (4c: Emergency Call Notification / Kari's Law)
-    5. Generate Customer Deliverables Bundle (idempotent; runnable standalone)
-    6. Report results (execution status)
 allowed-tools: Read, Grep, Glob, Bash, Skill, Agent
 argument-hint: [project name]
 ---
@@ -39,6 +29,90 @@ If the operator is unfamiliar with the cucm migration pipeline, point them at:
 These are the only operator-facing docs for this migration tool. If the operator asks "where do I learn this," send them to the operator runbook first.
 
 **Mandatory --help verification:** Before constructing or running any wxcli command in this workflow, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cucm --help` for the pipeline stages, then `wxcli cucm execute --help` for its flags). Do NOT rely on the examples in this skill, in the runbooks, or in a delegated skill — recipes are hand-written and drift as the CLI changes.
+
+## Before the analysis: the pipeline walkthrough
+
+Before asking the interview questions, check for an existing CUCM migration project:
+
+```bash
+wxcli cucm status 2>/dev/null
+```
+
+**If the pipeline is at stage ANALYZED or later** (or a deployment plan exists at `docs/plans/*cucm-migration*`):
+> "I found an existing CUCM migration project. Loading the migration workflow."
+
+Continue at Step 1 below.
+
+**If the user mentions "CUCM migration", "migrate from CUCM", or "deployment plan" but no project exists (or pipeline is incomplete):**
+
+Walk them through the analysis pipeline conversationally. Do NOT tell them to run CLI commands — run the commands for them.
+
+### Pipeline Walkthrough
+
+**Walkthrough step 1: Create the project**
+> "Let's start by setting up a migration project. What would you like to name it? (e.g., your company name or site name)"
+
+```bash
+wxcli cucm init <name>
+```
+
+Before asking for credentials, explain what's needed:
+> "Before we connect, you'll need:
+> - The CUCM server hostname or IP address
+> - A CUCM admin account with the 'Standard AXL API Access' role
+> - If you're not sure about the admin account, check with your CUCM administrator before we proceed"
+
+**Walkthrough step 2: Connect to CUCM**
+
+Ask these one at a time:
+1. "What's the hostname or IP address of your CUCM server?"
+2. "What's the AXL admin username?" (explain: this is the CUCM admin account, needs the 'Standard AXL API Access' role)
+3. "What CUCM version are you running?" (offer: 12.x, 14.x, 15.x — default 14.0)
+4. "What's the CUCM admin password? (This stays in our local conversation and is only used for the CUCM connection.)"
+
+Then run discover. The CLI handles WSDL guidance interactively if needed — if CUCM blocks the schema download (common on 15.x), the CLI will guide them through downloading the WSDL from their CUCM admin page.
+
+```bash
+wxcli cucm discover --host <host> --username <user> --password "<password>" --version <ver> -p <name>
+```
+
+**For large environments (1000+ phones):** Discovery may take 10-30 minutes. Run the command with a longer timeout or in the background. If the command times out, re-run it — the CLI will show progress per extractor.
+
+**If connection fails:** Suggest the offline alternative:
+> "If you can't connect directly to CUCM from this machine (VPN required, firewall, etc.), there's an alternative. You can export the data on a machine with CUCM access and load it here:
+> `wxcli cucm discover --from-file <path-to-export.json.gz> -p <name>`"
+
+If discover fails for non-WSDL reasons (auth, connectivity), explain the issue in plain language and help troubleshoot.
+
+**Walkthrough step 3: Run analysis**
+
+These run automatically — no user input needed:
+```bash
+wxcli cucm normalize -p <name>
+wxcli cucm map -p <name>
+wxcli cucm analyze -p <name>
+```
+
+After each, briefly report progress:
+> "Normalized 847 objects across 12 types."
+> "Mapped CUCM configuration to Webex equivalents — 23 decisions need review."
+> "Analysis complete. Ready to generate your assessment report."
+
+**Walkthrough step 4: Continue at Step 1 below**
+
+Continue at Step 1 below. It picks up from the ANALYZED state — generates the assessment report, walks through decisions, and handles execution.
+
+### Migration phases
+
+A migration runs phase by phase: a fresh `wxops` agent for each phase, one phase at a time, because a whole migration outgrows one agent's context. It is the one exception to "one agent per job" (root `CLAUDE.md` § Agent Invocation Pattern).
+
+**CUCM Migration phases:**
+1. `init + discover` — create project, connect to CUCM, extract data
+2. `normalize + map + analyze` — transform data, generate decisions
+3. `decisions + report` — resolve decisions, generate assessment report, invoke migration-advisor
+4. `plan + preflight + export` — build execution plan, run preflight checks, export
+5. `execute` — run the migration, then assemble the customer deliverables bundle (cucm-migrate Step 5: assessment report, user-diff, user-notice, deployment plan, execution report copied into a single output dir). Do NOT end this phase without running the bundle step — it was a director-demo gap and is now a first-class workflow step, not an ad-hoc follow-up. Collect `brand`, `prepared-by`, `migration-date`, `helpdesk`, and optional `output-dir` up front and pass them into the skill.
+Phases 1-2 of CUCM Migration can often run together (they're fast). Phases 3-5 should be separate invocations.
 
 ## Step 1: Load, Verify, and Assess
 
@@ -688,7 +762,7 @@ Operators mid-migration can invoke this skill fresh and jump straight here.
 Before running any commands, gather the four required inputs. Check
 `~/.wxcli/migrations/<project>/config.json` first; if any of these are already
 present, show them as defaults. Accept them in a single batch from the
-operator / parent agent (e.g., the wxc-calling-builder agent may pass them in
+operator / parent agent (e.g., the wxops agent may pass them in
 the spawn prompt — honor those rather than re-prompting):
 
 | Param | Used by | Example |

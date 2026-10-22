@@ -1,0 +1,751 @@
+[
+  {
+    "group": "flows",
+    "command": "get",
+    "operationId": "findFlowById",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "get"
+  },
+  {
+    "group": "flows",
+    "command": "merge-patch",
+    "operationId": "mergePatchFlow",
+    "method": "PATCH",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "blocked"
+  },
+  {
+    "group": "flows",
+    "command": "delete",
+    "operationId": "removeFlowById",
+    "method": "DELETE",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "delete"
+  },
+  {
+    "group": "flows",
+    "command": "list",
+    "operationId": "findFlows",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "list"
+  },
+  {
+    "group": "flows",
+    "command": "search",
+    "operationId": "findFlows",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "extra": true,
+    "top_level": "search"
+  },
+  {
+    "group": "flows",
+    "command": "variable-mapping",
+    "operationId": "performFlowVariableAutoMapping",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows:variable-mapping",
+    "read_only": false,
+    "required_params": [
+      "currentFlowId",
+      "handOffFlowId"
+    ],
+    "status": "generated",
+    "top_level": "variable-mapping"
+  },
+  {
+    "group": "flows",
+    "command": "unique-name",
+    "operationId": "checkFlowNameUniqueness",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows:unique-name",
+    "read_only": false,
+    "required_params": [
+      "flowName"
+    ],
+    "status": "generated",
+    "top_level": "unique-name"
+  },
+  {
+    "group": "flows",
+    "command": "import",
+    "operationId": "importFlowVersion_1",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows:import",
+    "read_only": false,
+    "required_params": [
+      "file"
+    ],
+    "status": "generated",
+    "top_level": "import-ui"
+  },
+  {
+    "group": "flows",
+    "command": "copy",
+    "operationId": "copyFlow",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows:copy",
+    "read_only": false,
+    "required_params": [
+      "sourceFlowId"
+    ],
+    "status": "generated",
+    "top_level": "copy"
+  },
+  {
+    "group": "flows",
+    "command": "consume",
+    "operationId": "consumeFlowFromJson",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows:consume",
+    "read_only": false,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "consume"
+  },
+  {
+    "group": "flows",
+    "command": "consume-template",
+    "operationId": "consumeFlowFromTemplate",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows:consume-template",
+    "read_only": false,
+    "required_params": [
+      "templateName",
+      "flowName"
+    ],
+    "status": "warn",
+    "top_level": "consume-template"
+  },
+  {
+    "group": "flows",
+    "command": "unlock",
+    "operationId": "unlockFlow",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}:unlock",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "unlock"
+  },
+  {
+    "group": "flows",
+    "command": "revert",
+    "operationId": "revertFlowVersion",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}:revert",
+    "read_only": false,
+    "required_params": [
+      "<flowId>",
+      "versionId"
+    ],
+    "status": "generated",
+    "top_level": "revert"
+  },
+  {
+    "group": "flows",
+    "command": "publish",
+    "operationId": "publishFlowVersion",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}:publish",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "publish"
+  },
+  {
+    "group": "flows",
+    "command": "lock",
+    "operationId": "lockFlow",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}:lock",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "lock"
+  },
+  {
+    "group": "flows",
+    "command": "check",
+    "operationId": "findFlows_1",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows:check",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "check"
+  },
+  {
+    "group": "flows",
+    "command": "export",
+    "operationId": "exportFlowVersion_1",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}:export",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "export-ui"
+  },
+  {
+    "group": "flows",
+    "command": "global-variables",
+    "operationId": "getGlobalVariables",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/global-variables",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "global-vars"
+  },
+  {
+    "group": "flows-v2",
+    "command": "validate",
+    "operationId": "dryRunValidate",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/v2/flows:validate",
+    "read_only": false,
+    "required_params": [],
+    "status": "warn",
+    "top_level": "validate"
+  },
+  {
+    "group": "flows-v2",
+    "command": "import",
+    "operationId": "importFlowVersion",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/v2/flows:import",
+    "read_only": false,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "create"
+  },
+  {
+    "group": "flows-v2",
+    "command": "get-draft",
+    "operationId": "getDraft",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/v2/flows/{flowId}",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "draft"
+  },
+  {
+    "group": "flows-v2",
+    "command": "save-draft",
+    "operationId": "saveDraft",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/v2/flows/{flowId}",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "save-draft"
+  },
+  {
+    "group": "flows-v2",
+    "command": "patch-draft",
+    "operationId": "patchDraft",
+    "method": "PATCH",
+    "path": "/{orgId}/project/{projectId}/v2/flows/{flowId}",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "warn",
+    "top_level": "patch"
+  },
+  {
+    "group": "flows-v2",
+    "command": "update",
+    "operationId": "patchDraft",
+    "method": "PATCH",
+    "path": "/{orgId}/project/{projectId}/v2/flows/{flowId}",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "extra": true,
+    "top_level": "update"
+  },
+  {
+    "group": "flows-v2",
+    "command": "validate-id",
+    "operationId": "validateFlowVersionById",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/v2/flows/{flowId}:validate",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "warn",
+    "top_level": "validate-id"
+  },
+  {
+    "group": "flows-v2",
+    "command": "export",
+    "operationId": "exportFlowVersion",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/v2/flows/{flowId}:export",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "export"
+  },
+  {
+    "group": "flows-v2",
+    "command": "flow-template",
+    "operationId": "getFlowTemplate",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/v2/flow-template",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "flow-template"
+  },
+  {
+    "group": "flows-v2",
+    "command": "event-specifications",
+    "operationId": "listEventSpecifications",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/v2/event-specifications",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated"
+  },
+  {
+    "group": "flows-v2",
+    "command": "activities",
+    "operationId": "getActivityDefinitions",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/v2/activities",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "activities"
+  },
+  {
+    "group": "flows-v2",
+    "command": "describe",
+    "operationId": "describeActivity",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/v2/activities/{activityName}",
+    "read_only": true,
+    "required_params": [
+      "<activityName>"
+    ],
+    "status": "generated",
+    "top_level": "describe"
+  },
+  {
+    "group": "flows-v2",
+    "command": "choices",
+    "operationId": "getChoicesForInput",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/v2/activities/{activityName}/inputs/{inputName}/choices",
+    "read_only": true,
+    "required_params": [
+      "<activityName>",
+      "<inputName>"
+    ],
+    "status": "generated",
+    "top_level": "choices"
+  },
+  {
+    "group": "versions",
+    "command": "list",
+    "operationId": "getPublishedFlowVersions",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/versions",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "versions"
+  },
+  {
+    "group": "versions",
+    "command": "get",
+    "operationId": "getFlowVersionById",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/versions/{versionId}",
+    "read_only": true,
+    "required_params": [
+      "<flowId>",
+      "<versionId>"
+    ],
+    "status": "generated",
+    "top_level": "version-by-id"
+  },
+  {
+    "group": "versions",
+    "command": "latest",
+    "operationId": "getLatestFlowVersion",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/versions/latest",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "version-latest"
+  },
+  {
+    "group": "versions",
+    "command": "draft",
+    "operationId": "getLatestFlowDraftVersion",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/versions/draft",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "version-draft"
+  },
+  {
+    "group": "versions",
+    "command": "all",
+    "operationId": "getAllFlowVersions",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/versions",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "all-versions"
+  },
+  {
+    "group": "versions",
+    "command": "all-latest",
+    "operationId": "findAllLatestFlowVersions",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/versions/all-latest",
+    "read_only": true,
+    "required_params": [],
+    "status": "warn",
+    "top_level": "all-versions-latest"
+  },
+  {
+    "group": "tracing",
+    "command": "interaction",
+    "operationId": "getInteraction",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/versions/{versionId}/interaction/{interactionId}",
+    "read_only": true,
+    "required_params": [
+      "<flowId>",
+      "<versionId>",
+      "<interactionId>"
+    ],
+    "status": "generated",
+    "top_level": "interaction"
+  },
+  {
+    "group": "tracing",
+    "command": "traces",
+    "operationId": "getTraces",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/versions/{versionId}/interaction/{interactionId}/traces",
+    "read_only": true,
+    "required_params": [
+      "<flowId>",
+      "<versionId>",
+      "<interactionId>"
+    ],
+    "status": "generated",
+    "top_level": "traces"
+  },
+  {
+    "group": "tracing",
+    "command": "traces-decrypt",
+    "operationId": "getTracesDecrypt",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/versions/{versionId}/interaction/{interactionId}/traces:decrypt",
+    "read_only": true,
+    "required_params": [
+      "<flowId>",
+      "<versionId>",
+      "<interactionId>",
+      "processId"
+    ],
+    "status": "generated",
+    "top_level": "traces-decrypt"
+  },
+  {
+    "group": "tracing",
+    "command": "analytics",
+    "operationId": "getAnalytics",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/versions/{versionId}/analytics",
+    "read_only": true,
+    "required_params": [
+      "<flowId>",
+      "<versionId>"
+    ],
+    "status": "generated",
+    "top_level": "analytics"
+  },
+  {
+    "group": "tracing",
+    "command": "interactions",
+    "operationId": "getInteractions",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/interactions",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "interactions"
+  },
+  {
+    "group": "prefs",
+    "command": "list",
+    "operationId": "getFlowPreferences",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/preferences",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "prefs"
+  },
+  {
+    "group": "prefs",
+    "command": "add",
+    "operationId": "createFlowPreference",
+    "method": "POST",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/preferences",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "prefs-add"
+  },
+  {
+    "group": "prefs",
+    "command": "set",
+    "operationId": "updateFlowPreferences",
+    "method": "PUT",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/preferences",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "prefs-set"
+  },
+  {
+    "group": "prefs",
+    "command": "remove",
+    "operationId": "removeFlowPreferencesByPreferenceNames",
+    "method": "DELETE",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/preferences",
+    "read_only": false,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "prefs-rm"
+  },
+  {
+    "group": "prefs",
+    "command": "tags",
+    "operationId": "getFlowTags",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/tags",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "tags"
+  },
+  {
+    "group": "prefs",
+    "command": "tag-history",
+    "operationId": "getTagHistories",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/flows/{flowId}/tagHistories",
+    "read_only": true,
+    "required_params": [
+      "<flowId>"
+    ],
+    "status": "generated",
+    "top_level": "tag-history"
+  },
+  {
+    "group": "templates",
+    "command": "get",
+    "operationId": "findById",
+    "method": "GET",
+    "path": "/templates/{id}",
+    "read_only": true,
+    "required_params": [
+      "<id>"
+    ],
+    "status": "generated",
+    "top_level": "template-get"
+  },
+  {
+    "group": "templates",
+    "command": "list",
+    "operationId": "findAll_1",
+    "method": "GET",
+    "path": "/templates",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "templates"
+  },
+  {
+    "group": "resource-collections",
+    "command": "list",
+    "operationId": "getResourceCollectionsByUserProfile",
+    "method": "GET",
+    "path": "/{orgId}/resource-collections",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "resource-collections"
+  },
+  {
+    "group": "connectors",
+    "command": "get",
+    "operationId": "getConnector",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/connector/{connectorId}",
+    "read_only": true,
+    "required_params": [
+      "<connectorId>"
+    ],
+    "status": "generated",
+    "top_level": "connector"
+  },
+  {
+    "group": "connectors",
+    "command": "list",
+    "operationId": "findAllConnectors",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}/connector",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "connector-list"
+  },
+  {
+    "group": "projects",
+    "command": "get",
+    "operationId": "findProject",
+    "method": "GET",
+    "path": "/{orgId}/project/{projectId}",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "project"
+  },
+  {
+    "group": "projects",
+    "command": "list",
+    "operationId": "findAll",
+    "method": "GET",
+    "path": "/{orgId}/project",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "projects"
+  },
+  {
+    "group": "user-prefs",
+    "command": "get",
+    "operationId": "getUserPreferences",
+    "method": "GET",
+    "path": "/{orgId}/userPreferences",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "user-prefs"
+  },
+  {
+    "group": "util",
+    "command": "test-expr",
+    "operationId": "testExpression",
+    "method": "POST",
+    "path": "/expressionTest",
+    "read_only": false,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "test-expr"
+  },
+  {
+    "group": "util",
+    "command": "build-info",
+    "operationId": "buildInfo",
+    "method": "GET",
+    "path": "/build_info",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "build-info"
+  },
+  {
+    "group": "util",
+    "command": "health",
+    "operationId": "health",
+    "method": "GET",
+    "path": "/health",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "health"
+  },
+  {
+    "group": "util",
+    "command": "whoami",
+    "operationId": "getCurrentUser",
+    "method": "GET",
+    "path": "/auth/user",
+    "read_only": true,
+    "required_params": [],
+    "status": "generated",
+    "top_level": "whoami"
+  }
+]

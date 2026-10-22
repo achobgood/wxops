@@ -76,7 +76,7 @@ The `recommend_shared_line_complex` rule in recommendation_rules.py checks secon
 - CX queues are **hidden from default `call-queue list`** -- must pass `--has-cx-essentials true`
 - CX queue creation requires `callPolicies` via `--json-body`
 - Error 28018 ("CX Essentials is not enabled for this Call center") means the queue is not a Customer Assist queue
-<!-- Source: docs/reference/call-features-additional.md lines 1344-1422, CLAUDE.md known issue #8 -->
+<!-- Source: docs/reference/call-features-additional.md lines 1344-1422, wxcli-behavior.md Known Issue #7 -->
 
 ### Call Park, Pickup, Paging Group Mapping
 
@@ -137,7 +137,7 @@ AA with 4-8 key options, each transferring to a department Hunt Group or Call Qu
 | AA requires `business_schedule` on create | Yes | call-features-major.md verified comment line 68 |
 | AA requires both menus on create | Yes (`business_hours_menu` + `after_hours_menu`) | call-features-major.md verified comment line 68 |
 | AA max per location | Not documented in reference docs |  |
-| CX queues hidden from default list | Must pass `--has-cx-essentials true` | CLAUDE.md known issue #8 |
+| CX queues hidden from default list | Must pass `--has-cx-essentials true` | wxcli-behavior.md Known Issue #7 |
 | No hunt list concept in Webex | Chaining via overflow/forwarding | call-features-major.md line 764 |
 | Shared line max appearances | 35 | recommendation_rules.py line 312 |
 | AA key actions | 10 total (0-9, *, #) | call-features-major.md lines 91-110 |

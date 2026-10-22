@@ -1185,7 +1185,7 @@ Dial plans, trunks, route groups, and route lists all live under `telephony/conf
 
 ### 1. Translation pattern replacement must use fully specified digits
 
-Translation pattern replacement strings cannot contain `X` wildcards in any format. For example, `+1919666XXXX` is rejected, and so is `XXX` (non-E.164). Use fully specified literal digits: `+19196660000`. The matching pattern accepts `X` wildcards normally (`9XXXXXXX`, `+1512555XXXX`), but the replacement must be all literal digits. Confirmed via live API testing 2026-04-18 — error 28043 "Invalid Translation Replacement Pattern" for any replacement containing `X`.
+Translation pattern replacement strings cannot contain `X` wildcards in any format. For example, `+1919666XXXX` is rejected, and so is `XXX` (non-E.164). Use fully specified literal digits: `+19196660000`. The matching pattern accepts `X` wildcards normally (`9XXXXXXX`, `+1512555XXXX`), but the replacement must be all literal digits. Confirmed via live API testing 2026-04-18 — error 28043 "Invalid Translation Replacement Pattern" for any replacement containing `X`. An earlier stress test (2026-03-25) found `!` and ranges such as `[2-9]` rejected in a replacement too (`+1212!` failed); only the matching pattern takes wildcards.
 
 ### 2. Dial plans require an existing trunk or route group
 
@@ -1202,6 +1202,10 @@ When creating a REGISTERING trunk, the password field rejects `?` and `!` — er
 ### 5. Number porting and ordering are Control Hub only
 
 The API manages PSTN connections, trunks, and routing for numbers that already exist in the org. To port in new numbers or order from Cisco Calling Plan, use Control Hub or contact Cisco PTS.
+
+### 6. Translation patterns are unique per organization, by pattern and by name
+
+A second translation pattern with the same **matching** pattern returned 409, even with a different replacement: the uniqueness is org-wide. Two patterns with the same **name** returned error 28037. Observed in a stress test, 2026-03-25.
 
 ---
 

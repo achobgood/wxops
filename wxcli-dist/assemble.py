@@ -3,12 +3,15 @@
 
 "Package it" script (spec 2026-07-09 §4.1). Enumerates TRACKED sources via
 `git ls-files` (never the filesystem), substitutes the curated
-settings.bundled.json for the live .claude/settings.json, preserves the
-repo-relative layout, then runs the link-audit gate: any residual repo-only
-token fails the run. src/wxcli/_playbook/ is generated — never hand-edit it.
+settings.bundled.json for the live .claude/settings.json, writes the sanitized
+mcp.bundled.json as .mcp.json (a live .mcp.json can hold a real token and is
+never shipped), preserves the repo-relative layout, then runs the link-audit
+gate: any residual repo-only token fails the run. src/wxcli/_playbook/ is
+generated — never hand-edit it.
 """
 from __future__ import annotations
 
+import json
 import re
 import shutil
 import subprocess
@@ -22,6 +25,10 @@ CURATED_SETTINGS = Path(__file__).resolve().parent / "settings.bundled.json"
 # paths an installed playbook does not have. Substituted the same way settings
 # are — keep the POLICY identical between the two, only the guidance differs.
 CURATED_HOOK = Path(__file__).resolve().parent / "wxcli-gate.bundled.sh"
+# The project MCP config ships SANITIZED: placeholders only, never a token. Plan 2
+# carries just the Flow Designer server (wxcc-flow-builder); wxcc's Supabase entry
+# moves only with a skill that needs it (Plans 3–5).
+CURATED_MCP = Path(__file__).resolve().parent / "mcp.bundled.json"
 
 # Enumerate the three .claude subdirs explicitly — `.claude/` wholesale would
 # also sweep the tracked .claude/projects/**/memory path.
@@ -36,9 +43,14 @@ INCLUDE_PATHS = [
     "docs/knowledge-base/migration",
     "docs/runbooks/cucm-migration",
     # The builder agent reads deployment-plan.md and execution-report.md at
-    # runtime (.claude/agents/wxc-calling-builder.md lines 322 and 502). That
-    # agent file has always shipped; the templates it points at never did.
+    # runtime (docs/playbooks/calling-build.md § Deployment plan, and the agent
+    # body's § 5. Report). The agent file has always shipped; the templates it
+    # points at once did not.
     "docs/templates",
+    # wxcc's playbooks and FlowIR examples (wxcc's assembler shipped both,
+    # wxcc/wxcc-dist/assemble.py:33-42). Plan 3 moves them in.
+    "docs/playbooks",
+    "docs/examples",
 ]
 EXCLUDE_FILES = {
     # Dev-facing spec-authoring template (19 src/ refs); its only shipping
@@ -50,9 +62,22 @@ EXCLUDE_FILES = {
     # the drift gate and the Sync Protocol, none of which an installed playbook
     # has. Nothing an end user reads points at it.
     "docs/reference/CLAUDE.md",
+    # Maintainer-only sync pairs (wxcc's Sync Checklist and Playbook ↔
+    # Reference Doc Pairs; Plan 4 P4-4): cites tests/, tools/ and this file.
+    ".claude/rules/doc-maintenance.md",
+    # Maintainer-only test command and interpreter notes (Plan 4 P4-4).
+    ".claude/rules/repo-development.md",
 }
 EXCLUDE_BASENAMES = {"TODO.md", ".DS_Store"}
-AUDIT_TOKENS = ("src/", "tools/", "python3.14 -m", "field_overrides")
+AUDIT_TOKENS = ("src/", "tools/", "python3.14 -m", "field_overrides",
+                "venv/", ".worktrees", ".superpowers", "node_modules/")
+# A developer's home directory. wxcc audited the bare substring "/Users/"; that
+# fires on correct API docs (SCIM `/identity/scim/{orgId}/v2/Users/{userId}`,
+# `"path": "/Users/USER_ID_1"`), so it is a pattern here: "/Users/" followed by
+# a lowercase account name and a slash, not preceded by a word character or `}`
+# (which is how every SCIM path reaches it). Reported under HOME_DIR_TOKEN.
+HOME_DIR_RE = re.compile(r"(?<![\w}])/Users/[a-z][\w.-]*/")
+HOME_DIR_TOKEN = "/Users/<name>/"
 # These operator docs cite implementation files as provenance. The code is not
 # shipped in an installed playbook, but the citations are explanatory rather
 # than executable links; retain them while keeping the usual audit elsewhere.
@@ -65,7 +90,7 @@ SOURCE_CITATION_PREFIXES = (
 # AUDIT_TOKENS is a DENYLIST. It can only catch a repo-only prefix that leaked
 # IN; it has no way to notice a file that is MISSING. That is exactly how
 # docs/templates/{deployment-plan,execution-report}.md — read at runtime by
-# .claude/agents/wxc-calling-builder.md — stayed out of INCLUDE_PATHS for
+# the builder agent (see INCLUDE_PATHS above) — stayed out of INCLUDE_PATHS for
 # months while this audit, the unit tests and the wheel smoke test all passed,
 # and how dangling docs/plans/ and docs/superpowers/ citations survived beside
 # them. This is the complementary direction: a reference that CLAIMS to name a
@@ -93,12 +118,13 @@ REF_PLACEHOLDER_RE = re.compile(r"[*?<>{}\[\]|]|YYYY|MM-DD")
 REF_EXEMPT = {
     "docs/plans":
         "WRITE-target directory, not a read. The builder agent CREATES the "
-        "deployment plan here inside the customer's own folder "
-        "(.claude/agents/wxc-calling-builder.md lines 84, 511, 738). Nothing "
-        "reads it out of the bundle, so its absence at build time is correct.",
+        "deployment plan here inside the customer's own folder (the agent "
+        "body's § 2. Plan; docs/playbooks/calling-build.md § Deployment plan). "
+        "Nothing reads it out of the bundle, so its absence at build time is "
+        "correct.",
     "docs/plans/session-state.md":
         "WRITE-target. The builder agent's compaction-recovery state file, "
-        "written per run (.claude/agents/wxc-calling-builder.md line 631).",
+        "written per run (the agent body's § After a context reset).",
     "docs/demo/2026-04-22-acme":
         "WRITE-target. The worked example of --output-dir for the cucm-migrate "
         "customer deliverables bundle (.claude/skills/cucm-migrate/SKILL.md).",
@@ -107,6 +133,33 @@ REF_EXEMPT = {
         "inline: '(repo-only — present in a source checkout, not in an "
         "installed playbook)'. Kept as a pointer for whoever reads the source.",
 }
+
+# Plan 3 (P3-3): wxcc's shipped docs cite repo-local vetting evidence that was
+# never tracked in wxcc-agent-builder either. Cited as provenance, never read at
+# runtime; one exact entry per target (open question 1 of Plan 3).
+_LOCAL_FINDINGS_REASON = (
+    "Repo-local vetting evidence from wxcc-agent-builder (never tracked there "
+    "either); cited as provenance, not read at runtime. Plan 3 P3-3; open "
+    "question 1.")
+_LOCAL_PLAN_REASON = (
+    "Repo-local wxcc audit plan, cited as provenance; not shipped. Plan 3 P3-3.")
+REF_EXEMPT.update({
+    f"docs/tests/findings/{name}-findings.md": _LOCAL_FINDINGS_REASON
+    for name in (
+        "digital-inbound-agent", "inbound-sms", "inbound-voice",
+        "multi-channel-routing", "outbound-apple-messages", "outbound-email",
+        "outbound-rcs", "outbound-sms", "outbound-whatsapp",
+        "sequential-dialing", "skill-build-scripted-fulfillment",
+        "webex-calling-paging", "webhook-triggers")
+})
+REF_EXEMPT.update({
+    path: _LOCAL_PLAN_REASON for path in (
+        "docs/plans/2026-07-25-documentation-remediation-backlog.md",
+        "docs/plans/2026-07-25-findings-corpus-audit.md",
+        "docs/plans/2026-07-25-webex-connect-doc-audit.md",
+        "docs/plans/2026-07-27-reference-sweep-triage-ledger.md",
+        "docs/plans/spec-a-voice-nodes-reference.md")
+})
 
 _REF_BACKTICK_RE = re.compile(r"`([^`\n]+)`")
 _REF_MDLINK_RE = re.compile(r"\]\(([^)\s]+)\)")
@@ -138,9 +191,11 @@ _EFFORT = {"opus": "high", "sonnet": "medium", "haiku": "low"}
 # `(?<!\w)` (paths always have a word char before the slash) — a naive
 # str.replace would corrupt those paths AND slip past the audit.
 CODEX_PIPELINE: list[tuple[str, object, str]] = [
-    ("lit", "You MUST use `/agents` and select **wxc-calling-builder**",
-            "You MUST ask Codex to use the **wxc-calling-builder** agent"),
-    ("lit", "`/agents` → wxc-calling-builder", "the **wxc-calling-builder** agent"),
+    # A stray reference to the retired WxCC agent is rewritten to the agent
+    # that replaced it (Plan 5); the pattern still matches the old name.
+    ("re", re.compile(r"(?<!\w)/wxcc-agent-builder\b"), "the **wxops** agent"),
+    ("re", re.compile(r"(?<!\w)/wxcc-debug\b"), "the `wxcc-debug` skill"),
+    ("re", re.compile(r"Skill\(([a-z][a-z-]*)\)"), r"the `\1` skill"),
     ("re", re.compile(r"(?<!\w)/agents\b(?!/)"), "the agents catalog"),
     ("re", re.compile(r"(?<!\w)/query-live\b"), "the `query-live` skill"),
     ("re", re.compile(r"(?<!\w)/wxc-calling-debug\b"), "the `wxc-calling-debug` skill"),
@@ -149,10 +204,13 @@ CODEX_PIPELINE: list[tuple[str, object, str]] = [
     ("lit", "SendMessage", "a follow-up instruction to the agent"),
     ("lit", "Claude Code", "Codex"),
     ("lit", "CLAUDE.md", "AGENTS.md"),
-    ("lit", ".claude/agents/wxc-calling-builder.md", ".codex/agents/wxc-calling-builder.toml"),
+    ("lit", ".claude/agents/wxops.md", ".codex/agents/wxops.toml"),
     ("lit", ".claude/agents/migration-advisor.md", ".codex/agents/migration-advisor.toml"),
+    ("lit", ".claude/agents/wxcc-agent-builder.md", ".codex/agents/wxops.toml"),
     ("lit", ".claude/settings.local.json", ".codex/config.toml"),
     ("lit", ".claude/settings.json", ".codex/config.toml"),
+    # Codex configures MCP in .codex/config.toml, not the Claude-only root .mcp.json
+    ("lit", ".mcp.json", ".codex/config.toml"),
     ("lit", ".claude/", ".codex/"),   # generic path prefix — safe (always a prefix)
 ]
 
@@ -168,7 +226,23 @@ CODEX_FORBIDDEN = [
     re.compile(r"CLAUDE\.md"),
     re.compile(r"\.claude/"),
     re.compile(r"(?<!\w)/agents\b(?!/)"),
+    re.compile(r"\.mcp\.json"),
+    re.compile(r"(?<!\w)/wxcc-agent-builder\b"),
+    re.compile(r"(?<!\w)/wxcc-debug\b"),
+    re.compile(r"Skill\([a-z][a-z-]*\)"),
 ]
+
+# Our own cap on AGENTS.md (Plan 4 decision P4-14). Codex reads only the first
+# project_doc_max_bytes of it (default 32,768; measured on Codex 0.163.0), so the
+# shipped codex/config.toml raises that to 65,536, honoured once the folder is
+# trusted. A test pins config value >= this cap; build_agents_md fails above it.
+CODEX_AGENTS_MD_MAX_BYTES = 44000
+CODEX_AGENTS_MD_WARN_BYTES = 42000
+
+# CLAUDE.md sections moved out of AGENTS.md into .codex/docs/ files, anchor ->
+# destination path. Empty until Plan 4 (wxcc's table is keyed to headings of wxcc's
+# own CLAUDE.md, which has not merged yet).
+EXTRACTED_SECTIONS: dict[str, str] = {}
 
 
 def _keep(rel: str) -> bool:
@@ -226,8 +300,10 @@ def untracked_sources(repo_root: Path) -> list[str]:
 
 
 def assemble(repo_root: Path, bundle_dir: Path, curated_settings: Path,
-             curated_hook: Path = CURATED_HOOK) -> list[str]:
-    """Wipe bundle_dir, copy sources preserving layout, substitute settings+hook."""
+             curated_hook: Path = CURATED_HOOK,
+             curated_mcp: Path = CURATED_MCP) -> list[str]:
+    """Wipe bundle_dir, copy sources preserving layout, substitute settings+hook,
+    and write the sanitized MCP config as .mcp.json."""
     if bundle_dir.exists():
         shutil.rmtree(bundle_dir)
     files = enumerate_sources(repo_root)
@@ -244,6 +320,7 @@ def assemble(repo_root: Path, bundle_dir: Path, curated_settings: Path,
     hook_dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(curated_hook, hook_dest)
     hook_dest.chmod(0o755)
+    shutil.copy2(curated_mcp, bundle_dir / ".mcp.json")
     return files
 
 
@@ -272,6 +349,8 @@ def audit_bundle(bundle_dir: Path) -> list[tuple[str, int, str]]:
             for tok in tokens:
                 if tok in lines[i]:
                     violations.append((rel, i + 1, tok))
+            if HOME_DIR_RE.search(lines[i]):
+                violations.append((rel, i + 1, HOME_DIR_TOKEN))
     return violations
 
 
@@ -378,7 +457,7 @@ def main() -> int:
         print(f"FAILED: {len(violations) + len(codex_violations) + len(missing)} "
               f"bad reference(s) in the bundle.", file=sys.stderr)
         return 1
-    print(f"Assembled Claude+Codex playbook ({len(files) + 1} Claude file(s) + "
+    print(f"Assembled Claude+Codex playbook ({len(files) + 2} Claude file(s) + "
           f"generated .codex/ + AGENTS.md) into {BUNDLE_DIR.relative_to(REPO_ROOT)}")
     return 0
 
@@ -401,25 +480,48 @@ def _heading_level(line: str) -> int:
     return n if (n and line[n:n + 1] == " ") else 0
 
 
+def _section_bounds(lines: list[str], anchor: str,
+                    stops: frozenset[str] = frozenset()) -> tuple[int, int]:
+    """(start, end) of the anchored block: heading + body up to the next
+    same-or-higher heading, or the next heading in `stops` (another anchored
+    section), whichever comes first. Lines inside ``` fences are never headings.
+    Missing anchor → KeyError (keeps the overlay honest)."""
+    start = next((i for i, ln in enumerate(lines)
+                  if ln.rstrip("\n") == anchor), None)
+    if start is None:
+        raise KeyError(f"anchor not found in CLAUDE.md: {anchor!r}")
+    level = _heading_level(anchor)
+    end, fenced = len(lines), False
+    for j in range(start + 1, len(lines)):
+        if lines[j].startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        lv = _heading_level(lines[j])
+        if lv and (lv <= level or lines[j].rstrip("\n") in stops):
+            end = j
+            break
+    return start, end
+
+
 def replace_sections(md: str, replacements: dict[str, str]) -> str:
     """Replace each anchored section (heading + body up to the next same/higher
-    heading). Missing anchor → KeyError (keeps the overlay honest)."""
+    heading, or up to another anchored section it contains). Missing anchor →
+    KeyError (keeps the overlay honest)."""
     lines = md.splitlines(keepends=True)
     for anchor, new_block in replacements.items():
-        start = next((i for i, ln in enumerate(lines)
-                      if ln.rstrip("\n") == anchor), None)
-        if start is None:
-            raise KeyError(f"anchor not found in CLAUDE.md: {anchor!r}")
-        level = _heading_level(anchor)
-        end = len(lines)
-        for j in range(start + 1, len(lines)):
-            lv = _heading_level(lines[j])
-            if lv and lv <= level:
-                end = j
-                break
+        start, end = _section_bounds(lines, anchor, frozenset(replacements) - {anchor})
         block = new_block if new_block.endswith("\n") else new_block + "\n"
-        lines[start:end] = [block]
+        lines[start:end] = block.splitlines(keepends=True)
     return "".join(lines)
+
+
+def extract_section(md: str, anchor: str) -> str:
+    """The anchored block (heading + body), unchanged. Missing anchor → KeyError."""
+    lines = md.splitlines(keepends=True)
+    start, end = _section_bounds(lines, anchor)
+    return "".join(lines[start:end])
 
 
 def _split_frontmatter(md: str) -> tuple[dict[str, str], str]:
@@ -457,12 +559,17 @@ def _split_frontmatter(md: str) -> tuple[dict[str, str], str]:
 # the profile — no warning, no error. A user who asks for the agent gets a
 # generic one carrying none of the playbook rules, and nothing says so.
 # Measured 2026-08-10: Codex 0.144.1 rejected hyphenated names, so
-# `wxc-calling-builder` did not load there at all; 0.147.0 accepts them. The rule
+# the builder agent did not load there at all; 0.147.0 accepts them. The rule
 # below is 0.147's ("lowercase ASCII letters, digits, or hyphens").
 #
 # This check exists because the failure is silent at RUNTIME, on the user's
 # machine, in the shipped bundle. Failing the build instead is the only place the
 # mistake is visible to us. Same reasoning as the link audit.
+#
+# This validates the agent's DEFINITION name, which may carry hyphens (0.163.0
+# loads `probe-hy`). The spawn-time `task_name` is a different field with a
+# stricter rule (lowercase letters, digits and underscores); do not "fix" this
+# regex to match it.
 CODEX_AGENT_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
@@ -485,7 +592,8 @@ def md_agent_to_toml(md: str) -> str:
         raise ValueError("agent body contains ''' — cannot use TOML literal string")
     effort = _EFFORT.get(fm.get("model", "sonnet"), "medium")
     name = _validate_codex_agent_name(fm["name"].strip())
-    desc = fm.get("description", "").strip().replace("\\", "\\\\").replace('"', '\\"')
+    desc = apply_phrase_map(fm.get("description", "").strip()).replace(
+        "\\", "\\\\").replace('"', '\\"')
     return (
         f'name = "{name}"\n'
         f'description = "{desc}"\n'
@@ -507,6 +615,14 @@ def build_agents_md(claude_md: str) -> str:
     md = apply_phrase_map(md)
     if GROUNDING_MARKER not in md:
         raise ValueError("grounding rule not preserved verbatim in AGENTS.md")
+    size = len(md.encode("utf-8"))
+    if size > CODEX_AGENTS_MD_MAX_BYTES:
+        raise ValueError(f"AGENTS.md is {size} bytes, over the {CODEX_AGENTS_MD_MAX_BYTES}-byte "
+                         f"cap (P4-14; shrink CLAUDE.md, or raise the cap with the shipped "
+                         f"codex/config.toml project_doc_max_bytes)")
+    if size > CODEX_AGENTS_MD_WARN_BYTES:
+        print(f"WARNING: AGENTS.md is {size} bytes, nearing the "
+              f"{CODEX_AGENTS_MD_MAX_BYTES}-byte cap", file=sys.stderr)
     return md
 
 
@@ -518,7 +634,70 @@ def _write_text_or_bytes(src: Path, dest: Path, transform) -> None:
         dest.write_bytes(src.read_bytes())
 
 
-def assemble_codex(bundle_dir: Path) -> None:
+# HTTP MCP servers whose Codex bearer token comes from an env var instead of a
+# static in-file header — keeps the real token OUT of the shipped project file.
+# Maps server name -> env var Codex reads at runtime. WEBEX_ACCESS_TOKEN is the
+# var wxcli resolves first (auth.py), so one sign-in serves both (spec §10.3;
+# wxcc named it WXCC_FLOW_TOKEN). DO NOT revert this to a static token header —
+# test_mcp_servers_toml_translates_sanitized_bundle guards it.
+_CODEX_HTTP_BEARER_ENV = {"wxcc-flow-builder": "WEBEX_ACCESS_TOKEN"}
+
+
+def _mcp_servers_toml(curated_mcp: Path, enabled: set[str] | None = None) -> str:
+    """Translate the SANITIZED mcp.bundled.json (never a live .mcp.json — it can
+    hold a real token) into a Codex [mcp_servers] TOML fragment.
+    Unknown server shapes fail assembly loudly rather than ship broken.
+    `enabled` is the Claude side's enabledMcpjsonServers: a server outside it ships
+    `enabled = false`, so Codex does not start it either (Plan 5 P5-14: the
+    Supabase entry is switched off until the user fills in its placeholders)."""
+    data = json.loads(curated_mcp.read_text())
+
+    def q(s: str) -> str:
+        if '"' in s or "\\" in s or "\n" in s:
+            raise ValueError(f"MCP value needs escaping not supported here: {s!r}")
+        return f'"{s}"'
+
+    out = [
+        "",
+        "# MCP servers — generated from wxcli-dist/mcp.bundled.json. HTTP servers listed",
+        "# in _CODEX_HTTP_BEARER_ENV use bearer_token_env_var so Codex sources the token",
+        "# from an env var at runtime (no secret in this file); WEBEX_ACCESS_TOKEN is the",
+        "# same var wxcli reads first. Other servers ship sanitized placeholders.",
+    ]
+    for name, cfg in data["mcpServers"].items():
+        out.append(f"[mcp_servers.{name}]")
+        if "command" in cfg:
+            out.append(f'command = {q(cfg["command"])}')
+            out.append(f'args = [{", ".join(q(a) for a in cfg.get("args", []))}]')
+            if cfg.get("env"):
+                pairs = ", ".join(f"{q(k)} = {q(v)}" for k, v in cfg["env"].items())
+                out.append(f"env = {{ {pairs} }}")
+        elif "url" in cfg:
+            out.append(f'url = {q(cfg["url"])}')
+            env_var = _CODEX_HTTP_BEARER_ENV.get(name)
+            if env_var:
+                out.append(f"bearer_token_env_var = {q(env_var)}")
+            elif cfg.get("headers"):
+                pairs = ", ".join(f"{q(k)} = {q(v)}" for k, v in cfg["headers"].items())
+                out.append(f"http_headers = {{ {pairs} }}")
+        else:
+            raise ValueError(f"unsupported MCP server shape for {name!r}: {sorted(cfg)}")
+        if enabled is not None and name not in enabled:
+            out.append("enabled = false")
+        out.append("")
+    return "\n".join(out)
+
+
+def _enabled_mcp_servers(bundle_dir: Path) -> set[str] | None:
+    """The bundle's Claude enabledMcpjsonServers, or None when it declares none."""
+    settings = bundle_dir / ".claude" / "settings.json"
+    if not settings.is_file():
+        return None
+    names = json.loads(settings.read_text()).get("enabledMcpjsonServers")
+    return None if names is None else set(names)
+
+
+def assemble_codex(bundle_dir: Path, curated_mcp: Path = CURATED_MCP) -> None:
     """Transform the assembled Claude bundle into the Codex shape, in place."""
     claude = bundle_dir / ".claude"
     sk_src = claude / "skills"
@@ -545,7 +724,8 @@ def assemble_codex(bundle_dir: Path) -> None:
         build_agents_md((bundle_dir / "CLAUDE.md").read_text()))
     cfg_dest = bundle_dir / ".codex/config.toml"
     cfg_dest.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(CODEX_OVERLAY / "config.toml", cfg_dest)
+    cfg_dest.write_text((CODEX_OVERLAY / "config.toml").read_text()
+                        + _mcp_servers_toml(curated_mcp, _enabled_mcp_servers(bundle_dir)))
     # config.toml documents the gate; hooks.json is what actually arms it.
     # Shipping the prose without the wiring is a gate that reads as a gate and
     # is not one — the same defect the Claude side pins with its settings/hook

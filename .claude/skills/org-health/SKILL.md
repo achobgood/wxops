@@ -5,8 +5,8 @@ description: |
   wxcli commands, runs 18 deterministic Python checks across 4 categories, and
   generates an Authority Minimal HTML report. Three phases: collect → analyze → report.
   Use when the user wants to audit their org, run a health check, or see what needs attention.
-  NOT for: security/compliance audit logs (use audit-compliance skill), CDR/call analytics
-  (use reporting skill), or license auditing (use manage-licensing skill).
+  NOT for: security/compliance audit logs (audit-compliance), CDR/call analytics (reporting), or
+  license auditing (manage-licensing).
 ---
 
 # Org Health Assessment
@@ -62,7 +62,7 @@ request and discards the rest; `--all` walks the collection. On rows 1, 2, 3, 5,
 the default already fetches every page (`--limit` defaults to 0, which walks), so `--all`
 would add nothing. If a collection command prints `Note: N records returned and the server
 has more pages` on **stderr**, the file you just wrote is partial — re-run it with `--all`
-before analyzing. See CLAUDE.md's Common Flags section.
+before analyzing. See `docs/reference/wxcli-behavior.md` § 1. Common Flags.
 
 ### Detail Collection
 

@@ -4,6 +4,8 @@ Webex API reference docs grounded in the Webex OpenAPI specs and live API behavi
 
 ## Doc Families
 
+The full map, one line per doc, is `INDEX.md`. It ships with the playbook; this file does not. Add a line there for every new doc.
+
 - **Person call settings** (5): `person-call-settings-{handling,media,permissions,behavior}.md`, `self-service-call-settings.md`
 - **Location calling** (3): `location-calling-core.md`, `location-calling-media.md`, `location-recording-advanced.md`
 - **Devices** (4): `devices-{core,dect,workspaces,platform}.md`
@@ -12,6 +14,16 @@ Webex API reference docs grounded in the Webex OpenAPI specs and live API behavi
 - **Messaging** (2): `messaging-{spaces,bots}.md`
 - **Contact Center** (5): `contact-center-{core,routing,analytics,journey}.md` + `contact-center-agent-sdk.md` (the `@webex/contact-center` **JS SDK** for a custom agent desktop — a browser runtime surface, not REST/`wxcli`; grounded in the SDK's own TypeScript sources rather than an OpenAPI spec)
 - **Standalone** (11): `authentication.md`, `provisioning.md`, `call-features-major.md`, `call-features-additional.md`, `call-routing.md`, `call-control.md`, `webhooks-events.md`, `reporting-analytics.md`, `virtual-lines.md`, `emergency-services.md`, `ai-receptionist.md`
+
+Merged from wxcc-agent-builder in the Webex Ops merge (Plan 3). All but `flow-blueprints.md` and `flow-designer.md` carry a `<!-- ref-tag: … -->` line, which the answering rules ask Claude to quote as proof it read the current version:
+
+- **Contact Center platform** (2): `wxcc-platform.md` (Control Hub, global variables, CCAI, Analyzer, Create Task API), `wxcc-provisioning-api.md`
+- **Flow Designer** (6 + a folder): `flow-designer-essentials.md`, `flow-designer-patterns.md`, `flow-designer-flowir.md`, `flow-blueprints.md`, `custom-functions.md`, `flow-designer.md` (a pointer page left by the split), and `flow-designer-activities/` (one file per activity, indexed by its `_index.md`)
+- **AI Agent Studio** (3): `ai-agent-studio.md` (autonomous), `ai-agent-studio-scripted.md`, `ai-agent-studio-import-json.md`
+- **Webex Connect and digital channels** (11): `webex-connect.md`, `webex-connect-advanced.md`, `digital-inbound.md`, `connect-{sms,email,rcs,apple-messages,whatsapp,multi-channel,auth,response-codes}.md`
+- **Data sources** (3): `bre.md`, `db-integration.md`, `cjds.md`
+
+These families are platform knowledge, not REST/`wxcli` surfaces, so they do not follow the Document Shape below: none of these 25 files has a Raw HTTP or CLI Examples section (counted 2026-10-20). Their own placement rule is the doc-placement rule in `.claude/rules/`; their sync pairs are in the doc-maintenance rule there.
 
 ## Consumers
 
@@ -118,4 +130,4 @@ Endpoints/CLI/Raw-HTTP skeleton.
 
 ## Maintenance
 
-Update these docs when you discover new gotchas, API behavior changes, or scope/permission corrections. See the Sync Protocol in the project root `CLAUDE.md` for the full workflow.
+Update these docs when you discover new gotchas, API behavior changes, or scope/permission corrections. See `tools/CLAUDE.md` § Reference Doc Sync Protocol for the full workflow.

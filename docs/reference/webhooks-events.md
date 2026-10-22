@@ -1308,7 +1308,7 @@ curl -X DELETE "https://webexapis.com/v1/telephony/webhookInterestRegistrations"
    no live call was made against this endpoint.
 
 2. **`create` needs `--json-body`; its `--duration` flag cannot stand alone.** `interests` is a
-   nested array, so the generator emits no flag for it (Known Issue #2) — the only typed flag on
+   nested array, so the generator emits no flag for it ([wxcli-behavior.md](wxcli-behavior.md) Known Issue #2) — the only typed flag on
    `create` is `--duration`. But the spec marks `interests` required, so
    `create --duration 90` sends `{"duration": "90"}` with no interests and is rejected. Note the
    quotes: `--duration` is typed as a string and the spec declares an integer, which is a second

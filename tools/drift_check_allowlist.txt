@@ -18,10 +18,12 @@ cucm commands
 # call-control/SKILL.md checklist item "wxcli call-controls accessible" —
 # prose inside a fenced checklist template
 call-controls accessible
-# wxc-calling-builder.md:591 — deliberately fake group used to TEACH the
+# docs/playbooks/calling-build.md:392 (moved from the old builder agent body in
+# Plan 5) — deliberately fake group used to TEACH the
 # --help verification gate (audit: "harmless as written")
 locations-api
-# wxc-calling-builder.md:772 — deliberate negative example ("users
+# docs/playbooks/calling-build.md:420 (moved from the old builder agent body in
+# Plan 5) — deliberate negative example ("users
 # assign-license doesn't exist — use licenses instead")
 users assign-license
 # manage-devices/SKILL.md:31,653 — deliberate negative examples ("Do NOT
