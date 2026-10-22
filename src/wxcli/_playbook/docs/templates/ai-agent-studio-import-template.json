@@ -1,0 +1,102 @@
+{
+  "bot_type": "virtualagent",
+  "configuration": {
+    "ai_engine": "PRO_US",
+    "default_language": "en-US",
+    "kb_ids": [],
+    "llm_agent_description": "<AGENT_GOAL_TEXT>\n\n### INSTRUCTIONS:\n<DETAILED_AGENT_INSTRUCTIONS_UNDER_5000_CHARS>",
+    "llm_model": "1.0.0",
+    "logo": "https://aiagent.webexbotbuilder.com/static/assets/img/bot-logo/default-virtualagent.svg",
+    "timezone": "America/Los_Angeles",
+    "voice_settings": {
+      "advance_settings": {
+        "global": {
+          "delays_and_interruptions": {
+            "caller_turn_timeout": 1500,
+            "custom_no_input": 10,
+            "customer_interruption": true,
+            "eos_sensitivity": 500,
+            "fulfilment_timeout": 30,
+            "optimized_barge_in": true,
+            "slots_additional_delay": 800
+          },
+          "dtmf_settings": {
+            "max_length": 16,
+            "term_char": "#",
+            "timeout_between_digits": 5,
+            "turn_on_dtmf": true
+          },
+          "is_customized": false,
+          "response_settings": {
+            "custom_vocabulary": [],
+            "include_disfluencies": true,
+            "response_style": "ACTIVE"
+          }
+        }
+      },
+      "voices": []
+    },
+    "welcome_message": "<SUGGESTED_GREETING>"
+  },
+  "tools": [
+    {
+      "capability": "slot_filling",
+      "description": "Escalate the conversation to a human agent if the user asks for it.",
+      "enabled": true,
+      "fulfillment": {},
+      "id": "00000000000000000000000000000001",
+      "name": "Agent handover",
+      "slots": [],
+      "slots_view": "table",
+      "system_tool": true
+    },
+    {
+      "bot_id": 0,
+      "capability": "slot_filling_with_fulfillment",
+      "description": "<ACTION_PURPOSE_AND_PARAMETER_SOURCING_GUIDANCE>",
+      "enabled": true,
+      "fulfillment": {
+        "authentication": {
+          "service_key": "",
+          "type": "ci_bearer_token"
+        },
+        "flow_builder": "connect",
+        "flow_id": "",
+        "flow_name": "",
+        "output_entities": {
+          "parameters": {
+            "properties": {},
+            "required": [],
+            "secure": [],
+            "type": "object"
+          }
+        },
+        "output_entities_format": "table",
+        "output_entities_text": "",
+        "output_entities_view": "table",
+        "service_id": "",
+        "service_name": "",
+        "type": "flow",
+        "webhook_url": ""
+      },
+      "id": "00000000000000000000000000000002",
+      "input_entities": {
+        "parameters": {
+          "properties": {
+            "example_parameter": {
+              "description": "<PLAIN_LANGUAGE_PARAMETER_DESCRIPTION>",
+              "examples": [],
+              "type": "string"
+            }
+          },
+          "required": ["example_parameter"],
+          "secure": [],
+          "type": "object"
+        }
+      },
+      "name": "example_action_name",
+      "slots_view": "table",
+      "system_tool": false
+    }
+  ]
+}

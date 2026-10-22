@@ -216,6 +216,8 @@ The authorization is recorded in Admin Audit events. Any admin can later enable/
 
 Your service app is now ready to make API calls. Use the refresh token to obtain new access tokens programmatically (see below).
 
+**Control Hub also generates the tokens.** Cisco's help pages (fetched 2026-10-19) describe a second path for an org admin: "In Control Hub go to Apps > Service apps, select the application, and click Get a token > Authorize to get token" ([Synchronize Okta users into Control Hub](https://help.webex.com/en-US/article/nmm9pzdb/Synchronize-Okta-Users-into-Cisco-Webex-Control-Hub)); [What's new in Control Hub](https://help.webex.com/en-us/article/u9dlxd/What-s-New-in-Cisco-Webex-Control-Hub) lists "Token generation in Control Hub for service apps" (June 2026) and "Apps > Manage Service Apps—Authorize, block, and get tokens from service apps" (September 2026). The Developer Portal path above is the one in [Partner Managed Devices for Webex](https://help.webex.com/article/1mh2m9/Partner-Managed-Devices-for-Webex): "Once the service app is approved, SA user can generate tokens through Developer Portal". Both are Cisco help-page evidence; the Service Apps guide on developer.webex.com could not be fetched that day, and neither UI was walked through.
+
 #### Scope Restrictions for Service Apps
 
 Not all scopes work with service apps:

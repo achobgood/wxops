@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wxcc-flow:*)",
+      "Bash(wxcc-toolkit:*)",
+
+      "Skill(design-flow)",
+      "Skill(build-flow-designer)",
+      "Skill(build-flow-programmatic)",
+      "Skill(build-spec-diagram)",
+      "Skill(build-action)",
+      "Skill(configure-ai-agent)",
+      "Skill(design-scripted-agent)",
+      "Skill(configure-scripted-agent)",
+      "Skill(build-scripted-fulfillment)",
+      "Skill(build-digital-inbound)",
+      "Skill(build-outbound-flow)",
+      "Skill(build-notification)",
+      "Skill(build-solution-docs)",
+      "Skill(wxcc-debug)",
+
+      "mcp__supabase__list_tables",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__get_publishable_keys",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__list_extensions",
+      "mcp__supabase__get_logs",
+      "mcp__supabase__search_docs",
+
+      "mcp__wxcc-flow-builder__list_flows",
+      "mcp__wxcc-flow-builder__get_flow",
+      "mcp__wxcc-flow-builder__create_flow",
+      "mcp__wxcc-flow-builder__save_flow_draft",
+      "mcp__wxcc-flow-builder__patch_flow_draft",
+      "mcp__wxcc-flow-builder__validate_flow",
+      "mcp__wxcc-flow-builder__get_flow_template",
+      "mcp__wxcc-flow-builder__get_activity_definitions",
+      "mcp__wxcc-flow-builder__get_activity_node_schema",
+      "mcp__wxcc-flow-builder__describe_activity",
+      "mcp__wxcc-flow-builder__get_choices",
+      "mcp__wxcc-flow-builder__list_event_specifications"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "supabase",
+    "wxcc-flow-builder"
+  ]
+}

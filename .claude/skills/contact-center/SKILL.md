@@ -8,8 +8,8 @@ description: |
   CC org settings and tenant configuration. Guides the user from prerequisites through
   execution and verification.
   Use for: create, update, delete, list, configure, or troubleshoot any CC resource.
-  NOT for: Webex Calling queues/hunt groups (use configure-features), Calling dial plans
-  (use configure-routing), or Calling schedules (use configure-features).
+  NOT for: Webex Calling queues/hunt groups (configure-features), Calling dial plans
+  (configure-routing), or Calling schedules (configure-features).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [cc-operation]
 ---
@@ -158,6 +158,15 @@ Ask the user what they want to configure. Present this decision matrix if they a
 | Need | Operation | CLI Group(s) |
 |------|-----------|-------------|
 | Manage flows | Export/publish/list flows | `cc-flow` |
+| Flow Store flow utilities | Flow metadata, copy, revert, consume (from JSON or a template), name check, variable mapping, where-used, expression test, service health/build/whoami (Flow Store host) | `cc-flow-store` |
+| Flow versions | Published, latest, draft and all-flow version reads (Flow Store host) | `cc-flow-versions` |
+| Flow tracing | Interactions, traces (incl. decrypted) and per-version analytics (Flow Store host) | `cc-flow-tracing` |
+| Flow preferences and tags | Per-flow preferences CRUD, tags, tag history (Flow Store host) | `cc-flow-prefs` |
+| Flow projects | User preferences (the `projectId` source), projects, resource collections (Flow Store host) | `cc-flow-projects` |
+| Flow connectors | Connectors of a user-created project (Flow Store host) | `cc-flow-connectors` |
+| Flow templates | The flow/subflow template catalog (CC API host) | `cc-flow-templates` |
+| Custom Functions | Custom Function CRUD, lock/unlock, publish, export, import (`--file`), and `test` (hand-written; see the known 400 in its `--help`) | `cc-functions` |
+| Flow UI export/import | The v1 UI-format flow, for the `export-ui` → remap → `import-ui` workaround (clear `id`/`flowId`, set a new `name`, then import) | `cc-legacy-flows` |
 | Data sources | External data source config | `cc-data-sources` |
 | Audio files | Upload/manage IVR audio | `cc-audio-files` |
 | Resource collections | Resource collection management | `cc-resource-collection` |
@@ -896,7 +905,7 @@ wxcli cc-flow list PROJECT_ID -o json
 
 > **Argument order (verified via `--help` and live 2026-10-13):** `show`, `export`, `list-validate`, `delete` take `PROJECT_ID` then `FLOW_ID`. `publish`, `create-lock`, `create-unlock` take `FLOW_ID` then `PROJECT_ID`. The wrong order on `export` returns 404 "Flow … not found".
 >
-> **Finding the project ID:** no `cc-*` command lists projects. Get a flow id from `cc-entry-point show <id>` (field `flowId`), then read `projectId` from `cc-flow show PROJECT_ID FLOW_ID` (reads do not enforce the project in the path, so any value returns the flow). If you already know a project id, `cc-flow list PROJECT_ID` gives flow ids.
+> **Finding the project ID:** `wxcli cc-flow-projects show-user-preferences -o json` (no arguments) returns it as `projectId`. Verified live 2026-10-19 with a read-only GET of the URL this command calls: it returned the project that holds the org's flows. Do not use `cc-flow-projects list` for this: it lists only user-created projects, and on the sandbox its first entry was a different project with no flows (`cc-flow-projects show` returns 404 "Project with id … not found" on the flows' project for the same reason). Fallback: get a flow id from `cc-entry-point show <id>` (field `flowId`), then read `projectId` from `cc-flow show PROJECT_ID FLOW_ID` (reads do not enforce the project in the path, so any value returns the flow). If you already know a project id, `cc-flow list PROJECT_ID` gives flow ids.
 
 **Show a flow (full definition):**
 

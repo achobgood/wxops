@@ -15,6 +15,9 @@ app = typer.Typer(help="Manage Webex Contact Center: cc-flow.")
 @app.command("list-activities", short_help="List Activity Definitions.")
 def list_activities(
     project_id: str = typer.Argument(help="24-char hex id"),
+    flow_type: str = typer.Option(None, "--flow-type", help="FLOW or SUBFLOW. Omitted, the server returns the FLOW list (54 activities on 2026-10-19); pass SUBFLOW for the 29 a subflow can use."),
+    check_ui_enabled: str = typer.Option(None, "--check-ui-enabled", help="true or false. Measured 2026-10-19 (activities-flowtype-check.md #5): true returned 57 activities, the default 54 plus LiveCallerSentiment, flow-test-activity and queue-reservation. The spec says the opposite; trust the measurement."),
+    activity_name: str = typer.Option(None, "--activity-name", help="An activity name, e.g. queue-contact; the list then holds only that activity. Measured 2026-10-19: queue-contact returned 1 activity instead of 54."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -28,6 +31,12 @@ def list_activities(
     org_id = get_cc_org_id(api.session)
     url = f"{cc_base_url}/{org_id}/project/{project_id}/v2/activities"
     params = {}
+    if flow_type is not None:
+        params["flowType"] = flow_type
+    if check_ui_enabled is not None:
+        params["checkUiEnabled"] = check_ui_enabled
+    if activity_name is not None:
+        params["activityName"] = activity_name
     if limit > 0:
         params["max"] = limit
     if offset > 0:
@@ -49,6 +58,7 @@ def list_activities(
 def show_activity(
     project_id: str = typer.Argument(help="24-char hex id"),
     activity_name: str = typer.Argument(help="e.g. play-message, from: wxcli cc-flow list-activities"),
+    flow_type: str = typer.Option(None, "--flow-type", help="FLOW or SUBFLOW. Omitted, the server uses FLOW; an activity a subflow cannot use returns 404 under SUBFLOW."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -58,8 +68,11 @@ def show_activity(
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
     url = f"{cc_base_url}/{org_id}/project/{project_id}/v2/activities/{activity_name}"
+    params = {}
+    if flow_type is not None:
+        params["flowType"] = flow_type
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, params=params)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -78,6 +91,7 @@ def list_activity_choices(
     validate: str = typer.Option(None, "--validate", help="When `true` and `search` is supplied, performs a point-lookup of the single value in `search` (matched against the choice's `value`/ID) instead of filtering."),
     parent_value: str = typer.Option(None, "--parent-value", help="Parent input value for a cascading/dynamic input (for example, the selected `channelType`)."),
     parent_input_name: str = typer.Option(None, "--parent-input-name", help="Parent input name for a cascading/dynamic input. Required when `parentValue` is provided."),
+    flow_type: str = typer.Option(None, "--flow-type", help="FLOW or SUBFLOW. Omitted, the server uses FLOW; an activity a subflow cannot use returns 400 'not found in registry' under SUBFLOW."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
@@ -99,6 +113,8 @@ def list_activity_choices(
         params["parentValue"] = parent_value
     if parent_input_name is not None:
         params["parentInputName"] = parent_input_name
+    if flow_type is not None:
+        params["flowType"] = flow_type
     try:
         result = api.session.rest_get(url, params=params)
     except WebexError as e:

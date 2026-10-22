@@ -1,3 +1,5 @@
+<!-- ref-tag: contact-center-agent-sdk-v1 -->
+
 # Contact Center: Agent Desktop SDK (`@webex/contact-center`)
 
 Reference for the **JavaScript SDK a custom agent desktop runs on** — the browser-side
@@ -5,10 +7,10 @@ runtime an agent uses to log into a station, receive tasks, take WebRTC audio, c
 live call, and wrap up. This is a different surface from every other Contact Center doc in
 this repo, which covers *administering* WxCC over REST.
 
-| | The rest of `contact-center-*.md` | This doc |
+| | Administering WxCC (the rest of this repo's Contact Center docs) | This doc |
 |---|---|---|
-| What | Administering WxCC — create queues, agents, layouts | An agent *handling a call* in a browser |
-| How | `wxcli cc-*` → REST over `api.wxcc-{region}.cisco.com` | `webex.cc.*` / `task.*` over websocket + WebRTC |
+| What | Administering WxCC — create queues, agents, layouts; build flows, AI agents, channels | A human agent *handling a call* in a browser |
+| How | `wxcli cc-*` → REST over `api.wxcc-{region}.cisco.com`; Flow Designer, AI Agent Studio, Webex Connect | `webex.cc.*` / `task.*` over websocket + WebRTC |
 | Truth | `wxcli --help`, `specs/webex-contact-center.json` | The SDK's own TypeScript sources + live observation |
 | Scope | `cjp:config_read` / `cjp:config_write` | `cjp:user` |
 
@@ -19,6 +21,27 @@ this repo, which covers *administering* WxCC over REST.
 > app with your own, built on `@webex/contact-center`. A custom desktop built this way
 > ignores desktop layouts entirely: you render your own UI, and nothing in
 > `cc-desktop-layout` affects it.
+
+> **"Agent" is overloaded too.** In this repo the word means three unrelated things. A
+> **human agent** is the person who logs into a station and handles contacts — this doc, and
+> the agent records in [contact-center-core.md](contact-center-core.md) §1. An **AI agent** is
+> a Webex AI Agent, autonomous or scripted, built in AI Agent Studio and invoked from the Flow
+> Designer Virtual Agent V2 activity — [ai-agent-studio.md](ai-agent-studio.md). A **Claude
+> subagent** is a Claude Code helper such as `wxops`, which runs `wxcli` for
+> you. This doc is about the first one only: the desktop application a person sits in front
+> of. The three share a word and nothing else.
+
+> **Two Cisco SDKs, and only this one builds a standalone desktop** (checked against Cisco's
+> docs 2026-07-31). `@wxcc-desktop/sdk`, the "Desktop JS SDK", is for widgets that run
+> **only inside Cisco's Agent Desktop** (Cisco: *"invoked by widgets that are rendered within
+> the Desktop application"*); it cannot run on its own, and the widely linked
+> developer.webex.com "custom widgets" blog is about it. `@webex/contact-center`, this doc,
+> builds a standalone desktop in any web page (Cisco's own lab at
+> `web-sdk.webex.com/labs/contact-center` is a plain page). Confusing the two makes a custom
+> desktop look impossible. Likewise, the "WebRTC is supported for Salesforce and MS Dynamics
+> connectors only" line in Cisco's **Version 1—Legacy** connector articles is about which CRM
+> connectors support it, not a platform limit. Cisco's samples repo had no standalone
+> desktop-with-WebRTC sample on that date; the SDK lab is the closest reference.
 
 ## Sources
 
@@ -44,7 +67,9 @@ this repo, which covers *administering* WxCC over REST.
 
 The project-wide precedence ladder in `CLAUDE.md` tops out at `wxcli --help`. **That ladder
 does not apply here** — `wxcli` has no visibility into a JavaScript SDK, and no `wxcli`
-command can tell you anything about `webex.cc`. For `@webex/contact-center` the order is:
+command can tell you anything about `webex.cc`. Unlike the Flow Designer and AI Agent Studio
+surfaces, there is also no Cisco UI to check against, and the vendor's own published
+documentation is **ahead of** the shipping code. For `@webex/contact-center` the order is:
 
 1. **Live observation against a real tenant** — the wire format is not the declared type. Proven
    repeatedly below.
@@ -87,6 +112,31 @@ exported constants.
 
 ```bash
 npm i @webex/contact-center   # Node >= 20
+```
+
+For a no-build-step page, fetch the prebuilt UMD bundle instead — it exposes a global
+`Webex`, so a plain `<script src="…">` is enough:
+
+```bash
+curl -L -o contact-center.min.js \
+  https://unpkg.com/@webex/contact-center@3.12.0/umd/contact-center.min.js
+curl -L -o contact-center.min.js.map \
+  https://unpkg.com/@webex/contact-center@3.12.0/umd/contact-center.min.js.map
+```
+
+Verified 2026-08-01: both URLs return the shipping 3.12.0 build (sha256
+`6679c036…9d293` and `d7af49b3…7ba6c`). **Pin the version** — see §11. The `.map` is not
+optional: its `sourcesContent` is the only way to read the SDK's actual TypeScript, and is
+what this doc was written from. Extract it with:
+
+```python
+import json, os, re
+m = json.load(open('contact-center.min.js.map'))
+os.makedirs('ccsrc', exist_ok=True)
+for s, c in zip(m['sources'], m['sourcesContent']):
+    parts = re.split(r'/src\b/', s)
+    if '/contact-center/' in s and len(parts) > 1 and c:
+        open(os.path.join('ccsrc', parts[1].replace('/', '__')), 'w').write(c)
 ```
 
 The package registers itself as a plugin on the core Webex SDK under the namespace `cc`
@@ -581,6 +631,11 @@ From `specs/webex-contact-center.json` (`PatchTaskRoute`):
 | `taskId` | The `interactionId` your browser already holds |
 | CLI | `wxcli cc-tasks update` |
 
+This is the same `/v1/tasks` family as the **Create Task API** in
+[wxcc-platform.md](wxcc-platform.md) § Create Task API — note that its `attributes` field
+carries the identical "schema-free, max 30 tuples" contract, which is where an outbound
+task's initial variables come from.
+
 **`cjp:user` is the agent-runtime scope** — the same scope the browser already holds to run
 `stationLogin()`. So a browser can technically call this directly; putting it behind a backend
 is a security preference (don't ship broad tokens to a POS terminal), not a technical
@@ -595,9 +650,14 @@ Two ordering constraints:
 - **Write before `wrapup()`.** `wrapup()` ends the task; a write against an ended task is
   rejected.
 - **The variable must already exist org-wide** as a Global Variable (`wxcli cc-global-vars`,
-  `/organization/{orgid}/cad-variable`) before a flow or a PATCH can populate it usefully. See
-  [contact-center-core.md](contact-center-core.md) §20, and note its gotchas #21 (`variableType`
-  is title case) and #22 (`desktopLabel` required when `agentViewable` is true).
+  `/organization/{orgid}/cad-variable`) before a flow or a PATCH can populate it usefully.
+  Owner for that API: [contact-center-core.md](contact-center-core.md) §20. Two values that
+  bite when creating one: `variableType` requires **title case** (`"String"`, not
+  `"STRING"` — the spec lists both forms, only title case works at runtime; verified live
+  2026-10-19: `"STRING"` → 400, `"String"` created; the other types' spellings were not sent;
+  core gotcha #21), and `desktopLabel` is **required** whenever `agentViewable` is `true`, which the
+  spec's required-fields list does not say (core gotcha #22). `agentViewable` is also the
+  flag that decides whether the variable reaches `callFlowParams` at all (§7).
 
 ---
 
@@ -641,6 +701,17 @@ them. Conflating them produces both false "this is impossible" conclusions and r
 | Acts as | An administrator of the tenant | **One specific agent, at their station** |
 | Typical holder | Service App, admin OAuth integration | The agent's own browser session |
 
+Flow Designer, AI Agent Studio, Custom Functions, BRE and CJDS — the other Contact Center
+surfaces this repo documents — all sit in the config column: they administer the tenant, not
+one agent's session.
+
+> **Unverified:** which scopes CJDS accepts is an open disagreement.
+> [contact-center-journey.md](contact-center-journey.md) gotcha #2 says `cjp:config_read` /
+> `cjp:config_write` do **not** grant the JDS admin APIs and `cjds:admin_org_read` /
+> `cjds:admin_org_write` are needed; [cjds.md](cjds.md) says both scope sets are accepted.
+> Neither statement carries a live-verification date. Neither doc lists `cjp:user` for CJDS,
+> so it sits on the admin side of this split either way.
+
 ### A Personal Access Token does carry `cjp:user`
 
 **Verified live, 2026-07-31:** an agent's PAT from developer.webex.com successfully drove
@@ -655,7 +726,7 @@ This qualifies — it does not overturn — two existing statements in this repo
   evidence and what was not tested (non-full-admin PATs, other orgs, most CC writes). A 403 on a
   `cc-*` command still means the token lacks the CC config scopes, and the fix is an OAuth
   integration or a Service App.
-- `CLAUDE.md` **Known Issue #11** was corrected the same day and agrees with gotcha #23.
+- [wxcli-behavior.md](wxcli-behavior.md) **Known Issue #11** was corrected the same day and agrees with gotcha #23.
 
 Neither statement is about the agent runtime. A PAT works for `webex.cc`.
 
@@ -672,7 +743,8 @@ cjp:config_read  cjp:config_write              # only if the app also reads/writ
 ```
 
 `spark:kms` and `spark:applications_token` are the two CC-related scopes that do **not** work
-with Service Apps — see [contact-center-core.md](contact-center-core.md) gotcha #23. A custom
+with Service Apps — see [contact-center-core.md](contact-center-core.md) gotcha #23 and
+[webex-api-auth.md](../playbooks/webex-api-auth.md). A custom
 desktop needs `spark:kms`, so **broker per-agent tokens from a backend OAuth flow; a Service
 App cannot stand in for it.** Never ship an org-wide admin token to a terminal.
 
@@ -1061,7 +1133,28 @@ by its number. **None is discoverable from the TypeScript definitions alone.**
 - [Authentication](authentication.md) — OAuth integrations, scopes, and token setup.
 - [Call Control](call-control.md) — The **Webex Calling** call control API. Different product,
   different tasks, different events; not interchangeable with this SDK.
+- [wxcc-platform.md](wxcc-platform.md) — The WxCC platform: entry points, queues, teams,
+  routing chain, **Global Variables** (which must exist before a flow or a PATCH can set one —
+  §8 here), and the **Create Task API**, whose `attributes` field is the same contract as the
+  PATCH route in §8.
+- [flow-designer-essentials.md](flow-designer-essentials.md) — The **Set Variable** activity.
+  Marking a variable *Agent Viewable* there is precisely what makes it appear in
+  `interaction.callFlowParams` on the desktop (§7). If `callFlowParams` is empty, this is the
+  first place to look after the tenant kill switch.
+- [flow-designer-patterns.md](flow-designer-patterns.md) — Queue Contact and routing patterns
+  that decide which agent this task is offered to in the first place.
+- [webex-api-auth.md](../playbooks/webex-api-auth.md) — Service Apps, OAuth integrations, token
+  refresh. **Note the scope split in §10:** everything that playbook covers is `cjp:config_*`;
+  this doc covers the `cjp:user` side.
+- [wxcc-provisioning-api.md](wxcc-provisioning-api.md) — Provisioning the agents, teams and
+  desktop profiles a custom desktop logs into. `loginVoiceOptions` on the desktop profile is
+  the gate on browser audio (§1).
 - [`web-sdk.webex.com/wxcc`](https://web-sdk.webex.com/wxcc) — Cisco's typedoc for the happy
   path. Built from the `next` prerelease; read §11 before trusting any member it lists.
 - [`npmjs.com/package/@webex/contact-center`](https://www.npmjs.com/package/@webex/contact-center)
   — the package itself. §11 lists the dist-tags, several of which are feature branches.
+
+> **Not related, despite the name:** [ai-agent-studio.md](ai-agent-studio.md) and
+> [ai-agent-studio-scripted.md](ai-agent-studio-scripted.md) build **AI agents** — virtual
+> agents invoked from the Virtual Agent V2 activity. This doc builds the application a
+> **human agent** works in. Neither one configures the other.

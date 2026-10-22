@@ -6,7 +6,7 @@ description: |
   personalization, and programmatic device command execution and status queries.
   Also covers 9800-series phones (9811, 9821, 9841, 9851, 9861, 9871) which use PhoneOS config keys.
   Guides the user from prerequisites through execution and verification.
-  NOT for: device provisioning, activation codes, DECT, or line key templates (use manage-devices skill).
+  NOT for: device provisioning, activation codes, DECT, or line key templates (manage-devices).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [device-platform-operation]
 ---
@@ -25,7 +25,7 @@ If you cannot answer all four, you skipped reading this skill. Go back and read 
 
 1. Read `docs/reference/devices-platform.md` for device configurations, workspace personalization, xAPI commands and status queries
 
-**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli device-configurations update --help` and `wxcli xapi --help` — config-key names are firmware-dependent and the schema differs by device/PhoneOS version, known issue #10). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli device-configurations update --help` and `wxcli xapi --help` — config-key names are firmware-dependent and the schema differs by device/PhoneOS version, `docs/reference/wxcli-behavior.md` Known Issue #10). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
 ## Step 2: Verify auth token
 

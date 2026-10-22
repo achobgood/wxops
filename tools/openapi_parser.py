@@ -151,7 +151,10 @@ def parse_parameters(
             query_params.append(
                 EndpointField(
                     name=name,
-                    python_name=camel_to_kebab(name),
+                    # A spaced wire name (the Flow Store's "Flow Type") would
+                    # otherwise render as `flow type: str`, a SyntaxError.
+                    # The wire name in `name` is untouched.
+                    python_name=re.sub(r"[^a-z0-9_-]+", "-", camel_to_kebab(name)).strip("-"),
                     field_type=field_type,
                     description=desc,
                     required=required,
@@ -291,6 +294,10 @@ def _schema_to_example(
     return "..."
 
 
+_SCALA_SEQ_PLACEHOLDER = frozenset({"empty", "traversableAgain"})
+_SCALA_SEQ_MARKER = "x-wxcli-scala-seq"
+
+
 def _request_body_schema(op: dict, spec: dict) -> dict | None:
     """The resolved JSON request-body schema, or None if the op has no body.
 
@@ -310,10 +317,20 @@ def _request_body_schema(op: dict, spec: dict) -> dict | None:
     if not json_content:
         return None
     schema = json_content.get("schema", {})
+    ref_name = schema.get("$ref", "").rsplit("/", 1)[-1]
     if "$ref" in schema:
         schema = resolve_ref(spec, schema["$ref"])
     if any(k in schema for k in ("allOf", "oneOf", "anyOf")):
         schema = _resolve_schema_node(spec, schema)
+    if set(schema.get("properties") or ()) == _SCALA_SEQ_PLACEHOLDER:
+        # springfox's stand-in for a Scala `Seq` (Flow Store `SeqString`,
+        # `SeqFlowPreference`): the wire is a JSON array, so the two booleans
+        # are not body fields. springfox names it `Seq<Element>`; only a
+        # `String` element is knowable, the rest are records of unknown shape.
+        # The marker lets generate_body_example emit an array skeleton here
+        # without touching real array bodies (Plan 2 Task 14, review B2).
+        items = {"type": "string"} if ref_name == "SeqString" else {"type": "object"}
+        return {"type": "array", "items": items, _SCALA_SEQ_MARKER: True}
     return schema
 
 
@@ -333,6 +350,10 @@ def generate_body_example(
     schema = _request_body_schema(op, spec)
     if schema is None:
         return None
+    if schema.get(_SCALA_SEQ_MARKER):
+        example = _schema_to_example(schema, spec, notes=notes,
+                                     required_only=required_only)
+        return json.dumps(example, separators=(",", ":"))
 
     # By default (nested_only=False) an example is generated for any body,
     # nested or flat. has_nested is only consulted below to restore the old
@@ -1015,6 +1036,7 @@ def parse_operation(
         response_item_fields=response_item_fields,
         path_var_meta=path_var_meta,
         lifted_query_params=lifted_query_params,
+        declares_json_body=_request_body_schema(op, spec) is not None,
     )
 
 
@@ -1025,11 +1047,14 @@ def parse_tag(
     auto_inject_params: set[str] | None = None,
     seen_operation_ids: set[str] | None = None,
     exclude_paths: list[str] | None = None,
+    multipart_ops: set[tuple[str, str]] | None = None,
 ) -> tuple[list[Endpoint], list[str]]:
     """Parse all operations for a given tag into Endpoint list.
 
     Skips operations already in seen_operation_ids (handles multi-tagged ops).
-    Skips formdata/multipart upload operations.
+    Skips formdata/multipart upload operations, except those in
+    ``multipart_ops`` — ``(METHOD, spec path)`` pairs that an
+    ``operation_overrides`` ``multipart`` entry renders as a file upload.
     Skips operations whose path matches an ``exclude_paths`` glob — used to
     drop spurious tag/operation pairings in the upstream spec.
 
@@ -1082,7 +1107,8 @@ def parse_tag(
             # Skip multipart/formdata uploads
             rb = op.get("requestBody", {})
             rb_content = rb.get("content", {})
-            if "multipart/form-data" in rb_content:
+            if ("multipart/form-data" in rb_content
+                    and (method.upper(), path) not in (multipart_ops or ())):
                 skipped_uploads.append(
                     op.get("summary") or op_id or f"{method.upper()} {path}"
                 )

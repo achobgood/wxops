@@ -13,7 +13,7 @@ Reference for Webex Contact Center agent management, queue routing, team assignm
 ## API Base and Authentication
 
 - **Base URL:** `https://api.wxcc-{region}.cisco.com` (NOT `webexapis.com`)
-- **Regions:** `us1` (default), `eu1`, `eu2`, `anz1` (confirmed); `ca1`, `jp1`, `sg1` (plausible but not independently confirmed from public Webex developer documentation — verify against your org's actual token cluster value before use)
+- **Regions:** `wxcli set-cc-region` offers 7: `us1` (default), `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. Cisco's help page [Integrate Webex Contact Center with Salesforce (Version 2-New)](https://help.webex.com/en-us/article/dyidod/Integrate-Webex-Contact-Center-with-Salesforce) (fetched 2026-10-19, Table 1 "Wxcc Region used by agent") lists the same 7 codes: North America `us1`, Canada `ca1`, UK `eu1`, EU `eu2`, APJC `anz1`, Japan `jp1`, Singapore `sg1`. **India (`in1`):** Cisco's [Webex Contact Center Architecture](https://help.webex.com/en-us/article/utqcm7/Webex-Contact-Center-Architecture) page lists an India data center but no code, and `api.wxcc-in1.cisco.com` resolves in DNS (2026-10-19), but no Cisco page read names `in1` as a region code (the Flow Orchestration guide on developer.webex.com, which wxcc's docs cite for it, could not be fetched), and `wxcli` does not offer it. All 8 `api.wxcc-*.cisco.com` gateways resolve in DNS (2026-10-19); only `us1` has been used live. Verify against your org's token cluster value before use. (Before 2026-10-19 this line called `us1`, `eu1`, `eu2`, `anz1` "confirmed" and `ca1`, `jp1`, `sg1` "plausible but not independently confirmed from public Webex developer documentation".)
 - **Set region:** `wxcli set-cc-region us1`
 - **Scopes:** `cjp:config_read` (read operations), `cjp:config_write` (write operations)
 - **orgId:** Auto-injected from saved config into the `{orgid}` path parameter. Do not pass it manually.
@@ -515,7 +515,7 @@ Contact Service Queues route incoming contacts to agents based on routing strate
 
 ### Key Parameters
 
-- **Create:** Requires `name`, `channelType` (telephony, chat, email, social), `routingType` (SKILL_BASED, AGENT_BASED, TEAM_BASED)
+- **Create:** Requires `name`, `channelType` (telephony, chat, email, social), `routingType` (`LONGEST_AVAILABLE_AGENT`, `SKILLS_BASED`, `CIRCULAR`, `LINEAR`) and `queueRoutingType` (`TEAM_BASED`, `SKILL_BASED`, `AGENT_BASED`). Verified live 2026-10-19: `routingType: "SKILL_BASED"` → 400 `not one of the values accepted for Enum class: [LONGEST_AVAILABLE_AGENT, LINEAR, SKILLS_BASED, CIRCULAR]`, the same four `--help` lists; `queueRoutingType: "TEAM_BASED"` was accepted (its other two values come from `--help` and were not sent). Before 2026-10-19 this line gave `routingType` as "SKILL_BASED, AGENT_BASED, TEAM_BASED", which are `queueRoutingType`-style values. A `TELEPHONY` queue also needs the fields in gotcha 27
 - **Single create vs bulk:** `cc-queue create` is the **bulk** endpoint (`/contact-service-queue/bulk`); the single-queue create is `cc-queue create-contact-service-queue`. Its `--help` marks `name`, `queueType`, `checkAgentAvailability`, `channelType`, `serviceLevelThreshold`, `maxActiveContacts`, `maxTimeInQueue` and `active` required; the `--json-body` example also carries `queueRoutingType` and `callDistributionGroups` (see gotcha 27)
 - **Read team routing with `show`, not `list`:** `list-contact-service-queue-v2` omits `callDistributionGroups` (gotcha 28)
 - **Reassign agents:** POST with `agentIds` array and `action` (ADD or REMOVE) for agent-based queues
@@ -535,19 +535,33 @@ wxcli cc-queue list-contact-service-queue-v3
 # List queues (v2)
 wxcli cc-queue list-contact-service-queue-v2
 
-# Create a queue (v2)
+# Create a telephony queue routed to one team. Verified live 2026-10-19: this body created a
+# queue and show-contact-service-queue-v2 read the team, order and booleans back. Without the
+# five *Permitted booleans, the music file or recordingPauseDuration, or with "order": 0, the
+# server returns 400 (gotcha 27). Copy the music file ID from an existing telephony queue.
 wxcli cc-queue create-contact-service-queue --json-body '{
   "name": "Sales Queue",
   "queueType": "INBOUND",
   "channelType": "TELEPHONY",
-  "routingType": "SKILLS_BASED",
-  "queueRoutingType": "SKILL_BASED",
-  "checkAgentAvailability": true,
+  "routingType": "LONGEST_AVAILABLE_AGENT",
+  "queueRoutingType": "TEAM_BASED",
+  "checkAgentAvailability": false,
   "serviceLevelThreshold": 60,
   "maxActiveContacts": 100,
   "maxTimeInQueue": 3600,
-  "active": true
+  "active": true,
+  "parkingPermitted": false,
+  "recordingPermitted": false,
+  "monitoringPermitted": true,
+  "recordingAllCallsPermitted": false,
+  "pauseRecordingPermitted": true,
+  "recordingPauseDuration": 10,
+  "defaultMusicInQueueMediaFileId": "music-file-uuid",
+  "callDistributionGroups": [{"agentGroups": [{"teamId": "team-uuid"}], "order": 1, "duration": 0}]
 }'
+# Before 2026-10-19 this example was a skill-based body ("routingType": "SKILLS_BASED",
+# "queueRoutingType": "SKILL_BASED", "checkAgentAvailability": true) without the fields above;
+# as written it lacked fields the server demands for TELEPHONY.
 
 # Get a specific queue (v2)
 wxcli cc-queue show-contact-service-queue-v2 "queue-uuid"
@@ -605,7 +619,9 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v3/contact-service-que
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/contact-service-queue" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Sales Queue","channelType":"telephony","routingType":"SKILL_BASED"}'
+  -d '{"name":"Sales Queue","channelType":"telephony","routingType":"SKILLS_BASED"}'
+# routingType takes SKILLS_BASED (with an S), not SKILL_BASED: the server returns 400 for SKILL_BASED (verified live 2026-10-19; this example said SKILL_BASED before then).
+# A TELEPHONY queue also needs the fields in gotcha 27, so this minimal body alone will not create one; the working body is the one in "Create a telephony queue" above.
 
 # Reassign agents
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/v2/contact-service-queue/$QUEUE_ID/reassign-agents" \
@@ -714,9 +730,12 @@ wxcli cc-entry-point create --json-body '{
   "maximumActiveContacts": 100
 }'
 
-# Wire an entry point to a published flow (add these two fields to the create body or an update)
-#   "flowId": "<flow id>", "flowTagId": "Latest"
+# Wire an entry point to a published flow (add these fields to the create body or an update)
+#   "flowId": "<flow id>", "flowTagId": "Latest", "musicOnHoldId": "<music file id>"
 # Verified live 2026-10-13: create with flowId + flowTagId "Latest" saved, and show read both back.
+# Verified live 2026-10-19: the body above plus only flowId + flowTagId → 400 "musicOnHoldId:
+# should have a proper value when flowId is present"; adding musicOnHoldId (copied from an
+# existing entry point) saved, and show read flowId back (gotcha 29).
 
 # Get a specific entry point
 wxcli cc-entry-point show "ep-uuid"
@@ -769,7 +788,7 @@ Teams group agents for routing and reporting. A team is assigned to a site, and 
 ### Key Parameters
 
 - **Create:** Requires `name`, `siteId` (team must belong to a site), `active`, `teamType` and `teamStatus`. Verified live 2026-10-13: `{name, siteId}` alone (the old example) → `400 "[active: should be either true or false.]"`; adding `active` but not `teamType` → `500 "Processing failed"` (the CLI retries it three times first); adding `teamType` but not `teamStatus` → `409 "Column 'team_status' cannot be null"`. Enums are UPPER CASE: `teamType` is `AGENT` or `CAPACITY` (`"Agent"` → 400 listing `[CAPACITY, AGENT]`); `teamStatus` is `IN_SERVICE` or `NOT_AVAILABLE`. Optional `description`, `skillProfileId`, `userIds`, `desktopLayoutId`, `multiMediaProfileId` (the last two read back on `show`, verified live 2026-10-13 — **the desktop layout is attached to the team, not to the desktop profile**, see §14).
-- **The team body is `--json-body` (or the body flags) — no DTO option.** The spec declares the team body as a required *query* parameter (`teamDTO`). Rendered literally, `cc-team create` and `update` required `--team-dto` even beside `--json-body` (a bare `--json-body` call exited `Missing option '--team-dto'`) and sent its value as a query string, leaving the request body empty (verified live 2026-10-13). The generator now sends that schema as the request body: pass `--json-body` alone, or build the body from the flags (`--name`, `--site-id`, `--team-type`, `--team-status`, `--active`, …); `--generate-json-body` prints the full skeleton. Built from flags, the CLI also demands `--rank-queues-for-team/--no-rank-queues-for-team`, because the spec marks `rankQueuesForTeam` required; the live-verified body below omits it, so whether the server needs it is **unverified**. `--team-dto` is still accepted and ignored (hidden from `--help`), so scripts that pass `--team-dto x --json-body …` keep working. The change is a generator fix 2026-10-13 (ADR-16); not re-run live for this command.
+- **The team body is `--json-body` (or the body flags) — no DTO option.** The spec declares the team body as a required *query* parameter (`teamDTO`). Rendered literally, `cc-team create` and `update` required `--team-dto` even beside `--json-body` (a bare `--json-body` call exited `Missing option '--team-dto'`) and sent its value as a query string, leaving the request body empty (verified live 2026-10-13). The generator now sends that schema as the request body: pass `--json-body` alone, or build the body from the flags (`--name`, `--site-id`, `--team-type`, `--team-status`, `--active`, …); `--generate-json-body` prints the full skeleton. Built from flags, the CLI also demands `--rank-queues-for-team/--no-rank-queues-for-team`, because the spec marks `rankQueuesForTeam` required; the live-verified body below omits it, so whether the server needs it is **unverified**. `--team-dto` is still accepted and ignored (hidden from `--help`), so scripts that pass `--team-dto x --json-body …` keep working. The change is a generator fix 2026-10-13 (ADR-16). Verified live 2026-10-19 on the sandbox tenant: `cc-team create --json-body` with the CLI Examples body (no `--team-dto`) created a team and `cc-team show` read back its name and site (update was not exercised in that run); the CLI Examples comment records a 2026-10-13 run of create, show, update and delete. (Before 2026-10-19 this line ended "not re-run live for this command".)
 - **Update:** Can reassign team to different site, rename, change capacity. It is a full replace and the body **must carry `"id"` equal to the URL id** (`400 "Invalid id: id in payload and URL should be same"` otherwise). `--verify` works and reported `all 7 sent field(s) match` (verified live 2026-10-13).
 - **List vs show:** `list` / `list-team` omit `userIds`, `skillProfileId`, `desktopLayoutId`, `multiMediaProfileId`, `description` and `queueRankings`; read team membership with `show` (verified live 2026-10-13).
 - **References:** Shows which queues, routing strategies, and profiles reference this team
@@ -1169,6 +1188,7 @@ Desktop profiles (API path: `agent-profile`) control agent desktop behavior: whi
 - **Update:** full replace; the body must carry `"id"` equal to the URL id (`400 "Invalid id: id in payload and URL should be same"` otherwise). The server adds an `id` and empty arrays to `viewableStatistics` — normalisation, not a failed write. Before ADR-17 that made `--verify` always show it as "differ"; since ADR-17 the added keys are ignored (unit-tested; not re-run live).
 - **Outdial:** `outdialEnabled:true` requires `outdialEntryPointId` (`400 "outdialEntryPointId should be specified when outdialEnabled is true"`) and, when `dialPlanEnabled` is false, an `addressBookId` (`400 "addressBookId should be specified when outdialEnabled is true and dialPlanEnabled is false"`). `outdialANIId` points at an Outdial ANI profile (`cc-outdial-ani`, see [contact-center-routing.md](contact-center-routing.md) §3); with it set, the ANI profile's `list-incoming-references` names the desktop profile and deleting the ANI returns `412 "referred in other entities"` with `"referencedEntities":["desktop-profile"]`. Verified live 2026-10-13.
 - **List omits `loginVoiceOptions`.** `list`, `list-agent-profile` return `loginVoiceOptions: null` for every profile (the system default "Agent-Profile" really holds `["BROWSER","EXTENSION","AGENT_DN"]`), and `--attributes loginVoiceOptions` → `400 "Invalid requested columns :loginVoiceOptions"`. Read it with `show` per profile (verified live 2026-10-13). The list also omits `dialPlans`, `viewableStatistics`, `wrapUpCodes`, `idleCodes`, `queues`, `entryPoints` and `buddyTeams`.
+- **Two more fields on every profile record:** `screenPopup` and `systemDefault` (seen in `cc-desktop-profile list-agent-profile --all -o json` output, 2026-07-31), beside `autoWrapUp`, `outdialEnabled`, `dialPlanEnabled`, `agentDNValidation`, the `access*` fields and `active`. A custom desktop reads them per profile, like `loginVoiceOptions` below.
 - **Buddy teams:** Configure which teams an agent can see and consult/transfer to
 - **`loginVoiceOptions`** — array of `AGENT_DN` | `EXTENSION` | `BROWSER` (`AgentProfileDTO` in `specs/webex-contact-center.json`). This is the **gate on browser/WebRTC audio**: it is what an agent's `Profile.loginVoiceOptions` reads back as, and `stationLogin({loginOption:'BROWSER'})` fails for an agent whose profile omits `BROWSER` even when everything else is correct. `dialNumberSettings` and `agentAvailableOptions` are *not* this field — do not read either one to decide whether browser audio is available. See [contact-center-agent-sdk.md](contact-center-agent-sdk.md) §1.
 
@@ -1599,6 +1619,10 @@ wxcli cc-global-vars delete "var-uuid"
 
 > **Unverified:** the `create` body follows the spec's required keys; `active` was added from the
 > spec, not a live call. `variableType` title case and `desktopLabel` come from gotchas 21 and 22.
+> Since then, verified live 2026-10-19: a body with `name`, `variableType: "String"`,
+> `defaultValue`, `active: true` and `agentEditable`, `agentViewable`, `reportable` all `false`
+> created a variable (read back, then deleted). This exact example (`agentViewable: true` with
+> `desktopLabel`, `reportable: true`) was not run.
 
 ### Raw HTTP
 
@@ -1615,7 +1639,9 @@ curl "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/cad-variable/reportabl
 curl -X POST "https://api.wxcc-us1.cisco.com/organization/$ORG_ID/cad-variable" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"CustomerTier","type":"STRING","defaultValue":"Standard","reportable":true}'
+  -d '{"name":"CustomerTier","variableType":"String","defaultValue":"Standard","active":true,"agentEditable":false,"agentViewable":false,"reportable":true}'
+# Before 2026-10-19 this body read "type":"STRING" — wrong field name and wrong case (gotcha 21).
+# The key set above is the one created live on 2026-10-19 (with reportable false there).
 ```
 
 ---
@@ -1975,23 +2001,27 @@ For teardown, reverse this order.
 
 20. **CC v2 list endpoints return `"data"`, not `"items"`.** The v2 endpoints (e.g., `GET /organization/{orgid}/v2/cad-variable`) wrap results in `{"meta": {...}, "data": [...]}`. The v1 bulk-export endpoints use `{"items": [...]}`. The CLI handles both automatically.
 
-21. **Global Variable `variableType` requires title case.** The API rejects `"STRING"` — use `"String"`, `"Integer"`, `"Boolean"`, `"Decimal"`, `"DateTime"`. The OpenAPI spec lists both forms but only title case works at runtime.
+21. **Global Variable `variableType` requires title case.** The API rejects `"STRING"` — use `"String"`, `"Integer"`, `"Boolean"`, `"Decimal"`, `"DateTime"`. The OpenAPI spec lists both forms but only title case works at runtime. Verified live 2026-10-19 on the sandbox tenant: `cc-global-vars create` with `"variableType":"STRING"` → 400 (`validDefaultValueForVariabelType: defaultValue invalid value … with respective to variableType`, nothing created); the same body with `"String"` created the variable and `show` read `String` back; all 9 existing variables store `String`. The 400 names `defaultValue`, not the enum. Only `String` was measured: `Integer`, `Boolean`, `Decimal` and `DateTime` come from `--help` (which also lists `DATE_TIME`, and whose own `--json-body` example says `"STRING"`) and were not sent.
 
 22. **`desktopLabel` required when `agentViewable` is true.** Creating or updating a Global Variable with `agentViewable: true` fails unless `desktopLabel` is also provided. This dependency is not documented in the API spec's required fields list.
 
-23. **A full-admin PAT worked against CC config endpoints when tested; a 403 means the token lacks the CC scopes.** An earlier version of this gotcha (2026-04-24, from a 403 on Global Variables on org the sandbox org) claimed PATs from developer.webex.com never carry `cjp:config_read`/`cjp:config_write`. **That claim is disproven.** Verified live 2026-10-13 on the same org (the sandbox tenant, the sandbox org, region us1) with a full-admin PAT from developer.webex.com: HTTP 200 on `cc-flow` list, show, export (`--version latest` and `draft`), list-validate, create-validate, create-lock and create-unlock; `cc-queue list`; `cc-entry-point list`; and `cc-global-vars list-cad-variable` (returned the org's 6 global variables, the same endpoint that returned 403 in April). No 403 on any call. **Not tested:** CC writes other than validate/lock/unlock, PATs from non-full-admin users, and other orgs, so do not assume a PAT works for every `cc-*` command. If a `cc-*` call does return 403 with a `ccconfig_` trackingId, the token lacks the CC scopes; use one of the two options below. **Separately, the agent runtime is a different scope:** a PAT *does* carry `cjp:user`, the per-agent runtime scope: verified live on 2026-07-31, an agent's PAT successfully drove `register()`, `stationLogin()` and `setAgentState()` through the `@webex/contact-center` JS SDK against a live tenant. So a PAT works for a custom agent desktop and for `PATCH /v1/tasks/{taskId}`. See [contact-center-agent-sdk.md](contact-center-agent-sdk.md) §10. Two options for CC config operations when the token lacks the scopes: (a) **OAuth integration** — select CC scopes explicitly and complete the OAuth authorization flow; adding scopes to an existing integration does not update previously issued tokens, you must re-authorize; (b) **Service App with CJP scopes** — recommended for production automation and server-to-server use; no interactive login required after the org admin authorizes the app, making it suitable for CI/CD pipelines and backend services. Note: all CC integration scopes work with Service Apps except `spark:applications_token` and `spark:kms`.
+23. **A full-admin PAT worked against CC config endpoints when tested; a 403 means the token lacks the CC scopes.** An earlier version of this gotcha (2026-04-24, from a 403 on Global Variables on org the sandbox org) claimed PATs from developer.webex.com never carry `cjp:config_read`/`cjp:config_write`. **That claim is disproven.** Verified live 2026-10-13 on the same org (the sandbox tenant, the sandbox org, region us1) with a full-admin PAT from developer.webex.com: HTTP 200 on `cc-flow` list, show, export (`--version latest` and `draft`), list-validate, create-validate, create-lock and create-unlock; `cc-queue list`; `cc-entry-point list`; and `cc-global-vars list-cad-variable` (returned the org's 6 global variables, the same endpoint that returned 403 in April). No 403 on any call. Confirmed again 2026-10-19 on the same org with a full-admin PAT (`whoami` role `id_full_admin`): `cc-global-vars list-cad-variable` read all 9 variables, and the same token created, read back and deleted a team, a queue, an entry point, a global variable and several flows. **Not tested:** PATs from non-full-admin users, and other orgs, so do not assume a PAT works for every `cc-*` command. If a `cc-*` call does return 403 with a `ccconfig_` trackingId, the token lacks the CC scopes; use one of the two options below. **Separately, the agent runtime is a different scope:** a PAT *does* carry `cjp:user`, the per-agent runtime scope: verified live on 2026-07-31, an agent's PAT successfully drove `register()`, `stationLogin()` and `setAgentState()` through the `@webex/contact-center` JS SDK against a live tenant. So a PAT works for a custom agent desktop and for `PATCH /v1/tasks/{taskId}`. See [contact-center-agent-sdk.md](contact-center-agent-sdk.md) §10. Two options for CC config operations when the token lacks the scopes: (a) **OAuth integration** — select CC scopes explicitly and complete the OAuth authorization flow; adding scopes to an existing integration does not update previously issued tokens, you must re-authorize; (b) **Service App with CJP scopes** — recommended for production automation and server-to-server use; no interactive login required after the org admin authorizes the app, making it suitable for CI/CD pipelines and backend services. Note: all CC integration scopes work with Service Apps except `spark:applications_token` and `spark:kms`.
+
+23a. **A 403 from every `cc-*` command can also mean the saved target org is wrong, not the token.** `whoami` prints `Org:` (the token's own org) and, once `switch-org` has saved one, `Target:`. When `Target:` is not the Contact Center org, every `cc-*` call returned `403 Access denied` with a valid token; `clear-org` fixed it and `cc-site list` then returned 200 (verified live 2026-07-25). Check `whoami` before diagnosing scopes.
 
 24. **Global Variable names are immutable.** The CC API returns 400 `"name: should not be modified"` if you attempt to change the `name` field via PUT update. To rename a variable, delete and recreate it. Note that any flows referencing the old variable ID will need to be updated.
 
 25. **Flow Designer HTTP Connector handles auth and base URL automatically.** The CC HTTP Connector (created in Control Hub → Contact Center → Integrations → Connectors) stores the regional base URL and auth tokens for you. In the Flow Designer HTTP Request node, provide only the **request path**, not the full URL — e.g., `/organization/{orgid}/cad-variable` for Global Variables or `/search` for the Search API. Toggle "Use Authenticated Endpoint" and select the connector; no manual token management is needed in flows. When creating the connector, choose the access level: Read-Only (GET) or Read-Write (POST/PUT/DELETE).
 
-26. **Derive the CC regional base URL from the access token.** The Webex access token has three underscore-separated parts: `token.split('_')` → `[accessToken, ciCluster, orgId]`. The middle segment (`ciCluster`) maps directly to the regional base URL: `https://api.wxcc-{ciCluster}.cisco.com`. Available regions: `us1`, `eu1`, `eu2`, `anz1` (confirmed); `ca1`, `jp1`, `sg1` (plausible but not independently confirmed from public documentation — verify against your org's token cluster value). This is useful for production apps that need to determine the correct CC API endpoint dynamically without hardcoding a region.
+   > **Unverified — scope of this gotcha (hypothesis, 2026-10-19):** it may conflict with [contact-center-journey.md](contact-center-journey.md) gotcha 12 ("requires a full absolute URL. Relative paths … return HTTP 500"). The `http-request-v2` activity (`wxcli cc-flow show-activity PROJECT_ID http-request-v2`) has two URL inputs: `httpRequestPath`, shown when `authenticated` is `true` (a connector is selected — this gotcha's case), and `httpRequestUrl`, shown when it is `false`. The hypothesis is that this gotcha is about `httpRequestPath` and journey gotcha 12 about `httpRequestUrl`; neither gotcha names a field. Dry-run validate on 2026-10-19, connector mode: a relative and an absolute `httpRequestPath` both passed; a relative `httpRequestUrl` failed `FC1047 HTTP request URL must be a valid URL format.`, an absolute one passed. What each form does on a placed call (how the connector joins its base URL, and the reported HTTP 500) is runtime behaviour validate cannot show; settling it needs a placed call through each form.
 
-27. **`cc-queue create` is the BULK endpoint; a single queue is `cc-queue create-contact-service-queue`.** `cc-queue create --help` reads "Bulk save Contact Service Queues". Verified live 2026-10-13: four queues were created with `create-contact-service-queue` (SLA 30/60/120 s), and read back. Its `--help` marks `name`, `queueType` (INBOUND/OUTBOUND), `checkAgentAvailability`, `channelType`, `serviceLevelThreshold`, `maxActiveContacts`, `maxTimeInQueue` and `active` required, and its example body also carries `routingType`, `queueRoutingType` (e.g. `TEAM_BASED`) and `callDistributionGroups` (`[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}]`). A body with only `name` and `channelType` leaves required fields out.
+26. **Derive the CC regional base URL from the access token.** The Webex access token has three underscore-separated parts: `token.split('_')` → `[accessToken, ciCluster, orgId]`. The middle segment (`ciCluster`) maps directly to the regional base URL: `https://api.wxcc-{ciCluster}.cisco.com`. Available regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1` — the 7 codes Cisco's Salesforce-integration help page lists (fetched 2026-10-19) and the 7 `wxcli set-cc-region` offers; India has a data center but no `in1` code on any Cisco page read, and `wxcli` does not offer it (see [API Base and Authentication](#api-base-and-authentication)). Verify against your org's token cluster value. (Before 2026-10-19 this gotcha called `ca1`, `jp1`, `sg1` "plausible but not independently confirmed".) This is useful for production apps that need to determine the correct CC API endpoint dynamically without hardcoding a region.
+
+27. **`cc-queue create` is the BULK endpoint; a single queue is `cc-queue create-contact-service-queue`.** `cc-queue create --help` reads "Bulk save Contact Service Queues". Verified live 2026-10-13: four queues were created with `create-contact-service-queue` (SLA 30/60/120 s), and read back. Its `--help` marks `name`, `queueType` (INBOUND/OUTBOUND), `checkAgentAvailability`, `channelType`, `serviceLevelThreshold`, `maxActiveContacts`, `maxTimeInQueue` and `active` required, and its example body also carries `routingType`, `queueRoutingType` (e.g. `TEAM_BASED`) and `callDistributionGroups` (`[{"agentGroups":[{"teamId":"..."}],"order":0,"duration":0}]`). A body with only `name` and `channelType` leaves required fields out. **The server requires more than `--help` marks, and rejects the `--help` example's `"order":0`.** Verified live 2026-10-19 on a `TELEPHONY`, `TEAM_BASED` queue, each 400 listing every field it rejects: the five booleans `parkingPermitted`, `recordingPermitted`, `monitoringPermitted`, `recordingAllCallsPermitted` and `pauseRecordingPermitted` (`should be either true or false`), `defaultMusicInQueueMediaFileId` (`should not be null or blank`; on the sandbox every telephony queue used the same file ID, so copy it from an existing queue), `recordingPauseDuration` when `pauseRecordingPermitted` is `true` (`invalid value`; `10` accepted; with `false` not tried), and a CDG `order` **greater than 0** (`0` → `callDistributionGroups[].order: should be a value greater than 0 (zero).`; `1` accepted and read back as `1`; higher values not tried). The body in §6 CLI Examples created a queue with all of them. Not tested: whether `EMAIL` / `SOCIAL_CHANNEL` queues need the same fields (they store `defaultMusicInQueueMediaFileId: null`).
 
 28. **`list-contact-service-queue-v2` omits `callDistributionGroups`, so team routing reads as null in a list.** Verified live 2026-10-13: a queue whose team assignment was null in the v2 list showed `TEAM_BASED` with its team in `show-contact-service-queue-v2`. Read team routing with `show`; a list row with no team is not evidence the queue has none (a "which queues have no team?" query built on the list would be wrong).
 
-29. **Entry point to flow wiring is `flowId` plus `flowTagId`; new flows publish with only the `Latest` tag.** Verified live 2026-10-13: `cc-entry-point create` with `flowId` set to a just-published flow and `flowTagId: "Latest"` saved, and `show` returned both with the entry point active. Live, Test and Dev tags also exist, but the flow published that day had only `Latest` pointing at its version (Dev/Live/Test unset); pointing an entry point at a tag the flow never received was not tested. Mapping a dial number to the entry point (`cc-dial-number`) is a separate step, without which the flow cannot be called.
+29. **Entry point to flow wiring is `flowId` plus `flowTagId`; new flows publish with only the `Latest` tag.** Verified live 2026-10-13: `cc-entry-point create` with `flowId` set to a just-published flow and `flowTagId: "Latest"` saved, and `show` returned both with the entry point active. **The server also demands `musicOnHoldId` whenever `flowId` is present.** Verified live 2026-10-19: the §8 create body plus `flowId` and `flowTagId: "Latest"` → 400 `[musicOnHoldId: should have a proper value when flowId is present]`; with `musicOnHoldId` added it saved and `show` read `flowId` back, with no 500 (a 2026-07 note in `wxcc-provisioning-api.md` had warned of a 500 on some orgs; not reproduced). On the sandbox every entry point with a flow used the same music file ID, so copy it from an existing one. Live, Test and Dev tags also exist, but the flow published that day had only `Latest` pointing at its version (Dev/Live/Test unset); pointing an entry point at a tag the flow never received was not tested. Mapping a dial number to the entry point (`cc-dial-number`) is a separate step, without which the flow cannot be called.
 
 30. **CC business hours use `workingHours`, not `businessHours`.** Verified live 2026-10-13: `workingHours:[{"name":"Weekday","days":["MON","TUE","WED","THU","FRI"],"startTime":"07:00","endTime":"19:00"}]` created OK and appeared in the flow-designer choices for the `business-hours` activity. The older `businessHours:[{day:"monday",...}]` shape shown here before 2026-10-13 does not match `--help`. The holiday-list body (§16) was re-tested the same day: it uses `startDate`/`endDate`, not `date`.
 

@@ -4,8 +4,8 @@ description: |
   Build Webex bots and automated workflows: send notifications, create interactive
   adaptive card flows, set up webhooks, embed room tabs, and bridge calling + messaging.
   Guides from bot setup through card recipe selection, webhook configuration, and verification.
-  NOT for: managing spaces/teams/memberships (use messaging-spaces skill) or
-  telephony webhooks/call events (use call-control skill).
+  NOT for: managing spaces/teams/memberships (messaging-spaces) or telephony webhooks/call events
+  (call-control).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [bot-task-type]
 ---

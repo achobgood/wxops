@@ -228,7 +228,7 @@ Every module-level CLAUDE.md that references the changed components. Always chec
 - `src/wxcli/migration/advisory/CLAUDE.md` (pattern list, pattern count)
 - `src/wxcli/migration/report/CLAUDE.md` (report sections, appendix letters)
 - `src/wxcli/migration/cucm/CLAUDE.md` (extractor details, raw_data structure)
-- `/CLAUDE.md` (project root — file map, known issues)
+- `/CLAUDE.md` (project root — routing table; known issues in `docs/reference/wxcli-behavior.md`)
 
 ### 7b. Reference Docs
 Relevant docs in `docs/reference/` that cover the API surface being used.

@@ -1,0 +1,16 @@
+{
+  "name": "",
+  "language": "js",
+  "runtime": "nodejs22.x",
+  "description": "",
+  "sourceCode": "",
+  "inputs": [
+    {
+      "name": "",
+      "dataType": "",
+      "description": "",
+      "defaultValue": ""
+    }
+  ],
+  "outputs": "{\"myOutputVar1\": 7, \"myOutputVar2\": \"String data\"}"
+}

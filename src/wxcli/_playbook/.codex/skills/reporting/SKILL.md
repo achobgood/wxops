@@ -5,8 +5,8 @@ description: |
   Call Queue statistics, Auto Attendant statistics, call quality, report templates,
   converged recording download/export, and call volume trends. 75 CDR recipes + query
   composition guide for answering any natural-language question about a calling environment.
-  NOT for: Contact Center analytics (use reporting-cc skill), meetings/workspace analytics
-  (use reporting-meetings skill), or per-user recording toggle (use manage-call-settings skill).
+  NOT for: Contact Center analytics (reporting-cc), meetings/workspace analytics (reporting-meetings),
+  or per-user recording toggle (manage-call-settings).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [report-type]
 ---
@@ -26,7 +26,7 @@ If you cannot answer all four, read `docs/reference/reporting-analytics.md` befo
 1. Read `docs/reference/reporting-analytics.md` for CDR fields, report templates, API constraints
 2. The 75 CDR recipes live in `references/cdr-recipes.md` (this skill's `references/` dir) — load on demand when a question maps to a recipe; see the Recipe Catalog index under the CDR Query Composition Guide below
 
-**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cdr list --help` for call detail records, `wxcli reports --help` for templated reports — date-range and filter flag names are spec-generated). Even read commands differ by name (`show` vs `list`, known issue #5), so confirm before running. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests. Common traps:
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli cdr list --help` for call detail records, `wxcli reports --help` for templated reports — date-range and filter flag names are spec-generated). Even read commands differ by name (`show` vs `list`, `docs/reference/wxcli-behavior.md` Known Issue #5), so confirm before running. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests. Common traps:
 - There is **no bare `recordings` group** in the CLI — some reference docs still cite one. The real groups are `converged-recordings` (call recordings), `admin-recordings` (meeting recordings), `recording-report`, and `call-recording`.
 - `converged-recordings` and `admin-recordings` share command names but are different APIs — confirm which one you want via Step 6d before running any delete/purge.
 
@@ -456,7 +456,7 @@ The CDR Feed API (`analytics-calling.webexapis.com`) enforces **1 request per mi
 
 ### Two-phase split
 
-1. **Pull phase** — requires `wxc-calling-builder` agent (wxcli hook blocks direct CLI calls). The caller (Claude's main context) spawns the builder agent with instructions to pull CDR data and save to `/tmp/cdr-session.json`. The builder agent handles multi-pull merge for windows >12h automatically. Once the file is written, the builder agent's job is done — do not keep it running.
+1. **Pull phase** — requires `wxops` agent (wxcli hook blocks direct CLI calls). The caller (Claude's main context) spawns the builder agent with instructions to pull CDR data and save to `/tmp/cdr-session.json`. The builder agent handles multi-pull merge for windows >12h automatically. Once the file is written, the builder agent's job is done — do not keep it running.
 2. **Recipe phase** — runs directly via Bash, no agent spawn needed. `cat /tmp/cdr-session.json | python3.11 -c "..."` executes in ~2 seconds. The skill guides recipe selection; Claude executes inline.
 
 ### Pull phase instructions for builder agent
@@ -487,7 +487,7 @@ On every CDR question:
 
 1. **Check** — does `/tmp/cdr-session.json` exist? Read `_meta.start`, `_meta.end`.
 2. **Cache hit** — requested window is within `_meta` boundaries → run recipe directly via Bash. No agent spawn.
-3. **Cache miss** — requested window extends beyond `_meta` boundaries, or file doesn't exist, or user says "refresh" → spawn `wxc-calling-builder` to re-pull (foreground). Builder overwrites the cache file with the new window.
+3. **Cache miss** — requested window extends beyond `_meta` boundaries, or file doesn't exist, or user says "refresh" → spawn `wxops` to re-pull (foreground). Builder overwrites the cache file with the new window.
 4. **Explicit refresh** — if the user says "refresh", "re-pull", or "new data", always re-pull regardless of cache state.
 
 ### Presentation Rules

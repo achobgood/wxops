@@ -105,7 +105,7 @@ CUCM forwarding → Webex mapping:
 <!-- Source: person-call-settings-handling.md -->
 
 - **"priority alert"**: No direct CUCM equivalent — detected via CSS/partition heuristics. Maps to Webex Priority Alert (`/people/me/settings/priorityAlert`). User-only OAuth required — cannot be set by admin token.
-<!-- Source: self-service-call-settings.md; CLAUDE.md known issue #4 -->
+<!-- Source: self-service-call-settings.md; wxcli-behavior.md Known Issue #4 -->
 
 - **"call intercept"**: CUCM has no native call-intercept feature (a BroadSoft-heritage Webex setting for gracefully taking a line out of service — terminated employees, office relocations, leaves of absence, number changes). The migration pipeline heuristically detects *intercept-like* CUCM configurations via two SQL queries in `cucm/extractors/tier4.py`: (1) directory numbers in partitions whose **name** matches `%intercept%`, `%block%`, `%out_of_service%`, or `%oos%` (`signal_type="blocked_partition"`); (2) directory numbers with `callforwarddynamic.cfadestination` set and `cfavoicemailenabled='t'` where `NOT EXISTS` a registered phone backing the line (`signal_type="cfa_voicemail"`). Detected DNs become `intercept_candidate` objects keyed `intercept_candidate:{dn}:{partition}` and are cross-referenced to their owning user via `user_has_intercept_signal`. `CallSettingsMapper` (Pass 2) enriches each matched user's `call_settings.intercept = {detected, signal_type, forward_destination, voicemail_enabled}`. **Nothing is auto-configured** — detection surfaces as advisory Pattern 30 (`call_intercept_candidates`, severity `MEDIUM`, category `out_of_scope`) and in the assessment report (Appendix Y plus a conditional Executive Page 2 stat card). The operator configures Webex intercept manually post-cutover via `/people/{id}/features/intercept`, `/workspaces/{id}/features/intercept`, `/telephony/config/virtualLines/{id}/intercept`, or the location-level `/telephony/config/locations/{id}/intercept`. The person and workspace `/features/intercept` paths are available on all license tiers; the `/telephony/config/` variants require Professional. Heuristic false positives are expected — partition naming is a soft signal, and many CUCM admins use "block" in unrelated partition names (e.g., `BlockInternational_PT`), while `cfa_voicemail` can be an ordinary "send to voicemail" preference rather than an out-of-service configuration.
 <!-- Source: cucm/extractors/tier4.py:_extract_intercept_candidates (lines 131-173); transform/normalizers.py:normalize_intercept_candidate; transform/cross_reference.py:_build_intercept_refs; transform/mappers/call_settings_mapper.py (Pass 2 intercept block); advisory/advisory_patterns.py:detect_call_intercept_candidates (Pattern 30); report/appendix.py:_intercept_candidates (Section Y); report/executive.py (intercept_count stat card) -->
@@ -113,13 +113,13 @@ CUCM forwarding → Webex mapping:
 ## Webex Constraints
 
 - **6 person settings are user-only (no admin API path):** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, `callPolicies`. These exist only at `/telephony/config/people/me/settings/{feature}` and require user-level OAuth. An admin cannot read or write these for another user. `callPolicies` is additionally marked beta.
-<!-- Source: self-service-call-settings.md sec 2 summary table; person-call-settings-handling.md admin vs user-only table; CLAUDE.md known issue #4 -->
+<!-- Source: self-service-call-settings.md sec 2 summary table; person-call-settings-handling.md admin vs user-only table; wxcli-behavior.md Known Issue #4 -->
 
 - **Two path families for person settings.** Classic: `/people/{personId}/features/{feature}`. Newer: `/telephony/config/people/{personId}/{feature}`. Name differences: `intercept` (not `callIntercept`), `reception` (not `receptionist`), `applications` (not `applicationServicesSettings`), `autoTransferNumbers` (not `transferNumbers`), `pushToTalk` (not `pushToTalkSettings`).
-<!-- Source: CLAUDE.md known issue #5 -->
+<!-- Source: wxcli-behavior.md Known Issue #5 -->
 
 - **Workspace `/telephony/config/` settings require Professional license.** Basic workspaces get 405 "Invalid Professional Place" on all `/telephony/config/workspaces/{id}/` endpoints except `musicOnHold` and `doNotDisturb`. The `/workspaces/{id}/features/` path works on Basic for: callForwarding, callWaiting, callerId, intercept, monitoring, incomingPermission, outgoingPermission.
-<!-- Source: devices-workspaces.md gotcha #10 (verified via live API 2026-03-19, matrix completed 2026-03-27); CLAUDE.md known issue #6 -->
+<!-- Source: devices-workspaces.md gotcha #10 (verified via live API 2026-03-19, matrix completed 2026-03-27); wxcli-behavior.md Known Issue #6 -->
 
 - **Recording requires separate license + location-level config.** Org-level recording must be enabled, a vendor must be selected (or Webex Recording Platform), and compliance announcement settings configured at the location level. Only then can person-level `callRecording` be enabled.
 <!-- Source: location-recording-advanced.md sec 1; person-call-settings-media.md sec 7 -->
@@ -310,7 +310,7 @@ This is useful if users can provide their greeting recordings (e.g., via email).
 | # | Claim | Verified | Source | Finding |
 |---|-------|----------|--------|---------|
 | 1 | 6 user-only settings list | Yes | `self-service-call-settings.md` lines 53-64; `person-call-settings-handling.md` lines 30-36 | simultaneousRing, sequentialRing, priorityAlert, callNotify, anonymousCallReject, callPolicies — exact match across both docs. |
-| 2 | Workspace Basic limited to musicOnHold + DND | Yes | `devices-workspaces.md` gotcha #10 (verified 2026-03-27); CLAUDE.md known issue #6 | Under `/telephony/config/workspaces/{id}/`, only musicOnHold and doNotDisturb work on Basic. Full endpoint matrix confirms. |
+| 2 | Workspace Basic limited to musicOnHold + DND | Yes | `devices-workspaces.md` gotcha #10 (verified 2026-03-27); wxcli-behavior.md Known Issue #6 | Under `/telephony/config/workspaces/{id}/`, only musicOnHold and doNotDisturb work on Basic. Full endpoint matrix confirms. |
 | 3 | rings = cfna_timeout // 6 | Yes | `recommendation_rules.py` lines 434-441 | `rings = cfna_timeout // 6` (integer division) confirmed in source code. |
 
 ## Common-Area Phone Call Settings

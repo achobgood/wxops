@@ -61,7 +61,7 @@ Every call action and every conference action is published up to three times, on
 **When to use which:**
 
 - **You hold a user's own OAuth token and act on that user's calls** → bare. It is the long-standing path every example in this doc uses. `-me` reaches the same calls by a second published path; nothing in the spec says one is preferred.
-- **You are a Service App or admin integration acting on someone else's calls** → `-members MEMBER_ID`. The bare and `-me` paths act on the token's own user, which is why an admin token on a bare command gets 400 "Target user not authorized" (CLAUDE.md known issue #1).
+- **You are a Service App or admin integration acting on someone else's calls** → `-members MEMBER_ID`. The bare and `-me` paths act on the token's own user, which is why an admin token on a bare command gets 400 "Target user not authorized" ([wxcli-behavior.md](wxcli-behavior.md) Known Issue #1).
 - **You need a secondary line on the user's own device** → bare or `-me` with `--line-owner-id`. `-members` has no `lineOwnerId`; the `MEMBER_ID` itself names the line owner.
 
 **Asymmetries — not every action has all three:**
@@ -1007,7 +1007,7 @@ curl -X POST "https://webexapis.com/v1/telephony/calls/members/me/hold" \
 ### Gotchas
 
 - **The Members API is no longer limited to five actions — Hold, Resume, Transfer, Mute, Park, Barge-in and the rest are all published under `/members/{memberId}/`.** Through the 2026-09-21 spec this surface published only Dial, Answer, Hangup, List Calls and Get Call Details, and this doc used to tell Service App integrations that every other action was user-level only and needed the target user's own OAuth token. That advice is now wrong: the spec publishes 19 more call operations for a member (including `history`), plus `wrapupreasons`. **Unverified:** the parity is read from the spec, not exercised against a live org — confirm scope behaviour on one action before building on all of them.
-- **`-me` is a distinct path family, not an alias for the bare user-level path.** `/telephony/calls/hold` and `/telephony/calls/members/me/hold` are two separately published endpoints with identical descriptions and bodies, and the CLI ships them as two commands (`create-hold`, `create-hold-me`). **Unverified:** the spec does not say which token types each accepts. Known issue #1 — admin tokens get 400 "Target user not authorized" on user-level call control — is the reason to test the one you pick rather than assume they are interchangeable.
+- **`-me` is a distinct path family, not an alias for the bare user-level path.** `/telephony/calls/hold` and `/telephony/calls/members/me/hold` are two separately published endpoints with identical descriptions and bodies, and the CLI ships them as two commands (`create-hold`, `create-hold-me`). **Unverified:** the spec does not say which token types each accepts. [wxcli-behavior.md](wxcli-behavior.md) Known Issue #1 — admin tokens get 400 "Target user not authorized" on user-level call control — is the reason to test the one you pick rather than assume they are interchangeable.
 - **`-members` commands take no `--line-owner-id`, and `MEMBER_ID` is mislabelled "Webex PEOPLE id" in `--help`.** The member path drops `lineOwnerId` because the path's `memberId` already names the line owner. The spec says that `memberId` may be a person, workspace or virtual line ID; where `--help` and the spec disagree on an ID kind, the spec is right (CLAUDE.md, Source of Truth). **Unverified** against a live workspace or virtual line.
 
 ---

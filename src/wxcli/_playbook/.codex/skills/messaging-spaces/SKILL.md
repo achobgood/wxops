@@ -4,8 +4,7 @@ description: |
   Manage Webex messaging spaces, teams (collaboration groupings), memberships, messages,
   and enterprise content management (ECM folder linking, HDS monitoring) using wxcli CLI commands.
   Guides the user from prerequisites through execution and verification.
-  NOT for: Contact Center teams (use contact-center skill — CC teams group agents for routing,
-  not collaboration spaces) or bot/webhook development (use messaging-bots skill).
+  NOT for: Contact Center teams (contact-center) or bot/webhook development (messaging-bots).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation-type]
 ---
@@ -420,13 +419,7 @@ wxcli memberships delete MEMBERSHIP_ID --force
 **Finding a membership ID for a specific person:**
 
 ```bash
-wxcli memberships list --room-id ROOM_ID --output json | python3 -c "
-import sys, json
-members = json.load(sys.stdin)
-for m in members:
-    if m.get('personEmail') == 'user@example.com':
-        print(m['id'])
-"
+wxcli memberships list --room-id ROOM_ID --fields "[?personEmail=='user@example.com'].id" -o text
 ```
 
 ### Teams (`teams`)

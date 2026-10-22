@@ -5,7 +5,9 @@ Report-only by default (always exits 0); --enforce exits 1 on any failure.
 Checks (docs/arch/target-architecture.md §A6):
   1. Spec <-> CLI parity: every non-skipped tracked-spec op has >=1 registered
      command; every registered command URL maps to a live spec op or a
-     keep_endpoints entry in tools/field_overrides.yaml.
+     keep_endpoints entry in tools/field_overrides.yaml. An op that
+     `operation_overrides` skips or blocks (a blocked stub has no URL) is a
+     deliberate gap, listed with its reason by --write-gaps.
   2. Reference existence: every `wxcli <group> [<command>]` token in code spans
      of .claude/{skills,agents,rules}/**, docs/reference/**, CLAUDE.md,
      README.md resolves against the built CLI. docs/reference/** is in scope
@@ -117,8 +119,10 @@ Checks (docs/arch/target-architecture.md §A6):
       cli_name_overrides entry keyed on a tag no spec on disk generates, a
       per-command key naming a command its tag does not render, or one family
       declared in BOTH a top-level block and a tag_overrides entry (where the
-      shallow merge drops the top-level copy). This is the quietest defect in
-      the file: it parses, every existing test passes, and it does nothing.
+      shallow merge drops the top-level copy), or an `operation_overrides`
+      entry on an operation no tag renders (or that no longer resolves).
+      This is the quietest defect in the file: it parses, every existing
+      test passes, and it does nothing.
       Six blocks were inert that way for months — the shadowed-block class was
       also, by accident, the only thing holding check 9 at 0 on call-queue.
       Deliberate exceptions are declared in `inert_tag_ack` and re-validated,
@@ -244,13 +248,13 @@ Checks (docs/arch/target-architecture.md §A6):
       `valid: false`. A collection keyed by a path id (`{data, meta}`) drops
       nothing and passes; a bare-array response has no key and is exempt.
   26. Contact Center base64 org id: a block that builds its URL on
-      get_cc_base_url() must not send, as the `orgId` query param or inside
-      its URL, a name assigned from get_org_id()/resolve_org_id() (the saved
-      base64 Webex id) and never from get_cc_org_id()/decode_webex_id(). The
-      CC host wants the bare UUID and answered 401 `Token does not have
-      access to OrgId:Y2lz…` to 14 commands in 6 groups (`cc-queue-stats
-      list`, `cc-subscriptions` x8, …). Calling-host blocks are out of
-      scope; no spec is read.
+      get_cc_base_url() or get_flow_store_base_url() must not send, as the
+      `orgId` query param or inside its URL, a name assigned from
+      get_org_id()/resolve_org_id() (the saved base64 Webex id) and never
+      from get_cc_org_id()/decode_webex_id(). The CC host wants the bare
+      UUID and answered 401 `Token does not have access to OrgId:Y2lz…` to
+      14 commands in 6 groups (`cc-queue-stats list`, `cc-subscriptions` x8,
+      …). Calling-host blocks are out of scope; no spec is read.
   27. Unreachable list key: a GET list command extracting
       `result.get("<key>", result.get("data", …))` must reach at least one
       array its spec's 200 response declares (any media type, `*/*`
@@ -328,6 +332,13 @@ Checks (docs/arch/target-architecture.md §A6):
       walker; `--offset` a visible option the command does not refuse. Live
       2026-10-13: `licenses show … --limit 2` advised --all (show has none);
       `people list` advised --offset, which /v1/people ignores (ADR-18).
+  34. Retired wxcc CLI names (wxcc's drift check 5, Plan 2 Task 18), in two
+      halves, both gated: (i) no `wxcc-flow <word>` / `wxcc-toolkit <word>`
+      command inside a code span of the docs check 2 scans — those tools stop
+      shipping and every flow command is a `wxcli` command now; (ii) retired: the
+      command map it read is a maintainer record kept outside this repository. wxcc's check 2 (every emitted URL maps to
+      a spec operation) needed no port: check 1's CLI-ahead-of-spec fires on a
+      planted invented URL (docs/merge/plan-2-decisions.md, Task 18).
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -383,6 +394,7 @@ URL_BASES = (
     "https://webexapis.com",       # SCIM paths hang off the bare domain (no /v1)
     "https://analytics-calling.webexapis.com",
     "{cc_base_url}",
+    "{fs_base_url}",               # Flow Store (command_renderer.BASE_URL_FS)
 )  # normalize_path() strips a leading /v1 from whatever remains
 
 
@@ -528,20 +540,93 @@ def tag_is_skipped(tag: str, spec_name: str, skip_tags: dict) -> bool:
     return any(fnmatch.fnmatch(tag, pat) for pat in patterns)
 
 
-def load_spec_ops(skip_tags: dict) -> tuple[dict, dict]:
+def load_operation_overrides() -> dict:
+    """The raw `operation_overrides` block of field_overrides.yaml.
+
+    Read with PyYAML, not load_overrides()'s line parser: entries are three
+    levels deep and keys like "PATCH /{orgId}/…" need real quoting. Task 9's
+    rule is that the gate resolves them with the generator's own resolver
+    (see _gap_overrides), never a second parser.
+    """
+    import yaml   # the drift-gate CI job installs pyyaml (see check 15)
+    return (yaml.safe_load(OVERRIDES.read_text()) or {}).get(
+        "operation_overrides") or {}
+
+
+def _gap_overrides(raw: dict, spec: dict, spec_name: str) -> dict:
+    """{(METHOD, spec path): (label, reason)} for ops `operation_overrides`
+    takes out of the CLI on purpose.
+
+    `skip` renders nothing; `blocked` renders a visible stub that refuses to
+    run and carries no URL, so check 1 can no more see it than a skip. `warn`
+    still makes the call and covers its op normally. Resolution is
+    generate_commands.resolve_operation_overrides, so the gate keys an entry
+    exactly as the generator does. A block the resolver refuses is ignored
+    here; check 15 reports the error.
+    """
+    out = {}
+    for key, inner in _resolved_op_overrides(raw, spec, spec_name).items():
+        for kind in ("skip", "blocked"):
+            if kind in inner:
+                out[key] = (f"operation_overrides {kind}",
+                            " ".join(str(inner[kind]).split()))
+    return out
+
+
+def _multipart_ops(raw: dict, spec: dict, spec_name: str) -> set:
+    """{(METHOD, spec path)} an `operation_overrides` `multipart` entry
+    renders as a file upload (`rest_post_multipart`), exactly the set
+    generate_tag passes to parse_tag as `multipart_ops`."""
+    return {key for key, inner in _resolved_op_overrides(raw, spec, spec_name).items()
+            if inner.get("multipart")}
+
+
+def _resolved_op_overrides(raw: dict, spec: dict, spec_name: str) -> dict:
+    """generate_commands.resolve_operation_overrides, or {} when the block
+    is empty or the resolver refuses it (check 15 reports that)."""
+    if not raw:
+        return {}
+    try:
+        from tools import generate_commands as gc
+    except ImportError:  # pragma: no cover — runnable as a bare script
+        import generate_commands as gc
+    try:
+        return gc.resolve_operation_overrides(raw, spec, spec_name)
+    except gc.OperationOverrideError:
+        return {}
+
+
+def load_spec_ops(skip_tags: dict, specs: dict[str, dict] | None = None,
+                  operation_overrides: dict | None = None) -> tuple[dict, dict]:
     """Return ({(method, norm_path): (spec, tag)} non-skipped, same for skipped).
 
     Multipart/form-data operations count as deliberately skipped — the
     generator cannot render file uploads (parse_tag returns them as
-    skipped_uploads); they are a known limitation, not drift.
+    skipped_uploads); they are a known limitation, not drift. The exception
+    is an op whose `operation_overrides` entry carries `multipart`: the
+    generator renders it, so it is an ordinary op that check 1 must find.
+
+    An `operation_overrides` skip or blocked op is skipped too, as
+    (spec, "operation_overrides <kind>", reason) — a third element, because
+    its reason is per operation rather than per tag.
+
+    `specs` ({file name: spec}) and `operation_overrides` replace the
+    tracked specs and field_overrides.yaml; tests pass both.
     """
+    if operation_overrides is None:
+        operation_overrides = load_operation_overrides()
+    if specs is None:
+        specs = {}
+        for rel in sorted(tracked_specs()):
+            spec = json.loads((REPO / rel).read_text())
+            # Overlays supply endpoints upstream omits but the live API
+            # serves, so the CLI built from them is parity-correct rather
+            # than "ahead of spec".
+            specs[Path(rel).name] = merge_overlay(spec, load_overlay(REPO / rel))
     ops, skipped = {}, {}
-    for rel in sorted(tracked_specs()):
-        spec_name = Path(rel).name
-        spec = json.loads((REPO / rel).read_text())
-        # Overlays supply endpoints upstream omits but the live API serves, so
-        # the CLI built from them is parity-correct rather than "ahead of spec".
-        spec = merge_overlay(spec, load_overlay(REPO / rel))
+    for spec_name, spec in sorted(specs.items()):
+        gaps = _gap_overrides(operation_overrides, spec, spec_name)
+        uploads = _multipart_ops(operation_overrides, spec, spec_name)
         for path, methods in spec.get("paths", {}).items():
             for method, op in methods.items():
                 if method.lower() not in HTTP_METHODS or not isinstance(op, dict):
@@ -549,7 +634,11 @@ def load_spec_ops(skip_tags: dict) -> tuple[dict, dict]:
                 tag = (op.get("tags") or ["(untagged)"])[0]
                 key = (method.upper(), normalize_path(path))
                 content = op.get("requestBody", {}).get("content", {})
-                if "multipart/form-data" in content:
+                gap = gaps.get((method.upper(), path))
+                if gap:
+                    skipped.setdefault(key, (spec_name, *gap))
+                elif ("multipart/form-data" in content
+                      and (method.upper(), path) not in uploads):
                     skipped.setdefault(key, (spec_name, f"{tag} [multipart upload]"))
                 elif tag == "(untagged)":
                     # generator iterates tags; untagged ops are structurally
@@ -600,6 +689,45 @@ def parse_registrations() -> dict[str, str]:
     return groups
 
 
+def parse_extensions() -> list[tuple[str, str]]:
+    """(group, module) for every hand-written module that mounts extra commands
+    onto an existing group through `register(app)` — `GROUP_EXTENSIONS` in
+    commands/_lazy.py, read as data like `HAND_WRITTEN_GROUPS`. Every surface
+    builder merges these modules into their group, so the checks see
+    `converged-recordings download` and `cc-flow show-node-template` exactly as
+    they see a generated command.
+    """
+    lazy = COMMANDS_DIR / "_lazy.py"
+    if not lazy.exists():
+        return []
+    m = re.search(r"^GROUP_EXTENSIONS\s*=\s*\[(.*?)^\]", lazy.read_text(), re.S | re.M)
+    return re.findall(r'\("([\w-]+)",\s*"([\w-]+)"\)', m.group(1)) if m else []
+
+
+def parse_extension_commands() -> set[tuple[str, str]]:
+    """(group, command) for every `@app.command` inside an extension module's
+    `register()` — the commands `parse_extensions()` mounts."""
+    out: set[tuple[str, str]] = set()
+    for group, module in parse_extensions():
+        path = COMMANDS_DIR / f"{module}.py"
+        if not path.exists():
+            continue
+        for node in ast.parse(path.read_text()).body:
+            if isinstance(node, ast.FunctionDef) and node.name == "register":
+                for inner in ast.walk(node):
+                    if isinstance(inner, ast.FunctionDef):
+                        out.update((group, name) for name, _h in command_names(inner))
+    return out
+
+
+def _merge_extensions(surface: dict, parse) -> dict:
+    """Merge each extension module's parse into its group's entry in `surface`."""
+    for group, module in parse_extensions():
+        if group in surface:
+            surface[group].update(parse(module))
+    return surface
+
+
 def parse_module_commands(module: str) -> dict[str, list[tuple[str, str]]]:
     """Parse a command module: command name -> [(METHOD, norm_path), ...]."""
     path = COMMANDS_DIR / f"{module}.py"
@@ -621,7 +749,7 @@ def parse_module_commands(module: str) -> dict[str, list[tuple[str, str]]]:
         urls, current = [], None
         for m in re.finditer(
                 r"url = f?\"([^\"]+)\""
-                r"|rest_(get|put|post|patch|delete)\("
+                r"|rest_(get|put|post|patch|delete)(?:_multipart)?\("
                 r"|follow_pagination\(", body):
             if m.group(1):
                 current = m.group(1)
@@ -688,9 +816,7 @@ def build_flag_surface() -> dict[str, dict[str, set[str]]]:
         if module not in countable:
             continue
         surface[group] = parse_module_flags(module)
-    if "converged-recordings" in surface:
-        surface["converged-recordings"].update(
-            parse_module_flags("converged_recordings_export"))
+    _merge_extensions(surface, parse_module_flags)
     return surface
 
 
@@ -703,11 +829,9 @@ def build_cli_surface() -> tuple[dict, set[str]]:
         if module not in countable:
             continue  # gitignored — absent on a fresh clone
         surface[group] = parse_module_commands(module)
-    # converged_recordings_export mounts download/export onto the generated
-    # group at import time (main.py register() pattern)
-    if "converged-recordings" in surface:
-        surface["converged-recordings"].update(
-            parse_module_commands("converged_recordings_export"))
+    # extension modules (converged_recordings_export, cc_flow_authoring) mount
+    # their commands onto a generated group via register() (_lazy.GROUP_EXTENSIONS)
+    _merge_extensions(surface, parse_module_commands)
     top_level = set()
     main_src = MAIN_PY.read_text()
     for m in re.finditer(r"@app\.command\((?:\"([^\"]+)\")?\)\s*\ndef\s+(\w+)",
@@ -761,7 +885,12 @@ def check_parity(surface: dict, spec_ops: dict, skipped_ops: dict,
 # ------------------------------------------------------------------ check 2
 
 SCAN_PATTERNS = (".claude/skills/**", ".claude/agents/**", ".claude/rules/**",
-                 "docs/reference/**", "CLAUDE.md", "README.md")
+                 "docs/reference/**", "docs/playbooks/**", "docs/templates/**",
+                 "CLAUDE.md", "README.md")
+# Check 34 (i) alone also reads examples: a guard, 0 hits today. Templates joined
+# SCAN_PATTERNS in Plan 4 Task 3 (Plan 3 P3-4 follow-up), so checks 2, 6, 7, 10,
+# 11a, 29 and 30 read them too.
+LEGACY_SCAN_PATTERNS = SCAN_PATTERNS + ("docs/examples/**",)
 TOKEN = re.compile(r"wxcli\s+([a-z0-9][a-z0-9_-]*)(?:\s+([a-z0-9][a-z0-9_-]*))?")
 PLACEHOLDER = re.compile(r"[<>\[\]{}$|]")
 
@@ -1422,7 +1551,7 @@ def parse_module_columns(module: str, commands_dir: Path) -> list:
             if raw_url.startswith(base):
                 raw_url = raw_url[len(base):]
                 break
-        verb = re.search(r"rest_(get|put|post|patch|delete)\(|follow_pagination\(", body)
+        verb = re.search(r"rest_(get|put|post|patch|delete)(?:_multipart)?\(|follow_pagination\(", body)
         method = verb.group(1).upper() if verb and verb.group(1) else "GET"
         out.append((name, columns, key.group(1) if key else "items",
                     method, normalize_path(raw_url)))
@@ -1588,9 +1717,7 @@ def build_positional_surface() -> dict[str, dict[str, dict]]:
         if module not in countable:
             continue
         surface[group] = parse_module_signatures(module)
-    if "converged-recordings" in surface:
-        surface["converged-recordings"].update(
-            parse_module_signatures("converged_recordings_export"))
+    _merge_extensions(surface, parse_module_signatures)
     return surface
 
 
@@ -1713,9 +1840,7 @@ def build_required_surface() -> dict[str, dict[str, list[set]]]:
         if module not in countable:
             continue
         surface[group] = parse_module_required_options(module)
-    if "converged-recordings" in surface:
-        surface["converged-recordings"].update(
-            parse_module_required_options("converged_recordings_export"))
+    _merge_extensions(surface, parse_module_required_options)
     return surface
 
 
@@ -1944,9 +2069,7 @@ def build_arg_kind_surface() -> dict[str, dict[str, list[dict]]]:
         if module not in countable:
             continue
         surface[group] = parse_module_arg_kinds(module)
-    if "converged-recordings" in surface:
-        surface["converged-recordings"].update(
-            parse_module_arg_kinds("converged_recordings_export"))
+    _merge_extensions(surface, parse_module_arg_kinds)
     return surface
 
 
@@ -2427,7 +2550,7 @@ class CommandFacts:
         self.urls: list[tuple[str, str]] = []
         current = None
         for m in re.finditer(r'url = f?"([^"]+)"'
-                             r'|rest_(get|put|post|patch|delete)\('
+                             r'|rest_(get|put|post|patch|delete)(?:_multipart)?\('
                              r'|follow_pagination\(', seg):
             if m.group(1):
                 current = m.group(1)
@@ -2533,8 +2656,9 @@ def check_generated_help() -> tuple[list, list]:
     canonical: dict[str, str] = {}
     for group, module in sorted(registrations.items()):
         canonical.setdefault(module, group)
-    if "converged-recordings" in registrations:
-        canonical.setdefault("converged_recordings_export", "converged-recordings")
+    for group, module in parse_extensions():
+        if group in registrations:
+            canonical.setdefault(module, group)
 
     bad_examples, bad_skeletons = [], []
     for module, group in sorted(canonical.items()):
@@ -2661,9 +2785,27 @@ GAPS_DOC = REPO / "docs" / "arch" / "deliberate-gaps.md"
 def write_gaps_doc(skipped_ops: dict, overrides: dict) -> None:
     """Emit docs/arch/deliberate-gaps.md so 'no CLI' is classifiable as
     deliberate vs drift without re-running the coherence audit."""
+    text = gaps_doc_text(skipped_ops, overrides)
+    GAPS_DOC.parent.mkdir(parents=True, exist_ok=True)   # docs/arch/ is gitignored: absent in a fresh clone
+    GAPS_DOC.write_text(text)
+    print(f"wrote {GAPS_DOC.relative_to(REPO)} ({len(skipped_ops)} ops)")
+
+
+def gaps_doc_text(skipped_ops: dict, overrides: dict) -> str:
+    """The text of docs/arch/deliberate-gaps.md (write_gaps_doc writes it).
+
+    A tag-level skip has one reason for the whole tag. An `operation_overrides`
+    skip or blocked op carries its own (load_spec_ops' third element), so it
+    is printed beside the op, under `## <spec> — operation_overrides <kind>`.
+    """
     by_spec_tag: dict[tuple[str, str], list[str]] = {}
-    for (method, path), (spec, tag) in sorted(skipped_ops.items()):
-        by_spec_tag.setdefault((spec, tag), []).append(f"`{method} {path}`")
+    per_op = set()
+    for (method, path), (spec, tag, *why) in sorted(skipped_ops.items()):
+        line = f"`{method} {path}`"
+        if why:
+            per_op.add((spec, tag))
+            line += f" — {why[0]}"
+        by_spec_tag.setdefault((spec, tag), []).append(line)
     skip_tags, reasons = overrides["skip_tags"], overrides["skip_reasons"]
 
     def reason_for(spec: str, tag: str) -> str:
@@ -2681,27 +2823,28 @@ def write_gaps_doc(skipped_ops: dict, overrides: dict) -> None:
         "# Deliberate CLI Gaps (generated)",
         "",
         "Emitted by `tools/drift_check.py --write-gaps` — do NOT edit by hand.",
-        "Spec operations with no CLI command **on purpose**, per `skip_tags` in",
-        "`tools/field_overrides.yaml`. Anything missing from the CLI and not",
-        "listed here is drift (drift-gate check 1).",
+        "Spec operations with no CLI command **on purpose**, per `skip_tags` and",
+        "`operation_overrides` (skip, blocked) in `tools/field_overrides.yaml`.",
+        "Anything missing from the CLI and not listed here is drift (drift-gate",
+        "check 1).",
         "",
     ]
+    head = len(lines)
     total = 0
     for (spec, tag), ops in sorted(by_spec_tag.items()):
         total += len(ops)
         lines.append(f"## {spec} — {tag} ({len(ops)} ops)")
-        lines.append(f"Reason: {reason_for(spec, tag)}")
+        if (spec, tag) not in per_op:
+            lines.append(f"Reason: {reason_for(spec, tag)}")
         lines.extend(f"- {op}" for op in ops)
         lines.append("")
     if overrides["keep_endpoints"]:
         lines.append("## CLI-ahead endpoints kept deliberately (`keep_endpoints`)")
         lines.extend(f"- `{k}`" for k in overrides["keep_endpoints"])
         lines.append("")
-    lines.insert(7, f"**{total} skipped operations across {len(by_spec_tag)} spec/tag pairs.**")
-    lines.insert(8, "")
-    GAPS_DOC.parent.mkdir(parents=True, exist_ok=True)   # docs/arch/ is gitignored: absent in a fresh clone
-    GAPS_DOC.write_text("\n".join(lines))
-    print(f"wrote {GAPS_DOC.relative_to(REPO)} ({total} ops)")
+    lines.insert(head, f"**{total} skipped operations across {len(by_spec_tag)} spec/tag pairs.**")
+    lines.insert(head + 1, "")
+    return "\n".join(lines)
 
 
 # ----------------------------------------------------------------- check 15
@@ -2957,22 +3100,68 @@ def check_inert_overrides() -> tuple[list, list]:
                                  "spec": spec_key, "tag": tag,
                                  "detail": f"declared twice: {', '.join(clash)}"})
 
-    # Command-keyed keys, per (spec, tag) that actually resolves.
+    def parse(tag: str, spec: dict, excludes: dict, op_ovr: dict) -> list:
+        # multipart_ops exactly as generate_tag passes them: an upload with a
+        # `multipart` override renders, so it is neither inert nor nameless.
+        endpoints, _ = parse_tag(
+            tag, spec,
+            omit_query_params=list(ovr.get("omit_query_params", [])),
+            auto_inject_params=set(ovr.get("auto_inject_from_config", ["orgId"])),
+            seen_operation_ids=set(), exclude_paths=excludes.get(tag),
+            multipart_ops={k for k, v in op_ovr.items() if v.get("multipart")})
+        return endpoints
+
+    # Operation-keyed: an `operation_overrides` entry on an operation no tag
+    # renders (Plan 2 Task 8 review, Minor 1). The resolver checks a key
+    # against the SPEC, so an op whose tag is skipped, whose path is excluded,
+    # or that parse_tag drops as a multipart upload passes the generator and
+    # does nothing. A `skip` there is inert too: the op would not have rendered
+    # anyway. A key the resolver refuses is reported, never raised. `_all`
+    # applies to every operation and is never inert.
+    raw_ops = ovr.get("operation_overrides") or {}
+    op_resolved: dict[str, dict] = {}
+    for name in on_disk:
+        block = raw_ops.get(name) if isinstance(raw_ops, dict) else raw_ops
+        if not block:
+            continue
+        try:
+            op_resolved[name] = gc.resolve_operation_overrides(raw_ops, specs[name], name)
+        except gc.OperationOverrideError as e:
+            findings.append({"kind": "operation", "where": "operation_overrides",
+                             "spec": name, "tag": "(unresolved)", "detail": str(e)})
+            continue
+        excludes = gc.resolve_tag_op_excludes(ovr.get("tag_op_excludes"), name)
+        rendered = {(ep.method, ep.url_path)
+                    for tag in sorted(generated[name])
+                    for ep in parse(tag, specs[name], excludes, op_resolved[name])}
+        by_op_id = {op.get("operationId"): (m.upper(), p)
+                    for p, path_obj in specs[name].get("paths", {}).items()
+                    for m, op in (path_obj or {}).items()
+                    if isinstance(op, dict) and op.get("operationId")}
+        for key in block:
+            if key == "_all":
+                continue
+            m = gc._OP_KEY_RE.match(str(key))
+            method, path = m.groups() if m else by_op_id[key]
+            if (method, gc._path_to_url_path(path)) not in rendered:
+                findings.append({"kind": "operation", "where": "operation_overrides",
+                                 "spec": name, "tag": key,
+                                 "detail": f"{method} {path} is not rendered by any tag"})
+
+    # Command-keyed keys, per (spec, tag) that actually resolves. Names are
+    # derived from the spec without its skipped operations, as the generator
+    # derives them (_spec_without_skipped): a skipped op can hold a bare name.
     raw_tag_ovr = ovr.get("tag_overrides") or {}
     for name in on_disk:
         excludes = gc.resolve_tag_op_excludes(ovr.get("tag_op_excludes"), name)
+        named_spec = gc._spec_without_skipped(specs[name], op_resolved.get(name, {}))
         for tag in sorted(generated[name]):
             block = dict(top_blocks.get(tag) or {})
             block.update((raw_tag_ovr.get("_global") or {}).get(tag, {}))
             block.update((raw_tag_ovr.get(name) or {}).get(tag, {}))
             if not any(f in block for f in gc.COMMAND_KEYED_OVERRIDES):
                 continue
-            endpoints, _ = parse_tag(
-                tag, specs[name],
-                omit_query_params=list(ovr.get("omit_query_params", [])),
-                auto_inject_params=set(
-                    ovr.get("auto_inject_from_config", ["orgId"])),
-                seen_operation_ids=set(), exclude_paths=excludes.get(tag))
+            endpoints = parse(tag, named_spec, excludes, op_resolved.get(name, {}))
             for ep in endpoints:
                 apply_endpoint_overrides(ep, block)
             claimed = {ep.command_name for ep in endpoints}
@@ -3031,11 +3220,11 @@ def _strip_url_base(url: str) -> str:
 
 
 _BLOCK_NAME =re.compile(r'@app\.command\("([^"]+)"')
-# rest_* names the method; the four page walkers in src/wxcli/auth.py
-# (follow_pagination, follow_page_param, fetch_from_offset, follow_scim) all
-# issue GET. Read, never imported.
+# rest_* names the method (rest_post_multipart is a POST); the four page
+# walkers in src/wxcli/auth.py (follow_pagination, follow_page_param,
+# fetch_from_offset, follow_scim) all issue GET. Read, never imported.
 _BLOCK_CALL = re.compile(
-    r"\.(rest_(get|post|put|patch|delete)|follow_pagination|follow_page_param"
+    r"\.(rest_(get|post|put|patch|delete)(?:_multipart)?|follow_pagination|follow_page_param"
     r"|fetch_from_offset|follow_scim)\(")
 
 
@@ -3226,9 +3415,20 @@ def query_param_names(op: dict, spec: dict) -> set[str]:
     return set(_query_params(op, spec))
 
 
+# springfox renders a Scala collection as an object whose only properties are
+# two of its methods, `empty` and `traversableAgain`; the wire is a JSON array
+# (Plan 2 Task 14: 11 such schemas in specs/webex-cc-flow-store.json, e.g.
+# SeqProject; bare lists live in docs/plans/eval/goldens/projects.txt (local-only) and
+# versions.txt). Without this, check 27 fails the three page-walking lists.
+_SCALA_SEQ_PLACEHOLDER = frozenset({"empty", "traversableAgain"})
+
+
 def _is_array_schema(schema: dict) -> bool:
     t = schema.get("type")
-    return t == "array" or (isinstance(t, list) and "array" in t)
+    if t == "array" or (isinstance(t, list) and "array" in t):
+        return True
+    props = schema.get("properties")
+    return isinstance(props, dict) and set(props) == _SCALA_SEQ_PLACEHOLDER
 
 
 def _is_array_prop(spec: dict, node, depth: int = 0) -> bool:
@@ -3520,10 +3720,11 @@ CHECK_PRINT: dict[str, tuple[str, str, Callable[[dict], str]]] = {}
 
 
 def print_check_findings(check: str, findings: list[dict], limit: int = 20,
-                         note: str = "") -> None:
+                         note: str = "", heading: str = "") -> None:
     """Print a check-23+ result: `[NN] <label>: N   (examined M <noun>, skipped
     K)`, then `note` when given (check 30's unparseable count), up to `limit`
-    detail lines, then `... and N more (--json for all)`.
+    detail lines, then `... and N more (--json for all)`. `heading` replaces
+    `[NN]` for a check printed in halves (check 34: key 34i, printed `[34]`).
 
     Never raises — the gate runs unattended, and a crash here exits 2:
       * a record_examined blind finding (`{"check", "error"}`) prints as
@@ -3535,7 +3736,7 @@ def print_check_findings(check: str, findings: list[dict], limit: int = 20,
     """
     label, noun, fmt = CHECK_PRINT.get(check, (f"check {check}", "items", repr))
     stats = CHECK_EXAMINED.get(check) or {}
-    print(f"[{check}] {label}: {len(findings)}"
+    print(f"{heading or f'[{check}]'} {label}: {len(findings)}"
           f"   (examined {stats.get('examined', 0)} {noun}, "
           f"skipped {stats.get('skipped', 0)})"
           + (f"   {note}" if note else ""))
@@ -3922,8 +4123,10 @@ CHECK_PRINT["25"] = (
 # decode_webex_id return the bare UUID the Contact Center host wants.
 _B64_ORG_CALL = re.compile(r"\b(?:get_org_id|resolve_org_id)\(")
 _UUID_ORG_CALL = re.compile(r"(?:get_cc_org_id|decode_webex_id)\(")
-# Any arguments: an argument added to get_cc_base_url must not blind the check.
-_CC_BASE_CALL = re.compile(r"\bget_cc_base_url\(")
+# Any arguments: an argument added to either must not blind the check. The
+# Flow Store base (command_renderer.BASE_URL_FS, Plan 2 Task 8) is a Contact
+# Center host too and wants the same bare UUID.
+_CC_BASE_CALL = re.compile(r"\bget_(?:cc|flow_store)_base_url\(")
 _VAR_ASSIGN = re.compile(r"^[ \t]*(\w+)[ \t]*=[ \t]*(\S.*?)[ \t]*$", re.M)
 _WALRUS_ASSIGN = re.compile(r"\b(\w+)[ \t]*:=[ \t]*(\S.*?)[ \t]*$", re.M)
 _ORGID_QUERY_WRITE = re.compile(
@@ -3964,12 +4167,13 @@ def check_cc_base64_org_id(commands_dir: Path = COMMANDS_DIR) -> list[dict]:
     `cc-subscriptions` x8, …; live 2026-10-13). Exit 1 with a misleading
     "token" error on every CC runtime/analytics command that sent it.
 
-    A block is Contact Center when it calls `get_cc_base_url()`. It fires
+    A block is Contact Center when it calls `get_cc_base_url()` or, for the
+    Flow Store base (`BASE_URL_FS`), `get_flow_store_base_url()`. It fires
     when it sends, as the `orgId` query param (any case) or in its URL, a
     name assigned from `get_org_id()` / `resolve_org_id(…)` — or such a call
     inline — and that name is never assigned from `get_cc_org_id(…)` /
     `decode_webex_id(…)`. Path injection is in scope by the same rule
-    (`_render_path_inject` emits `get_cc_org_id` under the CC host; neither
+    (`_render_path_inject` emits `get_cc_org_id` under both hosts; neither
     tree has a base64 path instance today). Calling-host blocks send the
     base64 id correctly and are not examined. Needs no spec.
     """
@@ -5158,6 +5362,55 @@ CHECK_PRINT["33"] = (
                f"{', '.join(f['advises'])}: {f['why']}"))
 
 
+# ----------------------------------------------------------------- check 34
+
+# wxcc's drift check 5 (Plan 2 Task 18). `wxcc-flow` and `wxcc-toolkit` stop
+# shipping: every flow command is a `wxcli` command now. The command word must
+# start with a letter, so a flag (`--version`), a placeholder (`<command>`,
+# `ACTIVITY`) or a version number is not a command, and the look-behind keeps
+# a path (`~/.wxcc-flow/config.json`) or a longer name (`wxcc-flow-command-map`)
+# out — that one needs no look-behind, `\s+` already refuses it.
+LEGACY_CLI_TOKEN = re.compile(
+    r"(?<![\w./-])(wxcc-flow|wxcc-toolkit)\s+([a-z][a-z0-9_-]*)")
+
+
+def check_legacy_cli_tokens(patterns: tuple = None) -> list[dict]:
+    """Half (i): a `wxcc-flow <word>` / `wxcc-toolkit <word>` command inside a
+    code span of the docs check 2 scans (SCAN_PATTERNS).
+
+    Read by the same code_spans as check 2 — fenced lines and inline code,
+    shell comments in a fence skipped — so prose that names the old tool is not
+    a finding, and a runnable example is. Scans LEGACY_SCAN_PATTERNS
+    (SCAN_PATTERNS, which includes docs/templates, plus docs/examples). wxcc's docs moved
+    in with Plan 3 (they sat under wxcc/, outside the scan set, in Plan 2); a
+    moved doc fails the gate until it is rewritten through the command map.
+    Examined = code spans read.
+    """
+    patterns = LEGACY_SCAN_PATTERNS if patterns is None else patterns
+    findings: list[dict] = []
+    spans = 0
+    files = sorted({f for pat in patterns for f in tracked_files(pat)
+                    if f.endswith(".md")})
+    for rel in files:
+        try:
+            text = (REPO / rel).read_text()
+        except (OSError, UnicodeDecodeError):
+            continue
+        for lineno, span in code_spans(text):
+            spans += 1
+            for m in LEGACY_CLI_TOKEN.finditer(span):
+                findings.append({"file": rel, "line": lineno,
+                                 "ref": f"{m.group(1)} {m.group(2)}"})
+    return record_examined("34i", findings, spans, 0,
+                           f"code spans in {len(files)} scanned docs")
+
+
+CHECK_PRINT["34i"] = (
+    "(i) wxcc-flow / wxcc-toolkit commands in scanned docs",
+    "code spans",
+    lambda f: f"{f['file']}:{f['line']}  {f['ref']}  (rewrite via the command map)")
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -5798,9 +6051,7 @@ def build_confirm_surface() -> dict[str, dict[str, bool]]:
         if module not in countable:
             continue
         surface[group] = parse_module_confirms(module)
-    if "converged-recordings" in surface:
-        surface["converged-recordings"].update(
-            parse_module_confirms("converged_recordings_export"))
+    _merge_extensions(surface, parse_module_confirms)
     return surface
 
 
@@ -5911,7 +6162,7 @@ def build_name_lock(commands_dir: Path = COMMANDS_DIR,
     compared as [] — equal to itself, so it can never fire spuriously. The lock
     covers every module `command_sets()` returns, i.e. every module a
     regeneration can write; hand-written seams mounted outside the registry
-    (`converged_recordings_export`, `init_playbook`) and callback-only modules
+    (`converged_recordings_export`, `cc_flow_authoring`, `init_playbook`) and callback-only modules
     (`configure`, `update`, which register a bare callback in `main.py` rather
     than `@app.command`) lock as empty or not at all, and are regen-immune by
     construction.
@@ -6044,7 +6295,8 @@ def main() -> int:
                         help="exit 1 on any failing check (default: report only)")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     parser.add_argument("--write-gaps", action="store_true",
-                        help="emit docs/arch/deliberate-gaps.md from skip_tags")
+                        help="emit docs/arch/deliberate-gaps.md from skip_tags "
+                             "and operation_overrides")
     parser.add_argument("--refresh-spec-snapshot", action="store_true",
                         help="rewrite tools/spec_semantics.json (check 19) and "
                              "print the delta it acknowledges")
@@ -6132,6 +6384,7 @@ def main() -> int:
     query_body_findings = check_query_body_params()
     query_body_spec_ops = count_query_body_spec_ops()
     paging_advice = check_paging_advice()
+    legacy_cli_tokens = check_legacy_cli_tokens()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -6188,6 +6441,7 @@ def main() -> int:
         "31_list_drops_object_fields": list_drops_object_fields,
         "32_query_body_params": query_body_findings,
         "33_paging_advice": paging_advice,
+        "34_legacy_cli_tokens": legacy_cli_tokens,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -6208,7 +6462,8 @@ def main() -> int:
                   or unreachable_list_keys or wrong_product_labels
                   or doc_value_types or doc_body_keys
                   or list_drops_object_fields or query_body_findings
-                  or paging_advice)
+                  or paging_advice
+                  or legacy_cli_tokens)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -6453,6 +6708,7 @@ def main() -> int:
                              note=f"({query_body_spec_ops} spec ops declare "
                                   f"their body as a query param)")
         print_check_findings("33", paging_advice)
+        print_check_findings("34i", legacy_cli_tokens, heading="[34]")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

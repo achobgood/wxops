@@ -128,7 +128,7 @@ def decode_id_kind(token: str) -> str | None:
 # ALLOWLIST, not broad detection. A naive "declared kind != passed kind" check
 # cannot be trusted here: 79 CLI arguments declare a kind their own name
 # contradicts (`location_id` help-typed PEOPLE, `call_queue_id` typed
-# HUNT_GROUP — see CLAUDE.md), so comparing against the declared kind would
+# HUNT_GROUP — see docs/reference/wxcli-behavior.md § 5), so comparing against the declared kind would
 # manufacture false warnings on correct calls. Only pairs proven live go here.
 #
 # Keyed (invoked group, kind actually passed). Each entry must name a remedy

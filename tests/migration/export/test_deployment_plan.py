@@ -131,7 +131,7 @@ class TestGeneratePlanSummary:
 
         assert plan.startswith("# Deployment Plan: CUCM Migration")
         assert "Created:" in plan
-        assert "Agent: wxc-calling-builder" in plan
+        assert "Agent: wxops" in plan
 
     def test_no_cli_commands_in_summary(self, store):
         _build_sample_plan(store)

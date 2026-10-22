@@ -6,10 +6,16 @@ Documentation hub for the Webex Calling Playbook project. Subdirectories each ha
 
 | Path | Contents |
 |------|----------|
-| `reference/` | Webex API reference docs — grounded in the Webex OpenAPI specs and live API behavior |
+| `reference/` | Webex API reference docs — grounded in the Webex OpenAPI specs and live API behavior — plus the platform knowledge merged from wxcc-agent-builder (Flow Designer, AI Agent Studio, Webex Connect, BRE, CJDS). One line per doc: `reference/INDEX.md` |
+| `playbooks/` | Step-by-step guides by goal (send an SMS, set up BRE, build a scripted agent), each naming the reference doc that owns its values. Index: `playbooks/INDEX.md` |
+| `examples/` | Working artifacts from real builds: FlowIR flows, a Custom Function, flow-import substitution lists, a walkthrough. Index: `examples/INDEX.md` |
+| `knowledge-base/` | `migration/` — the 8 CUCM-migration knowledge docs the migration advisor reads; they ship with the playbook |
+| `runbooks/` | `cucm-migration/` — operator runbooks for the CUCM migration pipeline; they ship (except `self-review-findings.md`) |
+| `architecture/` | The wxcli architecture record: structural map, behaviour, operations, purpose, and `02-decisions.md` (the ADRs). Maintainer-only, not shipped |
+| `merge/` | Webex Ops merge records: the ledger, the disagreements log, the command map, per-plan decisions and accounting files. Maintainer-only, not shipped |
 | `plans/` | Migration design specs and build planning for the CUCM-to-Webex migration tool |
 | `prompts/` | Design and build execution prompts that drive Claude Code sessions |
-| `templates/` | Report templates (deployment plan, execution report) used by the builder agent |
+| `templates/` | Report templates (deployment plan, execution report) used by the builder agent, and the design-doc and output templates the Flow Designer, AI agent and Connect skills fill in. Index: `templates/INDEX.md` |
 | `superpowers/` | Superpowers plans and specs (separate from CUCM migration work) |
 | `spec-sync/` | `last-run.json` — one record per weekly spec-sync run; the liveness workflow's oracle |
 

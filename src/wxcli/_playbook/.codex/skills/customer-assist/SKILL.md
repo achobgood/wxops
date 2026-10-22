@@ -4,9 +4,8 @@ description: |
   Configure Webex Calling Customer Assist (CX Essentials) using wxcli CLI commands: screen pop,
   wrap-up reasons, queue call recording, supervisors, and available agents.
   Guides the user from prerequisites through configuration and verification.
-  NOT for: standard call queues/hunt groups (use configure-features) or
-  full Contact Center queues/agents (use contact-center skill — CX Essentials is
-  a Calling add-on, not WxCC).
+  NOT for: standard call queues/hunt groups (configure-features) or full Contact Center queues/agents
+  (contact-center).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [feature-type]
 ---
@@ -24,7 +23,7 @@ If you cannot answer both, you skipped reading this skill. Go back and read it.
 1. Read `docs/reference/call-features-additional.md` — Customer Assist data models, screen pop, wrap-up reasons, queue recording, available agents
 2. Read `docs/reference/location-recording-advanced.md` — Supervisors data models, API methods, key behaviors
 
-**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli customer-assist --help` for CX queue management — and note CX queues require `--has-cx-essentials true` on `call-queue` commands or they vanish from listings, known issue #7). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+**Mandatory --help verification:** Before constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli customer-assist --help` for CX queue management — and note CX queues require `--has-cx-essentials true` on `call-queue` commands or they vanish from listings, `docs/reference/wxcli-behavior.md` Known Issue #7). Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
 ## Step 2: Verify auth token
 
@@ -317,7 +316,7 @@ wxcli call-queue delete-supervisors-config-1 SUPERVISOR_ID --force
 wxcli call-queue delete-supervisors-config --force
 ```
 
-> **WARNING:** `delete-supervisors-config --force` removes **all supervisors in the org**, and the CLI offers no way to narrow it: the API scopes this delete with a request body, which the generator does not render for DELETE verbs (known issue #21). To remove specific supervisors, use `delete-supervisors-config-1 SUPERVISOR_ID` one at a time, or the raw HTTP fallback. Omitting `--force` triggers a confirmation prompt.
+> **WARNING:** `delete-supervisors-config --force` removes **all supervisors in the org**, and the CLI offers no way to narrow it: the API scopes this delete with a request body, which the generator does not render for DELETE verbs (the generator's known issue #21). To remove specific supervisors, use `delete-supervisors-config-1 SUPERVISOR_ID` one at a time, or the raw HTTP fallback. Omitting `--force` triggers a confirmation prompt.
 
 > **NOTE:** `SUPERVISOR_ID` in these commands is the supervisor's **person ID**, not a separate supervisor entity ID. Use `wxcli call-queue list-supervisors --has-cx-essentials true` to find supervisor person IDs.
 

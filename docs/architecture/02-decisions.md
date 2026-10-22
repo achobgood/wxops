@@ -526,7 +526,7 @@ The weekly spec-sync never touched this spec — `update-specs.py` does not down
 
 ### Status
 
-**Active** since 2026-10-13. Supersedes ADR-9's dev-only-spec bullet. Amended the same day (activity-catalog carve-out, above).
+**Active** since 2026-10-13. Supersedes ADR-9's dev-only-spec bullet. Amended the same day (activity-catalog carve-out, above). **Amended by ADR-19 (2026-10-19):** the Flow Store returns as eight `cc-*` groups from `flow-store.produs1.ciscoccservice.com`; the `fs-*` groups and `webex-flow-store.json` stay retired.
 
 ---
 
@@ -958,6 +958,43 @@ All three joined `offset_ignored` and were regenerated: `--offset 2` exits 2 wit
 
 ---
 
+## ADR-19: The Flow Store Surface Returns, from a Production-Reachable Host
+
+### Decision
+
+Revive the Flow Store as eight new Contact Center command groups — `cc-flow-store`, `cc-flow-versions`, `cc-flow-tracing`, `cc-flow-prefs`, `cc-flow-templates`, `cc-flow-projects`, `cc-flow-connectors` and `cc-functions` — generated from a new tracked spec, `specs/webex-cc-flow-store.json` (the snapshot of the service's own `GET /v3/api-docs`), plus hand-written extensions mounted through `_lazy.GROUP_EXTENSIONS` (`cc-flow` authoring commands, `cc-functions test`). The default Flow Store base is `https://flow-store.produs1.ciscoccservice.com/flow-store` (`FLOW_STORE_DEFAULT_URL`, `src/wxcli/config.py`), overridable with the `flow_store_url` profile setting or `WXCLI_FLOW_STORE_URL`. Where an existing `cc-flow` or `cc-legacy-flows` command already performs the same operation and a live test showed the same result, that command wins and the Flow Store copy is not generated (P2-1). The old `webex-flow-store.json` and the `fs-*` groups stay retired and forbidden.
+
+### Context
+
+Three Flow Store hostnames have been tried. ADR-11 measured two: `flow-store.intgus1.ciscoccservice.com` is Cisco's integration environment and rejects production tokens (401 `FAIL_VALIDATE_TOKEN`), and `flow-store.us1.ciscoccservice.com` does not resolve. The third, `flow-store.produs1.ciscoccservice.com`, answered a production token on 2026-10-18 (merge spec §10.5), and `docs/merge/flow-store-host-map.md` (Plan 2 Task 3, read-only, the sandbox tenant, 2026-10-19) measured it against every GET the spec declares: all 47 were `ROUTED` or `ERRORED` by the service itself, and the 5 `AUTH` cells are `/admin/*` and `/metrics`, service-admin surfaces outside the revival. The same run measured the Contact Center gateway (`api.wxcc-us1.cisco.com`, with and without `/flow-store`): it routes 14 of the 47 GETs, answers `/metrics` with 403, and returns an empty-body 404 from `istio-envoy` for the other 32. ADR-11's two hosts were re-probed in that run (intgus1: 404 on the path tried; us1: DNS failure). So both statements hold: ADR-11's facts stay true; its reasoning never reached `produs1`.
+
+### Alternatives Considered
+
+- **Keep `wxcc_flow` as a second package** that owns this surface. *Rejected:* two generators, two sign-ins and two `init` commands to maintain; the merge spec (§10.3) calls for one package and one command.
+- **A host per operation** (gateway where it routes, Flow Store host elsewhere). *Rejected:* the host map shows the Flow Store host answers every operation, so a second host would add a code path with no operation that needs it.
+- **Make the gateway the only surface** (`{cc_base_url}/flow-store`, the default P2-8 allowed if the gateway handled every operation). *Rejected:* 32 of 47 GETs have no route on it. Task 5 Step 2b (three non-persisting gateway write probes) was **not run**: it was conditional on the gateway covering every read, and 24 of the 29 reads wxcc's fate table moves into wxcli are `UNROUTED` there. The seven persisting writes (fate-table rows 9, 10, 11, 13, 44–46) were never probed on any host.
+- **Re-add the old `webex-flow-store.json`.** *Rejected:* its name is the tripwire ADR-11 built; the new snapshot has its own name (P2-5), which matches the generator's `webex-*.json` glob.
+
+### Rationale
+
+- ADR-11 named three conditions for reviving the surface: a new decision (this ADR), a production-reachable host (the host map), and a `SPEC_PRODUCT` entry (`"webex-cc-flow-store.json": "Contact Center"`, `tools/command_renderer.py`). All three now hold.
+- One host that answers everything is the smallest thing that works, and it is the one Adam chose (P2-8, 2026-10-19).
+- The overlap rule keeps one command per operation (merge spec §7.4), so the new groups carry only what `cc-flow` and `cc-legacy-flows` did not already do.
+
+### Consequences
+
+**Enables:** every Flow Store read and write wxcc offered, from `wxcli`, with one sign-in; `docs/merge/wxcc-flow-command-map.md` maps each old command to its new one.
+**Needs a human:** `tools/update-specs.py` downloads seven named specs and never this one, so the weekly routine does not refresh it. `tools/spec_sync.py` still re-renders it, because it is tracked, but from the committed snapshot. Refresh it by hand with `python -m tools.flow_store_spec diff --exit-code`, then `pull`, then regenerate (`tools/CLAUDE.md` § Flow Store spec).
+**Region:** the default host is a US host. A tenant outside the US sets `flow_store_url` (or `WXCLI_FLOW_STORE_URL`) to its region's Flow Store base. The value `"{cc_base_url}/flow-store"` follows the saved CC region (`wxcli set-cc-region`), but it reaches only the 14 operations the gateway routes; do not use it as a general default.
+**Forecloses:** nothing new. `webex-flow-store.json` stays forbidden: `.gitignore` keeps both ADR-11 patterns, and `tests/test_command_naming_residue.py` still fails on a copy.
+**Gotchas:** the Flow Store service returned JSON 500 for `cc-flow-versions show-draft` (a flow never edited since publishing) and `list-all-latest`, and JSON 404 for `cc-flow-projects show` and `cc-flow-connectors list` on the system-provisioned project (host map). These are service answers, not routing failures.
+
+### Status
+
+**Active** since 2026-10-19. **Amends ADR-11** (its "Forecloses: using the Flow Store API from wxcli" no longer holds; its host findings do). Gate `--enforce` result is recorded in `docs/merge/plan-2-decisions.md`.
+
+---
+
 ## Decision Cross-Reference
 
 | ADR | Interacts With | Nature of Interaction |
@@ -987,6 +1024,8 @@ All three joined `offset_ignored` and were regenerated: `--offset 2` exits 2 wit
 | ADR-18 (Note names offered remedies; check 33) | ADR-12 (Paging flags translated) | Narrows ADR-12's "the note names `--offset` everywhere" to commands whose `--offset` works; the translated page-numbered/SCIM `--offset` cannot be declared ignored |
 | ADR-18 (Note names offered remedies; check 33) | ADR-14 (Single-object list GETs) | The hidden inert `--all` on single-object `list*` reads counts as not offered, so their note names no remedy |
 | ADR-18 (Note names offered remedies; check 33) | ADR-13 (Static checks 23-30) | Check 33 follows ADR-13's rules (static, `BLIND`, no ack); the live-only half (which servers ignore `start`) is a declared, measured override set instead |
+| ADR-19 (Flow Store returns) | ADR-11 (Flow Store retired) | Amends it: ADR-11's revival conditions (new decision, production-reachable host, `SPEC_PRODUCT` entry) are met; the `fs-*` groups and `webex-flow-store.json` stay retired |
+| ADR-19 (Flow Store returns) | ADR-9 (Spec sync + drift gate) | `spec_sync.py` re-renders the new tracked snapshot, but `update-specs.py` never downloads it; refresh is by hand with `tools/flow_store_spec.py` |
 
 ---
 

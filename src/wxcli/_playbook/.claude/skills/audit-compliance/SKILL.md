@@ -6,8 +6,8 @@ description: |
   service app credential management, and data sources (the JWT-authenticated
   endpoints service apps register to receive streamed Webex data).
   Guides from query design through export.
-  NOT for: org health assessment (use org-health skill), CDR/call analytics (use reporting skill),
-  or license auditing (use manage-licensing skill).
+  NOT for: org health assessment (org-health), CDR/call analytics (reporting), or license auditing
+  (manage-licensing).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [audit-type -- e.g. "admin audit", "security events", "compliance review", "authorization check"]
 ---
@@ -522,14 +522,7 @@ for res, count in resources.most_common():
 ### List all OAuth integrations for a user
 
 ```bash
-wxcli authorizations list --person-email "user@company.com" -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-if isinstance(data, dict):
-    data = data.get('items', [data])
-for auth in data:
-    print(f\"App: {auth.get('applicationName', 'Unknown')} | Client: {auth.get('clientId', 'N/A')} | Type: {auth.get('type', 'N/A')}\")
-"
+wxcli authorizations list --person-email "user@company.com" --fields '[].{applicationName: applicationName, clientId: clientId, type: type}' -o table
 ```
 
 ---

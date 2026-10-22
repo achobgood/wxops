@@ -747,7 +747,7 @@ def generate_plan_summary(
         f"# Deployment Plan: CUCM Migration — {project_id}",
         "",
         f"Created: {now}",
-        "Agent: wxc-calling-builder",
+        "Agent: wxops",
         "",
         "---",
         "",

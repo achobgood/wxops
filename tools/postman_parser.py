@@ -20,6 +20,10 @@ class EndpointField:
     required: bool = False
     default: Any = None
     enum_values: list[str] | None = None
+    # `operation_overrides` per-operation `param_help`: this flag's --help text,
+    # used in place of the description and enum choices. Set by
+    # command_renderer._apply_param_help.
+    help_override: str | None = None
 
 
 @dataclass
@@ -89,6 +93,14 @@ class Endpoint:
     # openapi_parser._lift_query_body). Rendered as hidden options that are
     # accepted and ignored, so `--team-dto x --json-body …` keeps working.
     lifted_query_params: list[str] = field(default_factory=list)
+    # This operation's resolved `operation_overrides` entry (skip / blocked /
+    # warn / Task 10's keys), plus the spec-wide block under "_all". Filled by
+    # generate_commands._attach_op_overrides before rendering.
+    op_overrides: dict = field(default_factory=dict)
+    # The operation declares a JSON request body, whatever its shape. A body
+    # that is a bare array has no body_fields, and a DELETE renders
+    # --json-body only for a body it knows exists.
+    declares_json_body: bool = False
 
 
 # Known issue #20: command_type comes from the HTTP method, but Cisco models
@@ -243,6 +255,21 @@ def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
         ep.command_type = new_type
         if new_type in ("settings-get", "show"):
             ep.response_list_key = None
+    # Drop query params the server ignores, measured live (Plan 2 Task 15c):
+    # {command: {wire name: evidence}}. A silently ignored option is removed,
+    # never kept as a trap. A name the operation does not declare raises, so
+    # an entry cannot outlive the parameter it drops.
+    drop_qp = folder_overrides.get("drop_query_params", {})
+    if ep.command_name in drop_qp:
+        want = set(drop_qp[ep.command_name] or {})
+        have = {qp.name for qp in ep.query_params}
+        unknown = sorted(want - have)
+        if unknown:
+            raise ValueError(
+                f"drop_query_params for {ep.command_name!r} names query "
+                f"parameter(s) {unknown} the operation does not declare "
+                f"(has: {sorted(have)})")
+        ep.query_params = [qp for qp in ep.query_params if qp.name not in want]
     # Add query params override (inject params the spec is missing)
     add_qp = folder_overrides.get("add_query_params", {})
     if ep.command_name in add_qp:
@@ -275,6 +302,22 @@ def apply_endpoint_overrides(ep: 'Endpoint', folder_overrides: dict) -> None:
         for bf in ep.body_fields:
             if bf.name in want:
                 bf.required = True
+    # Page-number paging for a list whose render spec declares none (Plan 2
+    # Task 14): `cc-flow-templates list` renders from the CC spec, which gives
+    # GET /templates no paging parameters, while the Flow Store spec's copy of
+    # the same path declares page/size and the gateway honours them (live,
+    # 2026-10-19). This puts the command on the ADR-12 page walker exactly as
+    # if its spec had declared them. Only the walker's own shape is accepted:
+    # `page`, with a `pageSize` or `size` page size.
+    paging = folder_overrides.get("paging", {})
+    if ep.command_name in paging:
+        cfg = paging[ep.command_name] or {}
+        if cfg.get("page") != "page" or cfg.get("size") not in ("pageSize", "size"):
+            raise ValueError(
+                f"paging for {ep.command_name!r} must be {{page: page, size: "
+                f"pageSize|size}} (the follow_page_param walker); got {cfg!r}")
+        ep.pagination_style = "page"
+        ep.page_size_param = cfg["size"]
     # Response list key overrides
     if ep.command_type == "list":
         keys_map = folder_overrides.get("response_list_keys", {})

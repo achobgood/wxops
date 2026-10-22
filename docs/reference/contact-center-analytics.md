@@ -1356,7 +1356,7 @@ All 92 endpoints tabulated below, across 15 CLI groups. Regional base URL: `http
     pairs do different things to a live contact, and the shorter-looking name is the recording one,
     which is the opposite of what the spelling suggests. `create-pause`/`create-resume` were pinned
     to the recording endpoints at the 2026-09-21 spec sync so they did not silently move to the new
-    task-level routes — the same class of silent retarget as known issue #18. The names to reach
+    task-level routes — the same class of silent retarget as the generator's known issue #18 (kept in the maintainer notes of the source repository: a new spec operation can win a command name and silently demote the old command). The names to reach
     for: `create-pause`/`create-resume` when you mean recording (these mirror `task.pauseRecording()`
     in the agent SDK), `create-pause-tasks`/`create-resume-tasks` when you mean the task itself.
     **Unverified:** the task-level pair is read from the 2026-09-21 spec refresh; no live call was

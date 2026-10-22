@@ -1842,6 +1842,843 @@
     "tag": "BroadWorks Workspaces"
    }
   },
+  "webex-cc-flow-store.json": {
+   "DELETE /{}/project/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "project-controller"
+   },
+   "DELETE /{}/project/{}/connector/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:connectorId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "connector-controller"
+   },
+   "DELETE /{}/project/{}/flows/{}": {
+    "fields": {
+     "(operation)": "",
+     "header:Authorization": "!",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": "",
+     "query:force": "",
+     "query:skipRsEPCheck": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "DELETE /{}/project/{}/flows/{}/preferences": {
+    "fields": {
+     "(operation)": "",
+     "body:empty": "",
+     "body:traversableAgain": "",
+     "path:flowId": "!",
+     "path:orgId": "!"
+    },
+    "summary": "",
+    "tag": "flow-property-controller"
+   },
+   "DELETE /{}/userPreferences": {
+    "fields": {
+     "(operation)": "#2c8eb2",
+     "path:orgId": "!#9d2154",
+     "query:user": "#9e45b4"
+    },
+    "summary": "Delete user preferences for a project",
+    "tag": "User Preferences"
+   },
+   "GET /auth": {
+    "fields": {
+     "(operation)": ""
+    },
+    "summary": "",
+    "tag": "auth-controller"
+   },
+   "GET /auth/user": {
+    "fields": {
+     "(operation)": ""
+    },
+    "summary": "",
+    "tag": "auth-controller"
+   },
+   "GET /build_info": {
+    "fields": {
+     "(operation)": ""
+    },
+    "summary": "",
+    "tag": "buid-info-controller"
+   },
+   "GET /health": {
+    "fields": {
+     "(operation)": ""
+    },
+    "summary": "",
+    "tag": "health-controller"
+   },
+   "GET /{}/project": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "query:page": "",
+     "query:size": ""
+    },
+    "summary": "",
+    "tag": "project-controller"
+   },
+   "GET /{}/project/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "project-controller"
+   },
+   "GET /{}/project/{}/connector": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "connector-controller"
+   },
+   "GET /{}/project/{}/connector/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:connectorId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "connector-controller"
+   },
+   "GET /{}/project/{}/flows": {
+    "fields": {
+     "(operation)": "#f50aed",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#0f73cb",
+     "query:ids": "#3a7f8d",
+     "query:includePagination": "#a40aaf",
+     "query:isValidation": "#05dd28",
+     "query:page": "#b9a122",
+     "query:partialNameSearch": "~name#75f6b4",
+     "query:size": "#4b5334"
+    },
+    "summary": "List Flows or Subflows",
+    "tag": "Flow"
+   },
+   "GET /{}/project/{}/flows/global-variables": {
+    "fields": {
+     "(operation)": "",
+     "header:Authorization": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:search": "",
+     "query:validate": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "GET /{}/project/{}/flows/versions": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "query:page": "",
+     "query:searchBy": "",
+     "query:size": "",
+     "query:sort": ""
+    },
+    "summary": "",
+    "tag": "flow-version-controller"
+   },
+   "GET /{}/project/{}/flows/versions/all-latest": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "flow-version-controller"
+   },
+   "GET /{}/project/{}/flows/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": "",
+     "query:view": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "GET /{}/project/{}/flows/{}/draft": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "GET /{}/project/{}/flows/{}/interactions": {
+    "fields": {
+     "(operation)": "#47f279",
+     "path:flowId": "!#6e73d0",
+     "path:orgId": "!#1f4663",
+     "path:projectId": "!#e51147",
+     "query:activityDiagramId": "#d7c189",
+     "query:currentPage": "#c3b5b7",
+     "query:from": "#172d71",
+     "query:interactionId": "#8fef09",
+     "query:pageSize": "#f99d92",
+     "query:search": "#7bfffd",
+     "query:sortOrder": "#9046a5",
+     "query:tagIds": "#2fb888",
+     "query:to": "#a9117d",
+     "query:versionId": "#d72815"
+    },
+    "summary": "Get all interactions of a flow across its versions",
+    "tag": "Flow Tracing APIs"
+   },
+   "GET /{}/project/{}/flows/{}/preferences": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!"
+    },
+    "summary": "",
+    "tag": "flow-property-controller"
+   },
+   "GET /{}/project/{}/flows/{}/tagHistories": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!"
+    },
+    "summary": "",
+    "tag": "flow-property-controller"
+   },
+   "GET /{}/project/{}/flows/{}/tags": {
+    "fields": {
+     "(operation)": "#4eecdc",
+     "header:Authorization": "!",
+     "path:flowId": "!~id#0dbac6",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:all": "#e12768",
+     "query:showExtVars": "#3c3a0e",
+     "query:skipRsEPCheck": "#20aca7",
+     "query:tagId": "#2420b1%47c239"
+    },
+    "summary": "List the tags of a flow",
+    "tag": "flow-property-controller"
+   },
+   "GET /{}/project/{}/flows/{}/versions": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:page": "",
+     "query:size": "",
+     "query:sort": ""
+    },
+    "summary": "",
+    "tag": "flow-version-controller"
+   },
+   "GET /{}/project/{}/flows/{}/versions/draft": {
+    "fields": {
+     "(operation)": "",
+     "header:Authorization": "!",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "flow-version-controller"
+   },
+   "GET /{}/project/{}/flows/{}/versions/latest": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "flow-version-controller"
+   },
+   "GET /{}/project/{}/flows/{}/versions/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "path:versionId": "!"
+    },
+    "summary": "",
+    "tag": "flow-version-controller"
+   },
+   "GET /{}/project/{}/flows/{}/versions/{}/analytics": {
+    "fields": {
+     "(operation)": "#08875b",
+     "path:flowId": "!#6e73d0",
+     "path:orgId": "!#1f4663",
+     "path:projectId": "!#e51147",
+     "path:versionId": "!#d72815",
+     "query:endTime": "#a9117d",
+     "query:startTime": "#172d71"
+    },
+    "summary": "Get Analytics of a Flow Version object",
+    "tag": "Flow Tracing APIs"
+   },
+   "GET /{}/project/{}/flows/{}/versions/{}/interaction/{}": {
+    "fields": {
+     "(operation)": "#4fe6b5",
+     "path:flowId": "!#6e73d0",
+     "path:interactionId": "!#bf1717",
+     "path:orgId": "!#1f4663",
+     "path:projectId": "!#e51147",
+     "path:versionId": "!#d72815",
+     "query:convertIds": "#e85218"
+    },
+    "summary": "Get interaction metadata of a Flow Version object",
+    "tag": "Flow Tracing APIs"
+   },
+   "GET /{}/project/{}/flows/{}/versions/{}/interaction/{}/traces": {
+    "fields": {
+     "(operation)": "#1bc28e",
+     "header:Authorization": "!#472952",
+     "path:flowId": "!#6e73d0",
+     "path:interactionId": "!#bf1717",
+     "path:orgId": "!#1f4663",
+     "path:projectId": "!#e51147",
+     "path:versionId": "!#d72815",
+     "query:currentPage": "#c3b5b7",
+     "query:docId": "~id#764975",
+     "query:pageSize": "#f99d92",
+     "query:processId": "#dc9ce5"
+    },
+    "summary": "Get traces by interaction ID of a Flow Version object",
+    "tag": "Flow Tracing APIs"
+   },
+   "GET /{}/project/{}/flows/{}/versions/{}/interaction/{}/traces:decrypt": {
+    "fields": {
+     "(operation)": "#1bc28e",
+     "header:Authorization": "!#472952",
+     "path:flowId": "!#6e73d0",
+     "path:interactionId": "!#bf1717",
+     "path:orgId": "!#1f4663",
+     "path:projectId": "!#e51147",
+     "path:versionId": "!#d72815",
+     "query:docId": "~id#764975",
+     "query:processId": "!#dc9ce5"
+    },
+    "summary": "Get traces by interaction ID of a Flow Version object",
+    "tag": "Flow Tracing APIs"
+   },
+   "GET /{}/project/{}/flows/{}:export": {
+    "fields": {
+     "(operation)": "#2b7299",
+     "header:Authorization": "!#3eeff1",
+     "path:flowId": "!~id#0dbac6",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:Flow Type": "#0f73cb",
+     "query:version": "#2d174f"
+    },
+    "summary": "Export a Flow or Subflow",
+    "tag": "Flow"
+   },
+   "GET /{}/project/{}/flows:check": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:businessHour": "",
+     "query:epId": "",
+     "query:flowId": "",
+     "query:flowType": "",
+     "query:globalVar": "",
+     "query:search": "",
+     "query:skillId": "",
+     "query:view": "",
+     "query:withDraftVersions": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "GET /{}/project/{}/flows:search": {
+    "fields": {
+     "(operation)": "#88ade8",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#4b7453",
+     "query:keyValueFilter": "#38c5ee",
+     "query:page": "#b9a122",
+     "query:query": "!#19bef3",
+     "query:size": "#4b5334"
+    },
+    "summary": "Search Flows",
+    "tag": "Flow"
+   },
+   "GET /{}/project/{}/v2/activities": {
+    "fields": {
+     "(operation)": "#502df4",
+     "header:Authorization": "!#3eeff1",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:activityName": "#445c3e",
+     "query:checkUiEnabled": "#76c91f",
+     "query:flowType": "#960bca",
+     "query:searchBy": "#555199"
+    },
+    "summary": "List activity definitions (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "GET /{}/project/{}/v2/activities/{}": {
+    "fields": {
+     "(operation)": "#d20138",
+     "header:Authorization": "!#3eeff1",
+     "path:activityName": "!#0cd2bc",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#960bca"
+    },
+    "summary": "Describe a single activity (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "GET /{}/project/{}/v2/activities/{}/inputs/{}/choices": {
+    "fields": {
+     "(operation)": "#b5f9d2",
+     "header:Authorization": "!#3eeff1",
+     "path:activityName": "!#9eabac",
+     "path:inputName": "!#b2fbe5",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#960bca",
+     "query:parentInputName": "#ee78f8",
+     "query:parentValue": "#b293d9",
+     "query:search": "#a92677",
+     "query:validate": "#048824"
+    },
+    "summary": "Resolve dropdown/select choices for an activity input",
+    "tag": "Flow V2"
+   },
+   "GET /{}/project/{}/v2/event-specifications": {
+    "fields": {
+     "(operation)": "#5e4d97",
+     "header:Authorization": "!#3eeff1",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614"
+    },
+    "summary": "List event specifications (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "GET /{}/project/{}/v2/flow-template": {
+    "fields": {
+     "(operation)": "#52f64e",
+     "header:Authorization": "!#3eeff1",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowName": "#92bb00",
+     "query:flowType": "#960bca",
+     "query:includeIvrMenu": "#e7a780"
+    },
+    "summary": "Get a starter flow template (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "GET /{}/project/{}/v2/flows/{}": {
+    "fields": {
+     "(operation)": "#fe0a45",
+     "path:flowId": "!~id#0dbac6",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#960bca"
+    },
+    "summary": "Get flow draft (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "GET /{}/project/{}/v2/flows/{}:export": {
+    "fields": {
+     "(operation)": "#64b42f",
+     "header:Authorization": "!#3eeff1",
+     "path:flowId": "!~id#0dbac6",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#960bca",
+     "query:version": "#55fed5"
+    },
+    "summary": "Export a flow (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "GET /{}/project/{}/v2/flows/{}:validate": {
+    "fields": {
+     "(operation)": "#e9e667",
+     "header:Authorization": "!#3eeff1",
+     "path:flowId": "!~id#0dbac6",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#960bca",
+     "query:versionId": "#2d52fd"
+    },
+    "summary": "Validate a flow version (read-only)",
+    "tag": "Flow V2"
+   },
+   "GET /{}/resource-collections": {
+    "fields": {
+     "(operation)": "#996cbc",
+     "path:orgId": "!#1f4663",
+     "query:page": "#b9a122",
+     "query:size": "#a05bab"
+    },
+    "summary": "Get list of RCs for current user with simplified permission flags",
+    "tag": "Flow Resource Collection APIs"
+   },
+   "GET /{}/userPreferences": {
+    "fields": {
+     "(operation)": "#5d9ade",
+     "path:orgId": "!#9d2154"
+    },
+    "summary": "Get user preferences for a project",
+    "tag": "User Preferences"
+   },
+   "PATCH /{}/project/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "project-controller"
+   },
+   "PATCH /{}/project/{}/flows/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "PATCH /{}/project/{}/v2/flows/{}": {
+    "fields": {
+     "(operation)": "#a7f6cf",
+     "header:Authorization": "!#3eeff1",
+     "path:flowId": "!~id#0dbac6",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:expectedVersion": "#7b0f5c",
+     "query:flowType": "#960bca"
+    },
+    "summary": "Patch flow draft (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "POST /expressionTest": {
+    "fields": {
+     "(operation)": ""
+    },
+    "summary": "",
+    "tag": "expression-test-controller"
+   },
+   "POST /{}/project": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!"
+    },
+    "summary": "",
+    "tag": "project-controller"
+   },
+   "POST /{}/project/{}/connector": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "connector-controller"
+   },
+   "POST /{}/project/{}/flows": {
+    "fields": {
+     "(operation)": "",
+     "header:Authorization": "!",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows/{}/draft": {
+    "fields": {
+     "(operation)": "",
+     "header:Authorization": "!",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows/{}/preferences": {
+    "fields": {
+     "(operation)": "",
+     "body:empty": "",
+     "body:traversableAgain": "",
+     "path:flowId": "!",
+     "path:orgId": "!"
+    },
+    "summary": "",
+    "tag": "flow-property-controller"
+   },
+   "POST /{}/project/{}/flows/{}:lock": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows/{}:publish": {
+    "fields": {
+     "(operation)": "#c1e488",
+     "header:Authorization": "!#3eeff1",
+     "header:TrackingId": "#126576",
+     "path:flowId": "!~id#0dbac6",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "",
+     "query:skipValidation": "#5daf65"
+    },
+    "summary": "Publish a Flow or Subflow",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows/{}:remove-rs": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": "",
+     "query:rsId": "!"
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows/{}:revert": {
+    "fields": {
+     "(operation)": "",
+     "header:Authorization": "!",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": "",
+     "query:versionId": "!"
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows/{}:unlock": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows:consume": {
+    "fields": {
+     "(operation)": "#813bda",
+     "header:Authorization": "!#36ddaf",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#90c9a6",
+     "query:overwrite": "#c3dd94",
+     "query:templateName": "~name#7d6b64"
+    },
+    "summary": "Create a new flow/subflow from the JSON string provided.",
+    "tag": "Flow APIs"
+   },
+   "POST /{}/project/{}/flows:consume-template": {
+    "fields": {
+     "(operation)": "#2b0197",
+     "header:Authorization": "!#36ddaf",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowName": "!~name#9e0f36",
+     "query:flowType": "#90c9a6",
+     "query:overwrite": "#c3dd94",
+     "query:templateName": "!~name#485ad8"
+    },
+    "summary": "Create a new flow/subflow from the template.",
+    "tag": "Flow APIs"
+   },
+   "POST /{}/project/{}/flows:copy": {
+    "fields": {
+     "(operation)": "",
+     "header:Authorization": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:associatedRcs": "",
+     "query:sourceFlowId": "!"
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows:import": {
+    "fields": {
+     "(operation)": "#eda2fc",
+     "body:file": "!#e5ef5e",
+     "header:Authorization": "!#3eeff1",
+     "header:Content-Length": "!#bfe224",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:Flow Type": "#0f73cb",
+     "query:associatedRcs": "",
+     "query:overwrite": "#c1f7d9"
+    },
+    "summary": "Import a Flow or Subflow",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows:unique-name": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowId": "",
+     "query:flowName": "!",
+     "query:flowType": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/flows:variable-mapping": {
+    "fields": {
+     "(operation)": "",
+     "path:projectId": "!",
+     "query:currentFlowId": "!",
+     "query:handOffFlowId": "!",
+     "query:handOffTagId": "",
+     "query:handOffVariableSource": "",
+     "query:orgId": "!"
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "POST /{}/project/{}/v2/flows/{}": {
+    "fields": {
+     "(operation)": "#2f8021",
+     "header:Authorization": "!#3eeff1",
+     "path:flowId": "!~id#0dbac6",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:expectedVersion": "#5a5bbf",
+     "query:flowType": "#960bca"
+    },
+    "summary": "Save flow draft (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "POST /{}/project/{}/v2/flows:import": {
+    "fields": {
+     "(operation)": "#b2c169",
+     "header:Authorization": "!#3eeff1",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614",
+     "query:flowType": "#960bca",
+     "query:overwrite": "#172720"
+    },
+    "summary": "Import a flow (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "POST /{}/project/{}/v2/flows:validate": {
+    "fields": {
+     "(operation)": "#36541b",
+     "header:Authorization": "!#3eeff1",
+     "path:orgId": "!#9d2154",
+     "path:projectId": "!#a79614"
+    },
+    "summary": "Dry-run validate a flow without persisting (FDL 2.0)",
+    "tag": "Flow V2"
+   },
+   "POST /{}/userPreferences": {
+    "fields": {
+     "(operation)": "#9ce1a6",
+     "path:orgId": "!#9d2154"
+    },
+    "summary": "Create user preferences for a project",
+    "tag": "User Preferences"
+   },
+   "PUT /{}/project/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "project-controller"
+   },
+   "PUT /{}/project/{}/connector/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:connectorId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!"
+    },
+    "summary": "",
+    "tag": "connector-controller"
+   },
+   "PUT /{}/project/{}/flows/{}": {
+    "fields": {
+     "(operation)": "",
+     "path:flowId": "!",
+     "path:orgId": "!",
+     "path:projectId": "!",
+     "query:flowType": ""
+    },
+    "summary": "",
+    "tag": "Flow"
+   },
+   "PUT /{}/project/{}/flows/{}/preferences": {
+    "fields": {
+     "(operation)": "",
+     "body:empty": "",
+     "body:traversableAgain": "",
+     "path:flowId": "!",
+     "path:orgId": "!"
+    },
+    "summary": "",
+    "tag": "flow-property-controller"
+   },
+   "PUT /{}/userPreferences": {
+    "fields": {
+     "(operation)": "#4f1a5f",
+     "path:orgId": "!#9d2154"
+    },
+    "summary": "Update user preferences for a project",
+    "tag": "User Preferences"
+   }
+  },
   "webex-cloud-calling.json": {
    "DELETE /convergedRecordings/{}": {
     "fields": {
@@ -16809,6 +17646,16 @@
     "summary": "Remove Phone Number from DNC List",
     "tag": "DNC Management"
    },
+   "DELETE /{}/functions/{}": {
+    "fields": {
+     "(operation)": "#fd6ca1",
+     "path:id": "!#6f6e94",
+     "path:orgId": "!#9d2154",
+     "query:isForceDeletion": "#aaac17"
+    },
+    "summary": "Delete a Custom Function",
+    "tag": "Functions"
+   },
    "DELETE /{}/project/{}/flows/{}": {
     "fields": {
      "(operation)": "#2d317c%85f3a4",
@@ -18996,6 +19843,22 @@
     "summary": "Get Tasks",
     "tag": "Tasks"
    },
+   "GET /templates": {
+    "fields": {
+     "(operation)": "#d315ff",
+     "query:type": "#969530=flow|subflow"
+    },
+    "summary": "List Flow Templates",
+    "tag": "Templates"
+   },
+   "GET /templates/{}": {
+    "fields": {
+     "(operation)": "#933436",
+     "path:id": "!#bf0c19"
+    },
+    "summary": "Get a Flow Template",
+    "tag": "Templates"
+   },
    "GET /usage-reports": {
     "fields": {
      "(operation)": "#54c41c",
@@ -19096,6 +19959,36 @@
     },
     "summary": "Get Contact Lists within a Campaign",
     "tag": "Contact List Management"
+   },
+   "GET /{}/functions": {
+    "fields": {
+     "(operation)": "#589b85",
+     "path:orgId": "!#9d2154",
+     "query:fields": "#209688",
+     "query:ids": "#0fbfba",
+     "query:isCaseSensitive": "#915974",
+     "query:isPartialMatch": "#89f5c1",
+     "query:isValidation": "#3af69b",
+     "query:language": "#16624e=js|py",
+     "query:name": "#ade1d9",
+     "query:page": "#c282ac",
+     "query:size": "#655e9b",
+     "query:sortBy": "#a50226",
+     "query:status": "#93ea84"
+    },
+    "summary": "List Custom Functions",
+    "tag": "Functions"
+   },
+   "GET /{}/functions/{}": {
+    "fields": {
+     "(operation)": "#d47faa",
+     "path:id": "!#be6f4b",
+     "path:orgId": "!#9d2154",
+     "query:metaDataOnly": "#81fdfd",
+     "query:versionOrTag": "#bf83e1"
+    },
+    "summary": "Get a Custom Function",
+    "tag": "Functions"
    },
    "GET /{}/project/{}/flows": {
     "fields": {
@@ -22503,6 +23396,64 @@
     "summary": "Add Phone Number to DNC List",
     "tag": "DNC Management"
    },
+   "POST /{}/functions": {
+    "fields": {
+     "(operation)": "#86ed8d",
+     "body:description": "#66a4bd",
+     "body:inputs": "#244e48",
+     "body:inputs[].dataType": "#8b45eb=boolean|datetime|decimal|integer|json|string",
+     "body:inputs[].name": "#80eba8",
+     "body:inputs[].value": "#da3ab3",
+     "body:language": "#43b02b=js|py",
+     "body:name": "#d2f454%9a6041",
+     "body:outputs": "#04290b",
+     "body:selectedRuntime": "#218ff0",
+     "body:sourceCode": "#6a4954%2298bf",
+     "body:timeoutInSec": "#50d4f3",
+     "path:orgId": "!#9d2154"
+    },
+    "summary": "Create a Custom Function",
+    "tag": "Functions"
+   },
+   "POST /{}/functions/{}:export": {
+    "fields": {
+     "(operation)": "#09bb45",
+     "path:id": "!#6f6e94",
+     "path:orgId": "!#9d2154",
+     "query:versionOrTag": "#30aa77"
+    },
+    "summary": "Export a Custom Function",
+    "tag": "Functions"
+   },
+   "POST /{}/functions/{}:lock": {
+    "fields": {
+     "(operation)": "#8aa677",
+     "path:id": "!#6f6e94",
+     "path:orgId": "!#9d2154"
+    },
+    "summary": "Lock a Custom Function",
+    "tag": "Functions"
+   },
+   "POST /{}/functions/{}:publish": {
+    "fields": {
+     "(operation)": "#b4864f",
+     "body:comment": "#2e0dfc",
+     "body:tags": "#ae33fe",
+     "path:id": "!#6f6e94",
+     "path:orgId": "!#9d2154"
+    },
+    "summary": "Publish a Custom Function",
+    "tag": "Functions"
+   },
+   "POST /{}/functions/{}:unlock": {
+    "fields": {
+     "(operation)": "#58b5c5",
+     "path:id": "!#6f6e94",
+     "path:orgId": "!#9d2154"
+    },
+    "summary": "Unlock a Custom Function",
+    "tag": "Functions"
+   },
    "POST /{}/project/{}/flows/{}:lock": {
     "fields": {
      "(operation)": "#adc30d",
@@ -23932,6 +24883,26 @@
     },
     "summary": "State Change",
     "tag": "Agents"
+   },
+   "PUT /{}/functions/{}": {
+    "fields": {
+     "(operation)": "#aba657",
+     "body:description": "#66a4bd",
+     "body:inputs": "#244e48",
+     "body:inputs[].dataType": "#8b45eb=boolean|datetime|decimal|integer|json|string",
+     "body:inputs[].name": "#80eba8",
+     "body:inputs[].value": "#da3ab3",
+     "body:language": "#43b02b=js|py",
+     "body:name": "#d2f454%9a6041",
+     "body:outputs": "#04290b",
+     "body:selectedRuntime": "#218ff0",
+     "body:sourceCode": "#6a4954%2298bf",
+     "body:timeoutInSec": "#50d4f3",
+     "path:id": "!#6f6e94",
+     "path:orgId": "!#9d2154"
+    },
+    "summary": "Update a Custom Function",
+    "tag": "Functions"
    }
   },
   "webex-device.json": {

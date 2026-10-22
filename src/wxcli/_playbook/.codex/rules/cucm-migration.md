@@ -9,7 +9,7 @@ paths:
 
 ## Agent Invocation Example
 
-The builder agent uses phase-per-invocation for migrations:
+A CUCM migration is the one exception to "one agent per job": it runs phase by phase, each phase in a fresh `wxops` agent, one phase at a time, because a whole migration outgrows one agent's context:
 1. Spawn agent: "Run CUCM discovery for project X against host Y"
 2. Agent completes discover + normalize + map + analyze, writes session-state, terminates
 3. Spawn fresh agent: "Project X is at ANALYZED. Run decision review and generate report"
@@ -41,7 +41,7 @@ Operator-facing reference docs for the CUCM-to-Webex migration tool. Written for
 | `docs/runbooks/cucm-migration/decision-guide.md` | Decision guide — one entry per DecisionType + advisory pattern, with override criteria |
 | `docs/runbooks/cucm-migration/tuning-reference.md` | Tuning reference — config keys, auto-rules, score weights, 5 worked recipes |
 
-**When handling CUCM migration questions:** Read `operator-runbook.md` first for the pipeline walkthrough and `decision-guide.md` for per-decision interpretation. Read `tuning-reference.md` when discussing customer environment shapes (the 5 worked recipes), config tuning, or recurring decision patterns. The `cucm-migrate` skill loads these references automatically when `the `cucm-migrate` skill` is invoked; this instruction covers ad-hoc CUCM questions sent to `wxc-calling-builder` or other agents outside the skill flow.
+**When handling CUCM migration questions:** Read `operator-runbook.md` first for the pipeline walkthrough and `decision-guide.md` for per-decision interpretation. Read `tuning-reference.md` when discussing customer environment shapes (the 5 worked recipes), config tuning, or recurring decision patterns. The `cucm-migrate` skill loads these references automatically when `the `cucm-migrate` skill` is invoked; this instruction covers ad-hoc CUCM questions sent to `wxops` or other agents outside the skill flow.
 
 ## CUCM→Webex Migration Tool (All 11 phases complete)
 

@@ -6,8 +6,8 @@ description: |
   bulk assignment, and license reclamation from inactive users. Also covers resource
   groups and resource group memberships, which partition license assignment across
   hybrid services connector clusters.
-  NOT for: initial user provisioning with licenses (use provision-calling) or
-  resource deletion (use teardown).
+  NOT for: initial user provisioning with licenses (provision-calling) or resource deletion
+  (teardown).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation — e.g. "audit usage", "assign licenses", "reclaim unused", "check capacity", "move resource group"]
 ---
@@ -91,7 +91,7 @@ Ask the user which licensing operation they need. The seven supported operations
 | **Assign licenses** | Add licenses to users | `licenses update` (PATCH with `--json-body`) |
 | **Usage audit** | Find unused/unassigned licenses | `licenses` + `people` (cross-reference) |
 | **Reclaim licenses** | Remove licenses from inactive users | `licenses update` + `people` |
-| **Calling license check** | Quick calling-focused license list | `licenses list -o json` + client-side filter (no --calling-only flag) |
+| **Calling license check** | Quick calling-focused license list | `licenses list --fields` with a `contains(name, 'Calling')` filter (no --calling-only flag) |
 | **Resource group assignment** | See or change which hybrid cluster serves a user's licensed service | `resource-groups` + `resource-group-memberships` |
 
 > Group naming: `licenses` is the canonical group (generated). `licenses-api` still works as a deprecated alias for one release (renamed 2026-07-02).
@@ -172,23 +172,15 @@ Proceed? [wait for user confirmation]
 # Quick table view of all licenses
 wxcli licenses list
 
-# Calling-only quick view (no --calling-only flag exists — filter client-side)
-wxcli licenses list -o json | python3.11 -c "
-import json, sys
-for lic in json.load(sys.stdin):
-    if 'calling' in lic['name'].lower():
-        print(f\"{lic['name']}: {lic.get('consumedUnits', 0)}/{lic.get('totalUnits', 0)}\")
-"
+# Calling-only quick view (no --calling-only flag exists — filter with --fields;
+# the match is case-sensitive, so it is 'Calling', as in "Webex Calling - Professional")
+wxcli licenses list --fields "[?contains(name, 'Calling')].{name: name, consumedUnits: consumedUnits, totalUnits: totalUnits}" -o table
 
-# Detailed view with availability calculation
-wxcli licenses list -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-for lic in data:
-    avail = lic.get('totalUnits', 0) - lic.get('consumedUnits', 0)
-    print(f\"{lic['name']}: {lic.get('consumedUnits', 0)}/{lic.get('totalUnits', 0)} (available: {avail})\")
-"
+# Detailed view: consumed and total units for every license
+wxcli licenses list --fields '[].{name: name, consumedUnits: consumedUnits, totalUnits: totalUnits}' -o table
 ```
+
+The available count for a license is `totalUnits` minus `consumedUnits`.
 
 ### Operation B: License Details
 
@@ -450,15 +442,8 @@ wxcli licenses show "LICENSE_ID" --include-assigned-to user -o json
 
 ### Verify bulk operations:
 ```bash
-# Check overall capacity after bulk assignment
-wxcli licenses list -o json | python3.11 -c "
-import json, sys
-data = json.load(sys.stdin)
-for lic in data:
-    if 'calling' in lic.get('name', '').lower():
-        avail = lic.get('totalUnits', 0) - lic.get('consumedUnits', 0)
-        print(f\"{lic['name']}: {lic.get('consumedUnits', 0)}/{lic.get('totalUnits', 0)} (available: {avail})\")
-"
+# Check overall capacity after bulk assignment (available = totalUnits minus consumedUnits)
+wxcli licenses list --fields "[?contains(name, 'Calling')].{name: name, consumedUnits: consumedUnits, totalUnits: totalUnits}" -o table
 ```
 
 ## Step 8: Report results

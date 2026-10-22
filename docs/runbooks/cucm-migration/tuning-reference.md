@@ -400,7 +400,7 @@ but measure different things:
   `calibration-log.md` described in
   [operator-runbook.md §Calibration Data Capture](operator-runbook.md#calibration-data-capture).
 - **Agent-efficiency validation** — periodic manual QA. Invoke
-  `wxc-calling-builder` with `/cucm-migrate` against a test project and
+  `wxops` with `/cucm-migrate` against a test project and
   review the agent's decision-review behavior. This is a human judgment
   exercise, not an automated regression guard — LLM non-determinism makes
   automated baselines unreliable.

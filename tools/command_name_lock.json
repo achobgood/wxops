@@ -1753,6 +1753,170 @@
     "PATCH /{}/project/{}/v2/flows/{}"
    ]
   },
+  "cc_flow_connectors": {
+   "list": [
+    "GET /{}/project/{}/connector"
+   ],
+   "show": [
+    "GET /{}/project/{}/connector/{}"
+   ]
+  },
+  "cc_flow_prefs": {
+   "create": [
+    "POST /{}/project/{}/flows/{}/preferences"
+   ],
+   "delete": [
+    "DELETE /{}/project/{}/flows/{}/preferences"
+   ],
+   "list": [
+    "GET /{}/project/{}/flows/{}/preferences"
+   ],
+   "list-tag-history": [
+    "GET /{}/project/{}/flows/{}/tagHistories"
+   ],
+   "list-tags": [
+    "GET /{}/project/{}/flows/{}/tags"
+   ],
+   "update": [
+    "PUT /{}/project/{}/flows/{}/preferences"
+   ]
+  },
+  "cc_flow_projects": {
+   "list": [
+    "GET /{}/project"
+   ],
+   "list-resource-collections": [
+    "GET /{}/resource-collections"
+   ],
+   "show": [
+    "GET /{}/project/{}"
+   ],
+   "show-user-preferences": [
+    "GET /{}/userPreferences"
+   ]
+  },
+  "cc_flow_store": {
+   "check-name": [
+    "POST /{}/project/{}/flows:unique-name"
+   ],
+   "consume": [
+    "POST /{}/project/{}/flows:consume"
+   ],
+   "consume-template": [
+    "POST /{}/project/{}/flows:consume-template"
+   ],
+   "copy": [
+    "POST /{}/project/{}/flows:copy"
+   ],
+   "list-global-variables": [
+    "GET /{}/project/{}/flows/global-variables"
+   ],
+   "list-usages": [
+    "GET /{}/project/{}/flows:check"
+   ],
+   "map-variables": [
+    "POST /{}/project/{}/flows:variable-mapping"
+   ],
+   "revert": [
+    "POST /{}/project/{}/flows/{}:revert"
+   ],
+   "show-build-info": [
+    "GET /build_info"
+   ],
+   "show-current-user": [
+    "GET /auth/user"
+   ],
+   "show-flow-template": [
+    "GET /{}/project/{}/v2/flow-template"
+   ],
+   "show-health": [
+    "GET /health"
+   ],
+   "show-metadata": [
+    "GET /{}/project/{}/flows/{}"
+   ],
+   "test-expression": [
+    "POST /expressionTest"
+   ],
+   "update-metadata": []
+  },
+  "cc_flow_templates": {
+   "list": [
+    "GET /templates"
+   ],
+   "show": [
+    "GET /templates/{}"
+   ]
+  },
+  "cc_flow_tracing": {
+   "list-interactions": [
+    "GET /{}/project/{}/flows/{}/interactions"
+   ],
+   "list-traces": [
+    "GET /{}/project/{}/flows/{}/versions/{}/interaction/{}/traces"
+   ],
+   "list-traces-decrypted": [
+    "GET /{}/project/{}/flows/{}/versions/{}/interaction/{}/traces:decrypt"
+   ],
+   "show-analytics": [
+    "GET /{}/project/{}/flows/{}/versions/{}/analytics"
+   ],
+   "show-interaction": [
+    "GET /{}/project/{}/flows/{}/versions/{}/interaction/{}"
+   ]
+  },
+  "cc_flow_versions": {
+   "list": [
+    "GET /{}/project/{}/flows/{}/versions"
+   ],
+   "list-all": [
+    "GET /{}/project/{}/flows/versions"
+   ],
+   "list-all-latest": [
+    "GET /{}/project/{}/flows/versions/all-latest"
+   ],
+   "show": [
+    "GET /{}/project/{}/flows/{}/versions/{}"
+   ],
+   "show-draft": [
+    "GET /{}/project/{}/flows/{}/versions/draft"
+   ],
+   "show-latest": [
+    "GET /{}/project/{}/flows/{}/versions/latest"
+   ]
+  },
+  "cc_functions": {
+   "create": [
+    "POST /{}/functions"
+   ],
+   "delete": [
+    "DELETE /{}/functions/{}"
+   ],
+   "export": [
+    "POST /{}/functions/{}:export"
+   ],
+   "import": [
+    "POST /{}/functions:import"
+   ],
+   "list": [
+    "GET /{}/functions"
+   ],
+   "lock": [
+    "POST /{}/functions/{}:lock"
+   ],
+   "publish": [
+    "POST /{}/functions/{}:publish"
+   ],
+   "show": [
+    "GET /{}/functions/{}"
+   ],
+   "unlock": [
+    "POST /{}/functions/{}:unlock"
+   ],
+   "update": [
+    "PUT /{}/functions/{}"
+   ]
+  },
   "cc_global_vars": {
    "create": [
     "POST /organization/{}/cad-variable"
@@ -1931,8 +2095,11 @@
    ]
   },
   "cc_legacy_flows": {
-   "list": [
+   "export-ui": [
     "GET /flow-store/{}/project/{}/flows/{}:export"
+   ],
+   "import-ui": [
+    "POST /flow-store/{}/project/{}/flows:import"
    ]
   },
   "cc_monitoring_schedules": {

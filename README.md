@@ -1,6 +1,8 @@
-# wxcli — Webex CLI
+# Webex Ops
 
-A command-line tool and AI-assisted playbook for provisioning, managing, migrating, and auditing Webex Calling environments. 192 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface.
+Webex Ops: tell Claude what you want done in Webex, and it does it. Claude looks up the facts in the reference docs, follows a tested checklist, and makes the API calls itself through a built-in command layer. **You never type a command.**
+
+It covers Webex Calling, admin, devices, messaging, meetings, and Contact Center (flows, AI agents, Connect, provisioning, reporting). It works in Claude Code and in Codex.
 
 > **Unofficial community CLI — not affiliated with or endorsed by Cisco.**
 
@@ -11,14 +13,72 @@ A command-line tool and AI-assisted playbook for provisioning, managing, migrati
 > Webex Calling and CUCM environments**, driven in part by non-deterministic AI.
 > You are responsible for reviewing every action before it runs.
 
-## What It Does
+## Why commands, not MCP
 
-- **192 CLI command groups** — provision locations, users, call features, devices, routing, PSTN, messaging, meetings, and contact center resources from the terminal
-- **AI-guided playbook** — a Claude Code agent that interviews you about what to build, generates a deployment plan, executes commands, and verifies results
-- **CUCM-to-Webex migration** — 11-phase pipeline: discover a CUCM cluster via AXL, normalize, map, analyze, generate decisions, plan, and execute the migration with an async concurrent engine
-- **Org health assessment** — 18 automated checks across security posture, routing hygiene, feature utilization, and device health with a self-contained HTML report
-- **Partner / multi-org support** — manage multiple customer orgs with a single partner token; 1150 commands auto-inject the target `orgId`
-- **Batch cleanup** — dependency-safe teardown of an entire Webex Calling environment (or scoped to specific locations) with `--dry-run` support
+**"So it's a CLI?"** It's the command layer the AI uses. It's technically a command-line program, because that turned out to be the cheapest, most reliable way for an AI to drive hundreds of Webex APIs. But no human is meant to run it.
+
+**The rule:** commands are the default. A job moves to an official Cisco MCP server only when that server does the whole job, writes included, has been tested live on a real tenant, and costs the same or fewer tokens. The reasoning, the measured numbers and the dated "which path" table are in [Commands, not MCP](#commands-not-mcp).
+
+## Setup — the only commands you type
+
+You need [Claude Code](https://claude.com/claude-code) or Codex. Then you type three things: an install, a folder, and your Webex token (again whenever it expires). After that you talk to Claude.
+
+**1. Install.**
+
+```bash
+pipx install wxcli      # recommended — isolated, always on PATH
+# or:
+pip install wxcli
+```
+
+Works on macOS, Linux, and Windows. On Windows, first install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup); then `python -m pip install --user pipx && python -m pipx ensurepath` gives you `pipx`. `pipx`/`pip` pull every dependency automatically.
+
+**2. Put the playbook in a folder, and start Claude Code or Codex there.**
+
+```bash
+wxcli init                   # writes the Claude Code + Codex playbook into ./wxcli-playbook
+cd wxcli-playbook && claude  # start Claude Code…
+cd wxcli-playbook && codex   # …or start Codex — reads AGENTS.md + .codex/
+```
+
+The playbook ships **inside the wheel**, so no clone is needed. It holds 2 agents (`wxops`, which does every job that changes or audits your org, and `migration-advisor` for CUCM migrations), 39 skills and the reference docs, plus a `.claude/settings.json` that pre-approves the skills and installs the safety hook: only the `wxops` agent may run a command that changes your org. `wxcli init --claude-only` or `wxcli init --codex-only` writes one of the two; `wxcli init --uninstall` removes the files `init` wrote. Personal overrides go in `.claude/settings.local.json`.
+
+**3. Give it your Webex token.** Get a personal access token from [developer.webex.com](https://developer.webex.com) (valid for 12 hours). Run `wxcli configure` and paste the token at the prompt. Identical in macOS/Linux Terminal, Windows PowerShell, and cmd:
+
+```
+wxcli configure
+# prompts: "Webex API token:"  → paste token, press Enter
+```
+
+The token is your secret, so this step stays yours. When it expires, or Claude reports a 401 or 403, paste a new one: in Claude Code type `! wxcli configure` in the prompt (the `!` runs it in the session); in a terminal run `wxcli configure`. A partner token that reaches several customer orgs: `wxcli configure` asks which org to target.
+
+Prefer a per-session environment variable to a saved token? Set `WEBEX_ACCESS_TOKEN` instead — `export WEBEX_ACCESS_TOKEN="YOUR_TOKEN"` (macOS / Linux), `$env:WEBEX_ACCESS_TOKEN="YOUR_TOKEN"` (PowerShell), `set WEBEX_ACCESS_TOKEN=YOUR_TOKEN` (cmd). Claude checks the token with `wxcli whoami` before it starts.
+
+## Updating
+
+Claude can run this for you. At the start of each Claude Code session the playbook checks PyPI (cached for a day) and tells Claude when a newer wxcli exists, so Claude can offer the upgrade:
+
+```bash
+wxcli update           # check PyPI and upgrade in place
+wxcli update --check   # report the latest version without upgrading
+```
+
+`wxcli update` detects how it was installed and upgrades accordingly — `pipx upgrade wxcli` for pipx installs, `pip install --upgrade wxcli` for pip installs — then deep-links the release notes for the new version. Then run `wxcli init` in the playbook folder again: it refreshes only the files it wrote, for the assistants already installed there, and never touches files you added.
+
+Behind a firewall that blocks PyPI? Point `WXCLI_UPDATE_INDEX_URL` at an internal mirror, or install fresh with `pipx install wxcli`.
+
+## What you can ask for
+
+Say what you want in plain words. Claude interviews you about the details, writes a plan, makes the changes through the `wxops` agent and reads the result back. A step that only exists as a click in a Cisco screen comes to you as an exact click path.
+
+- **Build Webex Calling.** "Add a sales hunt group for the Denver office." "Create a San Jose location and turn on calling." "Set up call forwarding for the front desk."
+- **Contact Center flows and AI agents.** "Build an AI agent action that looks up an order." "Design an IVR with a business-hours check." "Send an SMS when a ticket closes." "Create a Contact Center queue." Claude designs first, then builds in Flow Designer, Webex Connect and AI Agent Studio.
+- **Migrate from CUCM.** "Run a CUCM migration," with the CUCM host and credentials. You answer each design decision; Claude runs the pipeline ([what it runs](#cucm-to-webex-migration)).
+- **Audit your org.** "Audit my org." You get a self-contained HTML report ([the checks](#org-health-assessment)).
+- **Clean up.** "Tear down the lab locations San Jose and Austin, and show me a dry run first." ([what it deletes, in order](#cleanup))
+- **Work across customer orgs (partners).** "Switch the target org to Acme." "Which org am I working in?" ([details](#partner--multi-org))
+- **Find out what is there.** "Who has call forwarding enabled?" "Which locations have no users?"
+- **Fix what is broken.** "Why isn't the Denver hunt group ringing?" "Why did my Connect flow fail?"
 
 ## How It Works
 
@@ -28,9 +88,11 @@ wxops splits the problem into three layers, each killing one way an LLM fails:
 
 | Layer | What it is | Failure it prevents |
 |-------|-----------|---------------------|
-| **Reference docs** (43 active) | De-conflated, authoritative API knowledge — data models, enums, license-tier distinctions, gotchas | **Hallucination** — the agent grounds on docs, never on training data |
-| **Skills** (24) | Encoded procedures for outcomes — prerequisites, ordering, intent disambiguation, known landmines | **Wrong sequence / wrong tool** — the agent follows a checklist, not a guess |
-| **CLI** (192 groups) | Tested, self-describing commands generated from 9 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
+| **Reference docs** (118) | De-conflated, authoritative API and platform knowledge — data models, enums, license-tier distinctions, Flow Designer activities, gotchas | **Hallucination** — the agent grounds on docs, never on training data |
+| **Skills** (39) | Encoded procedures for outcomes — prerequisites, ordering, intent disambiguation, known landmines | **Wrong sequence / wrong tool** — the agent follows a checklist, not a guess |
+| **CLI** (200 groups) | Tested, self-describing commands generated from 10 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
+
+(Counts from `git ls-files` on 2026-10-20: reference docs exclude the folder indexes.)
 
 The model only does what it's reliably good at — reasoning and orchestration. Facts come from the docs, procedure from the skills, execution from the tested CLI.
 
@@ -43,122 +105,51 @@ The model only does what it's reliably good at — reasoning and orchestration. 
 
 At every step the agent is forced back to an authoritative source: data model from the doc, flags from `--help`, final state from a read-back. It never operates on memory. That layered grounding *is* the design.
 
-### Why a CLI, not an MCP server?
+## Commands, not MCP
 
-The natural question for an agent-driven tool: why not expose the API as MCP tools? Because at this surface area — 192 command groups and several hundred individual operations — one tool per endpoint breaks down:
+The natural question for an agent-driven tool: why not expose the API as MCP tools? Commands are the default here, for these reasons:
 
-- **MCP tool schemas load eagerly, every turn.** Hundreds of operations means hundreds of JSON tool definitions sitting in the model's context *before it reads your request* — tens of thousands of tokens of overhead on every call. A CLI loads nothing up front; the model pulls a single command's schema on demand with `wxcli <group> <command> --help`. Just-in-time, not all-at-once.
+- **The one measured comparison (2026-06-30).** On 2026-06-30, Cisco's Webex Workspaces MCP server (16 tools, all read-only) cost about 11,750 tokens for one read task — list every workspace and the location it belongs to — against about 5,100 through the commands. Connecting the server put all 16 tool schemas (9,894 tokens) into context for any call; the commands loaded only the skill and the commands the task touched, each one's schema read on demand with `wxcli <group> <command> --help`. Claude Code has since begun loading MCP tool schemas on demand (observed 2026-10-18), so this result holds for that date and that server only, until it is measured again.
+- **Writes.** The Workspaces server had no write tool at all. Cisco's Flow Designer MCP server covered 12 of the Flow Store's 63+ endpoints, and its `list_flows` returned empty lists even when flows existed. The commands do the whole job, writes included.
 - **Tool-selection accuracy collapses well before hundreds.** Models reliably pick from a handful of tools, not a sea of near-duplicates — and this surface is full of overloaded names ("queue" means three different things across Calling, Contact Center, and Customer Assist). The skill layer disambiguates intent; a flat tool list just hands the model the ambiguity.
 - **CLI commands compose; MCP tool calls don't.** Pipe to `jq`, filter with `grep`, chain a list of IDs into the next command. Ops work is full of "get these, feed them to that" — the shell makes it trivial.
-- **The CLI runs without an LLM at all.** The same commands work in scripts, in CI, and by hand, backed by thousands of tests. An MCP tool only exists inside an MCP client.
+- **The CLI runs without an LLM at all.** The same commands work in scripts and in CI, backed by thousands of tests. An MCP tool only exists inside an MCP client.
+
+**The rule.** Commands are the default. A job switches to an official Cisco MCP server only when that server (1) does the whole job, writes included, (2) has been tested live on a real tenant, and (3) costs the same or fewer tokens.
 
 This isn't anti-MCP. MCP is the right *thin boundary* for host integration: to let an agent platform drive wxops, you wrap the CLI behind **one** small MCP surface — a single "run a wxcli command" tool — not several hundred. The CLI stays the execution layer; MCP is just the seam. You get the integration without paying the tool-explosion tax.
 
-## Install
+### Which path, last checked on
+
+| Cisco MCP server | What it offered when checked | Path Claude uses | Last checked |
+|---|---|---|---|
+| Webex Workspaces (`https://mcp.webexapis.com/mcp/workspaces`) | 16 tools, all read-only (search, metrics, diff and lifecycle across devices, workspaces and locations); no write tool | commands | 2026-06-30 |
+| Flow Designer (`wxcc-flow-builder`, the Flow Store's `/flow-store/mcp`) | 12 tools over 12 of 63+ Flow Store endpoints; `list_flows` returned empty lists; tokens rotated | commands (`cc-flow` and the Flow Store groups) | July 2026 (the day was not recorded) |
+
+Re-checked with the weekly Flow Store drift runbook (`tools/CLAUDE.md`).
+
+### Optional MCP servers in the playbook
+
+The playbook's `.mcp.json` lists two optional servers, with placeholders: Cisco's Flow Designer MCP server (`YOUR_FLOW_STORE_TOKEN`) and Supabase (`YOUR_SUPABASE_PROJECT_REF`, `YOUR_SUPABASE_ACCESS_TOKEN`), for a Supabase database behind an AI agent. Neither is needed: Claude does Flow Designer work through the commands. To use one, paste your own values over its placeholders (they are secrets, so this is yours to do), and delete an entry you don't use. The bundled Flow Store URL is the **US-1 production** endpoint; an org homed in another region uses its region's production Flow Store host. In Claude Code, the Flow Designer server's read tools run anywhere, and its other tools run only inside the `wxops` agent. Under Codex the server reads its token from the `WEBEX_ACCESS_TOKEN` environment variable (`.codex/config.toml`), so no token is written into a project file.
+
+## Codex
+
+`wxcli init` writes the Codex files too (`AGENTS.md`, `.codex/`). Start Codex in the folder and trust the folder when Codex asks: the shipped `.codex/config.toml` (approval policy, sandbox mode, MCP servers) takes effect only in a folder Codex trusts. Codex has no per-command allowlist, so expect an approval prompt when a command needs to run outside the workspace sandbox.
+
+Three limits apply under Codex that Claude Code does not have:
+
+- **Flow Designer MCP writes are not checked.** The Codex safety hook watches shell commands only, so a write through the Flow Designer MCP server is not held to the `wxops` agent the way it is in Claude Code. `wxcli` commands are checked.
+- **Several headless runs started at once may run without the safety lock.** In a 2026-10-20 test on Codex 0.163.0, 4 of 7 `codex exec` runs started together loaded none of the folder's hooks, and two of them ran a write the lock should have stopped. Runs started one at a time all loaded the hooks. Interactive Codex was not measured. Start runs one at a time.
+- **The larger `AGENTS.md` limit needs a trusted folder.** The playbook sets `project_doc_max_bytes = 65536` so Codex reads all of `AGENTS.md`. Codex ignores that setting in a folder it does not trust, and by default cuts the file at 32,768 bytes.
+
+## Reference material Claude uses
+
+This part is what Claude reads and runs, not instructions for you. It is here so you can follow what Claude does and check it. Outside Claude, the reference docs in `docs/reference/` are a Webex API knowledge base any developer can read, and the **10 OpenAPI specs** (`specs/webex-*.json`) import into Postman or any API client.
+
+### Common commands
 
 ```bash
-pipx install wxcli      # recommended — isolated, always on PATH
-# or:
-pip install wxcli
-```
-
-Works on macOS, Linux, and Windows. On Windows, first install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup); then `python -m pip install --user pipx && python -m pipx ensurepath` gives you `pipx`. `pipx`/`pip` pull every dependency automatically.
-
-### Get the playbook (Claude Code or Codex)
-
-The playbook (agents, skills, reference docs) ships **inside the wheel** in both Claude Code and Codex shapes. After installing, materialize it into a folder with `wxcli init` — which writes **both** by default, so the same folder works in either tool:
-
-```bash
-wxcli init                   # writes the Claude Code + Codex playbook into ./wxcli-playbook
-cd wxcli-playbook && claude  # start Claude Code…
-cd wxcli-playbook && codex   # …or start Codex — reads AGENTS.md + .codex/
-```
-
-Narrow with `wxcli init --claude-only` or `wxcli init --codex-only`. `wxcli init --uninstall` removes the materialized files again. No clone required.
-
-## Authenticate
-
-Get a personal access token from [developer.webex.com](https://developer.webex.com) (valid for 12 hours).
-
-**Option 1 — persistent (recommended).** Run `wxcli configure` and paste the token at the prompt. Identical in macOS/Linux Terminal, Windows PowerShell, and cmd:
-
-```
-wxcli configure
-# prompts: "Webex API token:"  → paste token, press Enter
-```
-
-**Option 2 — environment variable (per session).** Use the form for your shell:
-
-```bash
-# macOS / Linux
-export WEBEX_ACCESS_TOKEN="YOUR_TOKEN"
-```
-
-```powershell
-# Windows PowerShell
-$env:WEBEX_ACCESS_TOKEN="YOUR_TOKEN"
-```
-
-```bat
-:: Windows cmd
-set WEBEX_ACCESS_TOKEN=YOUR_TOKEN
-```
-
-Verify auth (any shell):
-
-```
-wxcli whoami
-```
-
-## Updating
-
-```bash
-wxcli update           # check PyPI and upgrade in place
-wxcli update --check   # report the latest version without upgrading
-```
-
-`wxcli update` detects how it was installed and upgrades accordingly — `pipx upgrade wxcli` for pipx installs, `pip install --upgrade wxcli` for pip installs — then deep-links the release notes for the new version.
-
-Behind a firewall that blocks PyPI? Point `WXCLI_UPDATE_INDEX_URL` at an internal mirror, or install fresh with `pipx install wxcli`.
-
-## Claude Code Playbook
-
-This repo includes an AI playbook for [Claude Code](https://claude.com/claude-code) that turns your terminal into a guided Webex Calling configuration assistant.
-
-### What is the Playbook?
-
-A guided AI assistant that walks you through Webex Calling configuration end-to-end. It interviews you about what you want to build, generates a deployment plan, executes `wxcli` commands on your behalf, and verifies the results. Think of it as a Webex Calling expert sitting next to you in the terminal.
-
-### What's Included
-
-- **1 builder agent** (`/agents` → wxc-calling-builder) — the main entry point that drives the full workflow
-- **24 domain skills** covering: provisioning & teardown, call features, Customer Assist, routing, devices, device platform, call settings, call control, reporting (calling, meetings, contact center), identity/SCIM, licensing, audit/compliance, messaging spaces, messaging bots, meetings, video mesh, contact center, CUCM migration, org health, live query, and debugging
-- **42 reference docs** in `docs/reference/` (+8 archived historical SDK docs) documenting every Webex Calling API surface with SDK method signatures, raw HTTP examples, and gotchas
-- **Shared permissions** (`.claude/settings.json`) that pre-approve `wxcli` commands so Claude Code doesn't prompt you for every CLI execution
-
-### How to Use It
-
-1. Install [Claude Code](https://claude.com/claude-code)
-2. Install the CLI: `pipx install wxcli`
-3. Run `wxcli init` and `cd wxcli-playbook` — this delivers the **playbook** (agents/skills/docs) from the wheel
-4. Run `claude` to start Claude Code
-5. Use `/agents` and select **wxc-calling-builder** to begin
-6. Or use `/wxc-calling-debug` to troubleshoot a specific issue
-
-The repo includes a `.claude/settings.json` that pre-approves common commands (`wxcli`, `pip install`, `which`). This means the playbook agent can run `wxcli` commands without prompting you for permission each time. You can review or customize these permissions in `.claude/settings.json`. Any personal overrides go in `.claude/settings.local.json` (gitignored).
-
-### Without Claude Code
-
-The AI playbook is optional — everything else works standalone:
-
-- **wxcli** is a regular Python CLI tool. Install it and use it directly.
-- The **42 reference docs** in `docs/reference/` are a comprehensive API knowledge base, useful for any developer working with Webex APIs.
-- The **9 OpenAPI specs** (`specs/webex-*.json`) can be imported into Postman or any API client.
-
-## CLI Reference
-
-```bash
-# See all 192 command groups
+# See all 200 command groups
 wxcli --help
 
 # List calling-enabled locations
@@ -201,14 +192,14 @@ wxcli users list --location-id LOC_ID      # Get person IDs
 wxcli numbers list --location-id LOC_ID  # Get number inventory
 ```
 
-### Tips
+### Flags
 
 - **`--json-body`** — For complex nested settings (call forwarding rules, voicemail config, agent lists), pass the full JSON body: `wxcli call-queue update LOC_ID QUEUE_ID --json-body '{"agents": [...]}'`
 - **`--all`** — On every `list` command: fetch **every** page instead of just the first, overriding `--limit`. The default is a single fetch, so on a large org `wxcli people list` answers from page one and a count drawn from it is wrong. When a single fetch leaves pages behind the CLI says so on **stderr** (`Note: N records returned and the server has more pages...`) — easy to miss if you are piping stdout. Walking is capped at 1000 pages (`WXCLI_MAX_PAGES`); hitting the cap prints an error containing **INCOMPLETE**, which means records are missing. On endpoints that do not paginate the flag is accepted and does nothing, deliberately, so the rule is the same on every list command.
 - **`--fields`** — A JMESPath expression applied to the response before rendering, on every command: `wxcli people list --fields '[].{name:displayName,id:id}' -o json`
 - **`--debug`** — Add to any command for verbose HTTP request/response output, useful for troubleshooting
 
-## Command Groups
+### Command groups
 
 | Group | Description |
 |-------|-------------|
@@ -243,15 +234,13 @@ wxcli numbers list --location-id LOC_ID  # Get number inventory
 | `cx-essentials` | Customer Assist (screen pop, wrap-up, supervisors) |
 | `cleanup` | Batch-delete resources in dependency-safe order |
 
-This table shows the most commonly used groups. Run `wxcli --help` to see all 192 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
+This table shows the most commonly used groups. Run `wxcli --help` to see all 200 groups, which also cover admin, device, messaging, meetings, and contact center APIs.
 
----
+### CUCM-to-Webex migration
 
-## CUCM-to-Webex Migration Tool
+A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environment, maps objects to Webex Calling equivalents, and executes the migration. 2535 tests passing. You start it by asking Claude ("Run a CUCM migration") and answer each review decision; Claude runs the phases below, one at a time.
 
-A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environment, maps objects to Webex Calling equivalents, and executes the migration. 2535 tests passing.
-
-### Pipeline
+#### Pipeline
 
 ```bash
 wxcli cucm init myproject                 # Create project
@@ -266,7 +255,7 @@ wxcli cucm report --brand "Acme Corp" \   # Generate HTML assessment report
 
 The assessment report provides a complexity score, environment inventory, analog gateway review, and effort estimates — suitable for customer-facing delivery.
 
-### Additional Pipeline Outputs
+#### Additional pipeline outputs
 
 ```bash
 wxcli cucm user-diff -p myproject         # Per-user before/after comparison
@@ -275,7 +264,7 @@ wxcli cucm user-notice --brand "Acme" \   # Email-ready migration notice
   --helpdesk "help@acme.com" -p myproject
 ```
 
-### Execution
+#### Execution
 
 After analysis and decision review:
 
@@ -289,7 +278,7 @@ wxcli cucm execute -p myproject \         # Execute all operations concurrently
 
 The execution engine handles 409 auto-recovery (existing resources), cascade-skip (failed dependencies), and concurrent batch execution. A 561-operation stress test completes in ~90 seconds.
 
-### Migration Architecture
+#### Migration architecture
 
 - **SQLite-backed store** with objects, cross-references, decisions, and journal
 - **42 normalizers** (Pass 1) + CrossReferenceBuilder (34 relationships)
@@ -299,13 +288,11 @@ The execution engine handles 409 auto-recovery (existing resources), cascade-ski
 - **NetworkX DAG** for dependency ordering and batch planning
 - **Async execution engine** with configurable concurrency
 
----
-
-## Org Health Assessment
+### Org health assessment
 
 An automated audit of a live Webex Calling org. Runs 18 deterministic checks across 4 categories and produces a self-contained HTML report.
 
-### Categories and Checks
+#### Categories and checks
 
 | Category | Checks |
 |----------|--------|
@@ -314,36 +301,25 @@ An automated audit of a live Webex Calling org. Runs 18 deterministic checks acr
 | **Feature Utilization** | Disabled auto attendants, understaffed call queues, single-member hunt groups, empty voicemail groups, empty paging groups, empty call parks |
 | **Device Health** | Offline devices, users at device limit, unassigned devices, workspaces without devices, stale activation codes |
 
-### How to Run
+#### How it runs
 
-Via the Claude Code playbook:
+Ask Claude: "audit my org". The `wxops` agent orchestrates three phases: collect data via `wxcli`, analyze with the check engine, and generate the HTML report.
 
-```
-/agents → wxc-calling-builder → "audit my org"
-```
+### Partner / multi-org
 
-The builder agent orchestrates three phases: collect data via `wxcli`, analyze with the check engine, and generate the HTML report.
-
----
-
-## Partner / Multi-Org Support
-
-For partners, VARs, and MSPs managing multiple customer organizations with a single token.
+For partners, VARs, and MSPs managing multiple customer organizations with a single token. Ask Claude to switch the target org ("switch to the Acme org", "which org am I in?"); it runs these. Pasting the partner token stays your step (Setup, step 3), and that step asks which org to target first.
 
 ```bash
-wxcli configure                   # Auto-detects multi-org token, prompts for org selection
 wxcli switch-org                  # Change the active target org
 wxcli clear-org                   # Revert to single-org behavior
 wxcli whoami                      # Shows "Target:" line when an org is set
 ```
 
-1149 of the generated commands auto-inject the selected `orgId` on endpoints that accept it — no extra flag required.
+The generated commands add the selected `orgId` to every endpoint that accepts it — no extra flag required.
 
----
+### Cleanup
 
-## Cleanup
-
-Batch-delete Webex Calling resources in dependency-safe order (13 layers, reverse of creation order).
+Ask Claude to tear down what you name ("delete the lab locations San Jose and Austin; dry run first"). It batch-deletes Webex Calling resources in dependency-safe order (13 layers, reverse of creation order):
 
 ```bash
 wxcli cleanup run --scope "San Jose,Austin"  # Specific locations only
@@ -360,59 +336,21 @@ wxcli cleanup run --all --dry-run             # Preview without deleting
 
 **Deletion order:** dial plans → route lists → route groups → translation patterns → trunks → call features → schedules/operating modes → virtual lines → devices → workspaces → users → numbers → locations.
 
----
-
-## Project Architecture
-
-```
-wxops/
-├── src/wxcli/                    # CLI source (Typer + httpx REST client)
-│   ├── main.py                   # Entry point — registers 192 command groups
-│   ├── auth.py                   # Token storage and API client init
-│   ├── output.py                 # Table/JSON output formatting
-│   ├── commands/                 # generated command modules (one per API tag) + _registry.py manifest
-│   ├── org_health/               # Org health assessment engine (18 checks → HTML report)
-│   └── migration/                # CUCM-to-Webex migration engine
-│       ├── cucm/                 # AXL extractors and discovery
-│       ├── transform/            # Normalizers, mappers, analyzers
-│       ├── execute/              # Async execution engine + handlers
-│       ├── advisory/             # Decision recommendations
-│       ├── report/               # HTML/PDF assessment report generator
-│       └── models.py             # 38 canonical data models
-├── tools/                        # Code generator pipeline
-│   ├── generate_commands.py      # Orchestrator: OpenAPI → Click commands
-│   ├── openapi_parser.py         # Parses OpenAPI 3.0 specs into Endpoint objects
-│   ├── command_renderer.py       # Renders Endpoints into Python command files
-│   └── field_overrides.yaml      # Table columns, display config, bug fixes
-├── tests/                        # 2535 tests (pytest)
-├── specs/                        # 9 OpenAPI 3.0 specs (calling, admin, device, messaging, meetings, CC, UCM, BroadWorks, wholesale)
-├── docs/reference/               # 42 API reference docs (SDK + raw HTTP + gotchas)
-├── .claude/settings.json         # Shared permissions (pre-approves wxcli commands)
-├── .claude/agents/               # Claude Code builder + migration advisor agents
-└── .claude/skills/               # 25 Claude Code skills
-```
-
-**Key design decisions:**
-
-- **Commands are generated, never hand-edited.** Fix bugs in `field_overrides.yaml` and regenerate with `tools/generate_commands.py`.
-- **The CLI uses raw HTTP** via its own `WebexSession` client (`src/wxcli/auth.py`) built on `httpx`, not any third-party SDK. This gives 100% API coverage without external dependencies.
-- **Reference docs serve both humans and AI.** Developers can read them directly; the playbook loads them as context for guided configuration.
-
-## Known Limitations
+### Known limitations
 
 - **Call control commands require a user-level OAuth token.** Admin and service app tokens return `400 "Target user not authorized"`. Use a personal access token from the user who will control calls.
 - **Complex nested settings need `--json-body`.** Call forwarding rules, agent lists, voicemail config, and similar deeply nested structures can't be expressed as CLI flags — pass the full JSON body instead.
 - **6 person call settings are user-only.** `simultaneousRing`, `sequentialRing`, `priorityAlert`, `callNotify`, `anonymousCallReject`, and `callPolicies` only work with user-level tokens, not admin tokens.
 - **CDR/analytics endpoints require the `analytics:read_all` scope**, which standard admin tokens may not include.
 
-## Requirements
+### Requirements
 
 - Python 3.11+ (includes `pip`)
 - A Webex admin account with access tokens
 
-### OAuth Scopes
+#### OAuth scopes
 
-The CLI covers 192 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
+The CLI covers 200 command groups across calling, admin, device, messaging, meetings, and contact center APIs. Not all scopes are needed — request only those for the API domains you use.
 
 **Minimum scopes for Webex Calling admin operations:**
 
@@ -464,6 +402,56 @@ The CLI covers 192 command groups across calling, admin, device, messaging, meet
 | `spark:xsi` | XSI scope for Webex Calling resources |
 
 See [`docs/reference/authentication.md`](docs/reference/authentication.md) for full details on token types, OAuth flows, and scope requirements per endpoint.
+
+## For maintainers
+
+This section is for people changing this repository. In the repo, too, Claude runs the commands; the rules it follows are in `.claude/rules/repo-development.md` and `tools/CLAUDE.md`.
+
+### Project layout
+
+```
+wxops/
+├── src/wxcli/                    # CLI source (Typer + httpx REST client)
+│   ├── main.py                   # Entry point — registers 200 command groups
+│   ├── auth.py                   # Token storage and API client init
+│   ├── output.py                 # Table/JSON output formatting
+│   ├── commands/                 # generated command modules (one per API tag) + _registry.py manifest
+│   ├── org_health/               # Org health assessment engine (18 checks → HTML report)
+│   ├── _playbook/                # GENERATED playbook bundle that `wxcli init` writes (Claude Code + Codex)
+│   └── migration/                # CUCM-to-Webex migration engine
+│       ├── cucm/                 # AXL extractors and discovery
+│       ├── transform/            # Normalizers, mappers, analyzers
+│       ├── execute/              # Async execution engine + handlers
+│       ├── advisory/             # Decision recommendations
+│       ├── report/               # HTML/PDF assessment report generator
+│       └── models.py             # 38 canonical data models
+├── tools/                        # Code generator pipeline and the drift gate
+│   ├── generate_commands.py      # Orchestrator: OpenAPI → Click commands
+│   ├── openapi_parser.py         # Parses OpenAPI 3.0 specs into Endpoint objects
+│   ├── command_renderer.py       # Renders Endpoints into Python command files
+│   ├── drift_check.py            # The drift gate (docs, skills and CLI agree)
+│   └── field_overrides.yaml      # Table columns, display config, bug fixes
+├── wxcli-dist/                   # assemble.py + the curated settings, MCP and hook files it ships
+├── tests/                        # 2535 tests (pytest)
+├── specs/                        # 10 OpenAPI 3.0 specs (calling, admin, device, messaging, meetings, CC, CC Flow Store, UCM, BroadWorks, wholesale)
+├── docs/reference/               # 118 reference docs (API + platform knowledge + gotchas)
+├── docs/playbooks/               # step-by-step platform guides
+├── .claude/agents/               # wxops (the builder) + migration-advisor
+└── .claude/skills/               # 39 skills
+```
+
+**Key design decisions:**
+
+- **Commands are generated, never hand-edited.** Fix bugs in `field_overrides.yaml` and regenerate with `tools/generate_commands.py`.
+- **The CLI uses raw HTTP** via its own `WebexSession` client (`src/wxcli/auth.py`) built on `httpx`, not any third-party SDK. This gives 100% API coverage without external dependencies.
+- **Reference docs serve both humans and AI.** Developers can read them directly; the playbook loads them as context for guided configuration.
+
+### Building and checking
+
+- **Drift gate.** `python -m tools.drift_check --enforce` must end `result: PASS`: every command a doc cites exists, every published count matches, every group is routed.
+- **Tests.** Run the files a change touches, `venv/bin/python -m pytest <files> -q`. The `live` and `mutation` tiers call a real org and are opt-in; CI runs everything else on Python 3.11 and 3.12.
+- **The playbook bundle.** `src/wxcli/_playbook/` is generated: never hand-edit it. After changing a shipped source (`CLAUDE.md`, `.claude/agents|skills|rules`, `docs/reference|playbooks|templates|examples`), run `python wxcli-dist/assemble.py` and commit the bundle with the change. It reads tracked files only (`git ls-files`), substitutes the curated `wxcli-dist/settings.bundled.json` and the sanitized `wxcli-dist/mcp.bundled.json`, generates the Codex profile, and fails on a repo-only path left in a shipped file.
+- **Releases.** A `v*` tag runs `.github/workflows/release.yml`, which re-runs the assembler, refuses to publish a stale bundle, and publishes to PyPI.
 
 ## Disclaimer & Safe Use
 

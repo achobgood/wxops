@@ -6,8 +6,8 @@ description: |
   telephony webhook subscriptions and event parsing, conference controls including supervisor
   barge-in/silent-monitor/coach, and setting wrap-up reasons on a member's last call
   (call-controls-members / call-controls-members-me).
-  NOT for: messaging webhooks/bot events (use messaging-bots skill), call settings/forwarding
-  configuration (use manage-call-settings skill), or CDR/call history queries (use reporting skill).
+  NOT for: messaging webhooks/bot events (messaging-bots), call settings/forwarding configuration
+  (manage-call-settings), or CDR/call history queries (reporting).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [call-control | webhooks | conference]
 ---

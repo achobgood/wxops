@@ -9,8 +9,6 @@ description: |
   lookup (resolve role name to role ID), bulk activation/invite email resend jobs,
   archived (deleted) user lookup, and space classification labels.
   Guides from prerequisites through execution and verification.
-  NOT for: Webex Calling user provisioning (use provision-calling skill) or
-  license assignment (use manage-licensing skill).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [operation — e.g. "sync users", "verify domain", "bulk import", "cleanup directory"]
 ---

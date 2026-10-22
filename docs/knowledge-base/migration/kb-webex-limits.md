@@ -41,7 +41,7 @@ Platform constraints should override a static recommendation when:
 | Paging Group targets | 75 | per group | call-features-additional.md (line 73, 222) |
 | Call Pickup group membership | 1 group per user | user can only belong to one pickup group | call-features-additional.md (line 933) |
 | Monitoring elements | 50 | per person/workspace (persons, places, virtual lines, call park extensions combined) | person-call-settings-media.md (line 1481, 1890) |
-| Shared line appearances | 35 | per line | recommendation_rules.py (line 312); CLAUDE.md known issue -- not explicitly stated in reference docs as a hard limit, sourced from implementation/Cisco documentation |
+| Shared line appearances | 35 | per line | recommendation_rules.py (line 312); **Unverified:** no Known Issue states this limit (checked 2026-10-20); source is the recommendation rules and Cisco documentation |
 | Auto Attendant per-location limit | Not documented in reference docs | Checked: call-features-major.md has no per-location AA cap | -- |
 | Call Park Extensions per-location limit | Not documented in reference docs | Checked: call-features-additional.md has no per-location CPE cap | -- |
 | Voicemail Group member limit | Not documented in reference docs | Checked: call-features-additional.md has no explicit member cap | -- |
@@ -125,14 +125,14 @@ Features requiring specific OAuth scopes and token types:
 |-------------|---------------|------------|----------------|--------|
 | Telephony config (read) | `spark-admin:telephony_config_read` | Admin or Service App | 403 | authentication.md (line 410) |
 | Telephony config (write) | `spark-admin:telephony_config_write` | Admin or Service App | 403 | authentication.md (line 411) |
-| Call control (user) | `spark:calls_read` / `spark:calls_write` | User-level OAuth | 400 "Target user not authorized" | call-control.md (line 38, 195); CLAUDE.md known issue #1 |
+| Call control (user) | `spark:calls_read` / `spark:calls_write` | User-level OAuth | 400 "Target user not authorized" | call-control.md (line 38, 195); wxcli-behavior.md Known Issue #1 |
 | Call control (admin) | `spark-admin:calls_read` / `spark-admin:calls_write` | Service App | -- | call-control.md (line 39-40) |
-| /people/me/ settings | User-level OAuth (any `spark:` scope) | User-level only | 404 on admin tokens | self-service-call-settings.md (line 18); CLAUDE.md known issue #4 |
+| /people/me/ settings | User-level OAuth (any `spark:` scope) | User-level only | 404 on admin tokens | self-service-call-settings.md (line 18); wxcli-behavior.md Known Issue #4 |
 | CDR / reporting | `spark-admin:calling_cdr_read` | Admin or Service App | 403 | authentication.md (line 414) |
 | People CRUD | `spark-admin:people_read` / `spark-admin:people_write` | Admin or Service App | 403 | authentication.md (line 415-416) |
 | Customer Assist (read) | `spark-admin:telephony_config_read` + `spark-admin:people_read` | Admin or Service App | 403 | call-features-additional.md (line 60, 62) |
 | Customer Assist (write) | `spark-admin:telephony_config_write` + `spark-admin:people_write` | Admin or Service App | 403 | call-features-additional.md (line 61, 63) |
-| Contact Center APIs | `cjp:config_read` / `cjp:config_write` | CC-scoped OAuth | 403 | CLAUDE.md known issue #13 |
+| Contact Center APIs | `cjp:config_read` / `cjp:config_write` | CC-scoped OAuth | 403 | wxcli-behavior.md Known Issue #11 |
 | Device configurations | `spark-admin:devices_write` (implied by admin token) | Admin or Service App | 403 | devices-core.md (device config operations) |
 
 ## License Implications

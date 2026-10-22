@@ -740,7 +740,7 @@ documented, and nothing here is new.
 6. **Deleting specific access codes uses PUT with a `deleteCodes` array, not DELETE.** This
    applies at both location and org level. The `DELETE` verb means *delete all*, and only at
    the location level — so reaching for it to remove one code removes every code. This is
-   the destructive-PUT shape described in the root `CLAUDE.md` known issue #20. (§3)
+   the destructive-PUT shape of the generator's known issue #20, kept in the maintainer notes of the source repository: a destructive PUT is named `update-*`. (§3)
 
 ---
 

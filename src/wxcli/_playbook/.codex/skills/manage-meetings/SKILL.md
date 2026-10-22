@@ -5,8 +5,8 @@ description: |
   breakout sessions, transcripts, recordings, polls, Q&A, and meeting preferences
   using wxcli CLI commands. Guides the user from prerequisites through execution
   and verification.
-  NOT for: meeting quality/usage analytics (use reporting-meetings skill) or
-  converged call recordings (use reporting skill).
+  NOT for: meeting quality/usage analytics (reporting-meetings) or converged call recordings
+  (reporting).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [meeting-operation]
 ---

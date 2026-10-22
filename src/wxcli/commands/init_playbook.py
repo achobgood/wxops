@@ -31,7 +31,7 @@ def classify(rel: str) -> str:
     """Which profile owns a bundle-relative path; docs/ etc. are 'shared'."""
     if rel.startswith(".codex/") or rel == "AGENTS.md":
         return "codex"
-    if rel.startswith(".claude/") or rel == "CLAUDE.md":
+    if rel.startswith(".claude/") or rel in ("CLAUDE.md", ".mcp.json"):
         return "claude"
     return "shared"
 
@@ -89,7 +89,9 @@ def apply_bundle(
     """Write/refresh the bundle. Returns (written, deleted, new_hashes).
 
     Deletes manifest-owned paths absent from the new bundle (retired skills
-    don't linger); never touches paths it doesn't own (spec §4.3).
+    don't linger); never touches paths it doesn't own (spec §4.3). The caller
+    (`init`) refuses to reach this function when a bundle path holds a file no
+    installed manifest owns, so every write here replaces a playbook file.
     """
     written: list[str] = []
     hashes: dict[str, str] = {}
@@ -164,6 +166,16 @@ def init(
         raise typer.Exit(1)
     selected = ["claude"] if claude_only else ["codex"] if codex_only else list(PROFILES)
 
+    # With no explicit profile flag, an existing folder REFRESHES only the profiles
+    # already installed there (read from their manifests) — an upgrade must never
+    # silently ADD the other profile (a Codex-only folder stays Codex-only). A fresh
+    # folder (no manifest) still gets both. Explicit --claude-only/--codex-only always
+    # win; to add the second profile to an existing folder, pass its flag.
+    if not (claude_only or codex_only):
+        installed = [p for p in PROFILES if load_manifest(folder, p) is not None]
+        if installed:
+            selected = installed
+
     if uninstall:
         do_uninstall(folder, selected)
         return
@@ -174,23 +186,43 @@ def init(
         raise typer.Exit(1)
     all_files = read_bundle(bundle)
     manifests = {p: load_manifest(folder, p) for p in selected}
+    existing = [p for p in selected if manifests[p] is not None]
+    fresh = [p for p in selected if manifests[p] is None]
 
     sel_files: dict[str, bytes] = {}
     for p in selected:
         sel_files.update(profile_files(all_files, p))
 
-    if all(m is None for m in manifests.values()):        # fresh for the selected profiles
-        collisions = sorted(rel for rel in sel_files if (folder / rel).exists())
-        if collisions and not force:
-            typer.echo(f"{folder} already contains files the playbook would overwrite:", err=True)
-            for rel in collisions:
-                typer.echo(f"  {rel}", err=True)
-            typer.echo("Re-run with --force to overwrite them, or choose an empty folder.", err=True)
-            raise typer.Exit(1)
-    elif not (force or yes) and not typer.confirm(
-        f"Refresh the wxops playbook ({', '.join(selected)}) in {folder} (owned files only)?"
-    ):
-        raise typer.Exit(0)
+    # A file owned by ANY profile installed in this folder is the playbook's, not the
+    # user's — including a profile not in `selected` (--codex-only onto a claude-only
+    # folder must not treat the folder's shared docs as user files).
+    owned_by_existing: set[str] = set()
+    for p in PROFILES:
+        m = manifests[p] if p in manifests else load_manifest(folder, p)
+        if m is not None:
+            owned_by_existing |= set(m.get("files", {}))
+
+    # Collision guard covers EVERY selected profile, not only fresh ones: a bundle path
+    # that exists in the folder and that no installed manifest owns is the user's file
+    # (e.g. their own .mcp.json beside a manifest that predates it). Aborts before any
+    # write; --force overrides, --yes does NOT.
+    collisions = sorted(rel for rel in sel_files
+                        if rel not in owned_by_existing and (folder / rel).exists())
+    if collisions and not force:
+        typer.echo(f"{folder} already contains files the playbook would overwrite:", err=True)
+        for rel in collisions:
+            typer.echo(f"  {rel}", err=True)
+        typer.echo("Re-run with --force to overwrite them, or choose an empty folder.", err=True)
+        raise typer.Exit(1)
+
+    if existing and not (force or yes):
+        actions = [f"refresh {', '.join(existing)}"]
+        if fresh:
+            actions.append(f"add {', '.join(fresh)}")
+        if not typer.confirm(
+            f"This will {' and '.join(actions)} in {folder} (owned files only). Continue?"
+        ):
+            raise typer.Exit(0)
 
     folder.mkdir(parents=True, exist_ok=True)
     written = deleted = 0

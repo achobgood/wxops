@@ -1,28 +1,33 @@
 # wxcli Codex playbook config — GENERATED into .codex/config.toml. Do not hand-edit.
-# These apply once you trust this folder in Codex (codex trusts the repo/cwd).
+# These apply once you trust this folder in Codex (codex trusts the repo/cwd),
+# and so does the generated [mcp_servers] block at the end of this file. The
+# first `codex` run in the folder asks for that trust (recorded under [projects]
+# in ~/.codex/config.toml); until then Codex uses its global defaults.
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
+# AGENTS.md is ~42 KB; Codex's default reads only the first 32,768 bytes. This needs the
+# trust step above: an untrusted folder ignores it and silently loses the tail.
+project_doc_max_bytes = 65536
 
 # THE SAFETY GATE SHIPS. It is armed by .codex/hooks.json, which registers a
 # PreToolUse handler on the Bash tool. Policy, identical to the other playbook
-# variant: the wxc-calling-builder and migration-advisor agents may run any
+# variant: the wxops and migration-advisor agents may run any
 # wxcli command; everyone else gets read-only wxcli (list*/show*/whoami/--help)
-# and every state-changing call is refused and redirected to the builder.
+# and every state-changing call is refused: the main session is sent to the
+# builder, a subagent is told to stop and report (never to spawn another agent).
 #
-# READ THIS BEFORE RELYING ON IT -- THE GATE COVERS THE MAIN SESSION ONLY.
-# Measured on 0.147.0 with a catch-all logging handler, from BOTH project and
-# global config: PreToolUse fires for the main session (Bash, and the
-# collaboration spawn/wait tools) and NOT for tool calls made inside a spawned
-# subagent. A control confirmed the subagent really did run its command. So a
-# subagent is ungated here, which is narrower than the other playbook variant,
-# where subagent tool calls do reach the hook. The spawn boundary IS visible --
-# the parent sees the target agent in the spawn payload -- but refusing spawns
-# is deliberately not done: it would block ordinary delegation, and delegating
-# to the builder is exactly what every deny message asks for.
+# READ THIS BEFORE RELYING ON IT -- AN UNTRUSTED FOLDER HAS NO LOCK. Codex runs
+# project hooks only after the operator trusts them on its start screen ("Trust
+# all and continue"). "Continue without trusting", and headless `codex exec`
+# without --dangerously-bypass-hook-trust, run NO hooks: every wxcli call is
+# then ungated, with no visible sign (measured on 0.163.0, 2026-10-20).
 #
-# Consequence: the trusted-agent branch is forward-looking, not load-bearing.
-# The builder runs unrestricted because the hook never sees it, not because the
-# gate allows it.
+# Who reaches the hook, measured on 0.163.0: the main session's shell calls,
+# and a spawned subagent's, which carry the agent's DEFINITION type in
+# `agent_type` (never its spawn name) and an `agent_id`. So the trusted-agent
+# branch is load-bearing. (On 0.147.0 a subagent's calls never reached the
+# hook, so subagents were ungated there.) MCP tool calls are not gated: the
+# handler matches the Bash tool only.
 #
 # The handler calls `wxcli codex-gate` rather than a script, because Codex hands
 # a hook NO project-dir variable and a hook that cannot execute FAILS OPEN. An
@@ -46,7 +51,9 @@ sandbox_mode = "workspace-write"
 #     not depend on that, deliberately.
 #   - A top-level `agent_type` was NOT observed on any PreToolUse payload. The
 #     spawned agent's name appears only as `tool_input.agent_type` on the
-#     collaboration spawn call.
+#     collaboration spawn call. (Changed in 0.163.0: a subagent's calls carry
+#     it; see above. Re-measured there too: deny blocks; "allow" and an
+#     empty-reason deny let the command run.)
 #   - Global hooks are read from `$CODEX_HOME/hooks.json`, not
 #     `$CODEX_HOME/hooks/hooks.json`.
 #
@@ -62,8 +69,10 @@ sandbox_mode = "workspace-write"
 #      looks anonymous and the BUILDER is denied too -- safe, but every write
 #      workflow stops, so the deny reason says exactly that.
 #   3. Version-dependent. Codex 0.144.1 silently REJECTS hyphenated agent names,
-#      so wxc-calling-builder does not load there at all and the gate would deny
-#      the builder along with everyone else. 0.147.0 accepts them.
+#      so the builder agent did not load there at all and the gate would deny
+#      the builder along with everyone else. 0.147.0 accepts them; 0.163.0
+#      loads a hyphenated definition and reports it as the caller's type. A
+#      spawn NAME is stricter: lowercase letters, digits and underscores only.
 #
 # The "newer wxcli on PyPI" nudge needs no hook either way: the CLI prints a
 # one-line update banner on startup (see update_check.py).

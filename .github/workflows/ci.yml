@@ -41,7 +41,7 @@ jobs:
           # metadata claims `aiohttp<4.0,>=3.8`, so pip will not resolve away
           # from it and the pin has to be ours. Pinning the runtime dep in
           # pyproject instead would constrain USERS for a test-only defect.
-          # Drop this the moment aioresponses supports 3.14 (28 tests, all in
+          # Drop this the moment aioresponses supports 3.14 (38 tests, all in
           # tests/migration/execute/, will tell you immediately).
           pip install 'aiohttp<3.14'
 
@@ -60,7 +60,7 @@ jobs:
           TERM: dumb
           COLUMNS: "400"
         run: |
-          pytest tests/ -m "not live" -v --tb=short
+          pytest tests/ -m "not live and not mutation" -v --tb=short
 
   drift-gate:
     name: Drift gate (docs <-> CLI <-> spec coherence)
@@ -136,8 +136,8 @@ jobs:
           # the highest-numbered check is; an assertion left on an earlier one
           # passes for a run that died after it, which is the exact blindness
           # the exit-2 work above exists to remove.
-          if ! grep -q '^\[33\]' gate.log; then
-            echo "::error::Drift gate stopped before check 33 — it did not run to completion."
+          if ! grep -q '^\[34\]' gate.log; then
+            echo "::error::Drift gate stopped before check 34 — it did not run to completion."
             exit 2
           fi
           if ! grep -qE '^result: (PASS|FAIL)' gate.log; then
@@ -195,3 +195,4 @@ jobs:
 
       - name: Verify the installed wheel playbook
         run: python tools/wheel_playbook_smoke.py dist/wxcli-*.whl
+

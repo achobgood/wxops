@@ -4,8 +4,8 @@ description: |
   Debug a failing Webex Calling API call or configuration. Use when an API
   returns an error, a configuration doesn't apply, a resource is missing,
   or a wxcli command fails. Walks through systematic diagnosis.
-  NOT for: building/configuring resources (use the appropriate config skill) or
-  querying current state without errors (use query-live skill).
+  NOT for: building or configuring (a config skill) or querying current state without errors
+  (query-live).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [symptom-or-error-message]
 ---
@@ -98,7 +98,7 @@ Load the reference docs relevant to the reported symptom. Do NOT load all docs �
 
 Also load `docs/reference/authentication.md` if the user is troubleshooting scope or token issues.
 
-**Mandatory --help verification:** Before reproducing or constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli call-queue --help`). A wrong command name or flag (`show` vs `list`, singular vs plural — known issue #5) is itself a common cause of the failure you're debugging, so confirm before assuming the API is at fault. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
+**Mandatory --help verification:** Before reproducing or constructing any wxcli command, run `wxcli <group> --help` to verify the subcommand exists, then `wxcli <group> <subcommand> --help` to verify the exact flags (e.g. `wxcli call-queue --help`). A wrong command name or flag (`show` vs `list`, singular vs plural — `docs/reference/wxcli-behavior.md` Known Issue #5) is itself a common cause of the failure you're debugging, so confirm before assuming the API is at fault. Do NOT rely on examples in this skill or reference docs — the CLI is auto-generated and flag names may differ from what documentation suggests.
 
 ## Step 2: Verify auth token and scopes
 
@@ -111,13 +111,7 @@ Check authentication and scope access BEFORE investigating any other cause. Auth
 wxcli whoami
 ```
 
-If this fails with an auth error, the token is invalid or expired. Ask the user for a new token and configure it:
-
-```bash
-echo "<TOKEN>" | wxcli configure
-```
-
-This pipes the token into `wxcli configure` and saves it to `~/.wxcli/config.json`. Do NOT use `export WEBEX_ACCESS_TOKEN=...` — environment variables do not persist across Bash tool calls in Claude Code.
+If this fails with an auth error, the token is invalid or expired. Ask the user to run `wxcli configure` themselves and paste a new token at its prompt (root `CLAUDE.md` § You run the commands); it saves the token to `~/.wxcli/config.json`. Never ask for the token in chat. Do NOT use `export WEBEX_ACCESS_TOKEN=...` — environment variables do not persist across Bash tool calls in Claude Code.
 
 Token lifetimes:
 - **Personal access token**: 12 hours (cannot be refreshed)

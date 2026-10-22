@@ -529,7 +529,7 @@ def test_live_snapshot_is_not_empty():
     ops = sum(len(v) for v in snap["specs"].values())
     fields = sum(len(op["fields"]) for v in snap["specs"].values()
                  for op in v.values())
-    assert len(snap["specs"]) == 9, sorted(snap["specs"])
+    assert len(snap["specs"]) == 10, sorted(snap["specs"])
     assert ops > 1800, ops
     assert fields > 10000, fields
 
@@ -633,7 +633,7 @@ def test_live_tree_is_covered_not_blind():
     groups = sorted(g for f in raw for g in f["groups"])
     assert groups == ["broadworks-billing-reports", "broadworks-enterprises",
                       "broadworks-subscribers", "broadworks-workspaces",
-                      "cc-legacy-flows", "ucm-profile",
+                      "ucm-profile",
                       "wholesale-billing-reports", "wholesale-provisioning"], groups
 
 
@@ -649,7 +649,7 @@ def test_a_missing_snapshot_reports_every_spec_rather_than_passing():
     """Fail closed. With nothing recorded, nothing was reviewed — a check that
     treated an absent snapshot as "no deltas" would pass green forever."""
     structural, _, _ = dc.check_spec_semantics(snapshot={})
-    assert len(structural) == 9
+    assert len(structural) == 10
     assert {r["kind"] for r in structural} == {"spec_added"}
 
 

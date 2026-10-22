@@ -1,7 +1,7 @@
 # Execution Report: [OBJECTIVE_SUMMARY]
 
 Executed: [YYYY-MM-DD HH:MM] ET
-Agent: wxc-calling-builder
+Agent: wxops
 Plan: [link or reference to deployment-plan.md used]
 
 ---

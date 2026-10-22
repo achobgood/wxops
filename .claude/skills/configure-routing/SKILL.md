@@ -6,7 +6,7 @@ description: |
   and PSTN Connection settings. Guides the user from prerequisites through the full dependency chain
   and verification.
   Use for: create, update, delete, remove, list, or troubleshoot any Calling routing component.
-  NOT for: Contact Center dial plans or DN-to-entry-point mapping (use contact-center skill).
+  NOT for: Contact Center dial plans or DN-to-entry-point mapping (contact-center).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [routing-component]
 ---

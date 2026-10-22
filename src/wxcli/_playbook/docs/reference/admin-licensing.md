@@ -413,6 +413,8 @@ wxcli licenses-api update --json-body '{
 
 4. **License conflicts are strictly enforced.** A user cannot hold both Calling Professional and Calling Standard, or Calling Standard and Customer Assist. The API returns specific 400-level error codes for each conflict type (see Error Codes table above).
 
+5. **The license count lags behind a person's license change.** After a license is assigned or removed on a person, the inventory's `consumedUnits` (from `licenses list` or `show`) caught up only later. To confirm one person's change, read the person (`people show <personId>`, its `licenses` array), not the count. Observed live 2026-07-02.
+
 ---
 
 ## See Also

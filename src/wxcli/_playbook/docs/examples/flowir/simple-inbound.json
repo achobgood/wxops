@@ -1,0 +1,183 @@
+{
+  "name": "Example_Simple_Inbound",
+  "flowType": "FLOW",
+  "description": "Simple inbound flow: greeting \u2192 queue \u2192 hold music \u2192 disconnect. Demonstrates TTS connector pattern and queue-contact minimal pattern.",
+  "variables": [
+    {
+      "name": "holdDuration",
+      "type": "INTEGER",
+      "defaultValue": "600",
+      "isInput": false,
+      "isOutput": false,
+      "reportable": false
+    }
+  ],
+  "nodes": [
+    {
+      "id": "start",
+      "name": "NewPhoneContact",
+      "activityType": "start",
+      "group": "action",
+      "properties": {
+        "activityName": "start"
+      }
+    },
+    {
+      "id": "greeting",
+      "name": "PlayGreeting",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "play-message",
+        "toggle": true,
+        "promptsTts": [
+          {
+            "name": "Thank you for calling. Please hold while we connect you to an agent.",
+            "type": "tts",
+            "value": "Thank you for calling. Please hold while we connect you to an agent."
+          }
+        ],
+        "connector": "Cisco Cloud Text-to-Speech",
+        "connector_name": "Cisco Cloud Text-to-Speech",
+        "connector:name": "Cisco Cloud Text-to-Speech",
+        "connector_type": "Cisco Cloud Text-to-Speech",
+        "connector:type": "Cisco Cloud Text-to-Speech",
+        "speakingRate": 1,
+        "volumeGainDb": 0
+      }
+    },
+    {
+      "id": "queue",
+      "name": "QueueToAgent",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "queue-contact",
+        "queueId": "00000000-0000-0000-0000-000000000001",
+        "channelType": "TELEPHONY"
+      }
+    },
+    {
+      "id": "hold-music",
+      "name": "HoldMusic",
+      "activityType": "action",
+      "group": "action",
+      "properties": {
+        "activityName": "play-music",
+        "prompt": "defaultmusic_on_hold.wav",
+        "audioRadioGroup": "audioFile"
+      }
+    },
+    {
+      "id": "disconnect",
+      "name": "Disconnect",
+      "activityType": "action",
+      "group": "terminating-action",
+      "properties": {
+        "activityName": "disconnect-contact"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "NewPhoneContact",
+      "to": "PlayGreeting"
+    },
+    {
+      "id": "e2",
+      "from": "PlayGreeting",
+      "to": "QueueToAgent",
+      "condition": "default"
+    },
+    {
+      "id": "e3",
+      "from": "QueueToAgent",
+      "to": "HoldMusic"
+    },
+    {
+      "id": "e4",
+      "from": "HoldMusic",
+      "to": "Disconnect",
+      "condition": "default"
+    },
+    {
+      "id": "e5",
+      "from": "QueueToAgent",
+      "to": "Disconnect",
+      "condition": "failure"
+    }
+  ],
+  "eventFlows": {
+    "GLOBAL_EVENTS": {
+      "id": "GLOBAL_EVENTS",
+      "name": "Global Error Handling",
+      "description": "Runs when the flow raises an unhandled error.",
+      "onEvents": {
+        "GlobalErrorHandling": "OnGlobalError"
+      },
+      "nodes": [
+        {
+          "id": "event-global-error",
+          "name": "OnGlobalError",
+          "activityType": "action",
+          "group": "action",
+          "properties": {
+            "activityName": "Event",
+            "eventSourceName": "WebexContactCenter",
+            "eventClassificationName": "VoiceInteractions",
+            "eventSpecificationName": "GlobalErrorHandling"
+          }
+        },
+        {
+          "id": "err-msg",
+          "name": "ErrorMessage",
+          "activityType": "action",
+          "group": "action",
+          "properties": {
+            "activityName": "play-message",
+            "toggle": true,
+            "promptsTts": [
+              {
+                "name": "We are experiencing technical difficulties. Please try again later.",
+                "type": "tts",
+                "value": "We are experiencing technical difficulties. Please try again later."
+              }
+            ],
+            "connector": "Cisco Cloud Text-to-Speech",
+            "connector_name": "Cisco Cloud Text-to-Speech",
+            "connector:name": "Cisco Cloud Text-to-Speech",
+            "connector_type": "Cisco Cloud Text-to-Speech",
+            "connector:type": "Cisco Cloud Text-to-Speech",
+            "speakingRate": 1,
+            "volumeGainDb": 0
+          }
+        },
+        {
+          "id": "err-disconnect",
+          "name": "ErrorDisconnect",
+          "activityType": "action",
+          "group": "terminating-action",
+          "properties": {
+            "activityName": "disconnect-contact"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "ev-entry",
+          "from": "OnGlobalError",
+          "to": "ErrorMessage",
+          "condition": "out",
+          "properties": {}
+        },
+        {
+          "id": "e6",
+          "from": "ErrorMessage",
+          "to": "ErrorDisconnect",
+          "condition": "default"
+        }
+      ]
+    }
+  }
+}

@@ -46,44 +46,52 @@ every Bash call — the difference between a visible outage and an invisible one
 permissionDecision:deny without a non-empty permissionDecisionReason`), so
 every deny path below carries one.
 
-WHAT THIS GATE DOES NOT COVER — measured, not assumed
-------------------------------------------------------
-**PreToolUse fires only for the MAIN session. A spawned subagent's tool calls
-never reach it.** Measured twice on 0.147.0 with a catch-all (`matcher: ".*"`)
-logging handler, once from project `.codex/hooks.json` and once from global
-`$CODEX_HOME/hooks.json`: the parent's `Bash`, `collaborationspawn_agent` and
-`collaborationwait_agent` calls were all captured, and the subagent's own `Bash`
-call produced NO hook invocation at all. A control confirmed the subagent really
-did run its command. So on Codex today, anything running inside a subagent is
-ungated, and this gate guards the main session only. That is narrower than the
-Claude Code twin, where subagent tool calls do reach the hook.
+Re-measured on 0.163.0 (2026-10-20, headless `codex exec --json
+--dangerously-bypass-hook-trust`, a throwaway folder, a marker file as the
+control): this gate's own deny blocked a main-session write (no marker, the
+reason in the tool error); a well-formed `allow` and a deny with an EMPTY
+reason both let the command run; silence let it run. `codex exec` prints no
+hook status lines, so `Completed`/`Failed` were not re-observed there; the
+binary still carries the "unsupported permissionDecision:allow" string. The
+permit path stays silence.
 
-The one place the boundary is visible is the spawn itself: the parent's
-`collaborationspawn_agent` payload carries the target agent in
-`tool_input.agent_type`. Refusing spawns is NOT done here — it would block
-ordinary delegation for non-wxcli work, and delegating to the builder is exactly
-what every deny message asks for.
+Who reaches the hook — measured, not assumed
+--------------------------------------------
+**0.163.0: a subagent's shell calls reach PreToolUse, carrying the agent's
+DEFINITION type.** A spawned agent's `Bash` payload has a top-level
+`agent_type` (the type it was defined as — `probe`, `probe-hy`, or `default`
+for an untyped spawn; never the spawn-time `task_name`) and an `agent_id`; the
+main session's payload has neither. So TRUSTED_AGENTS is load-bearing now, and
+a denied subagent is told to stop and report, never to spawn
+(DENY_WRITE_SUBAGENT) — the recursion the Claude gate's twin fix closes.
 
-`agent_type` — the field the trusted-caller branch keys on — was NOT observed on
-any PreToolUse payload in this environment, present or empty, for the main
-session or otherwise. It appears only as `tool_input.agent_type` on the spawn
-call. The TRUSTED_AGENTS branch is therefore forward-looking rather than
-load-bearing today: the builder is unrestricted because the hook never sees it,
-not because the gate allows it. Keeping the branch costs nothing and is already
-correct if a release starts delivering the field.
+History: on 0.147.0 (2026-08-10) the same catch-all logging probe saw the
+parent's `Bash`, `collaborationspawn_agent` and `collaborationwait_agent`
+calls and NO hook call for the subagent's own `Bash` call, so subagents were
+ungated there and the trusted-caller branch was forward-looking only.
+
+**What it still does not cover.** An untrusted Codex folder runs NO project
+hooks at all — the first `codex` run asks the operator to trust the hooks,
+and "Continue without trusting" (or headless `codex exec` without the bypass
+flag) leaves every wxcli call ungated with no visible sign (measured 0.163.0).
+And the Codex hooks.json wires `^Bash$` only, so MCP tool calls are not gated.
 
 What is version-pinned, and what breaks if it moves
 ---------------------------------------------------
 See CODEX_VERIFIED_VERSION. Two behaviours are undocumented and version-bound:
 
-1. `agent_type` on the PreToolUse payload. Official Codex hook docs list it for
-   SubagentStart/SubagentStop only. If a release starts sending it and a later
-   one drops it again, every caller looks anonymous, the builder is denied along
-   with everyone else, and every write workflow stops — safe, but unreadable
-   unless the deny says so. It does; see DENY_WRITE.
+1. `agent_type` and `agent_id` on the PreToolUse payload. Official Codex hook
+   docs list them for SubagentStart/SubagentStop only; 0.163.0 sends them on a
+   subagent's PreToolUse too (0.147.0 did not). If a release drops them again,
+   every caller looks like the main session, the builder is denied along with
+   everyone else, and every write workflow stops — safe, but unreadable unless
+   the deny says so. It does; see DENY_WRITE.
 2. Hyphenated custom-agent names. 0.144.1 silently ignored them, so
-   `wxc-calling-builder` never loaded there at all; 0.147.0 accepts them.
-   assemble.py validates the name at build time.
+   the builder agent never loaded there at all; 0.147.0 accepts them, and
+   0.163.0 loads a `probe-hy` definition whose calls carry `agent_type:
+   "probe-hy"`. assemble.py validates the name at build time. A spawn-time
+   `task_name` is a different field with a stricter rule (lowercase letters,
+   digits and underscores; 0.163.0 rejects `custom-sub`).
 
 tests/test_codex_gate.py pins the protocol, and .claude/hooks/wxcli-gate.test.sh
 runs one decision table across BOTH gates so the two cannot drift apart.
@@ -94,22 +102,29 @@ import json
 import re
 import sys
 
-# The Codex release every measurement in this module was taken on. Behaviour
-# here is version-dependent (0.144.1 differs materially), so the number is
-# recorded rather than implied.
-CODEX_VERIFIED_VERSION = "0.147.0"
+# The Codex release the gate's behaviour was last measured on: who reaches the
+# hook, deny blocks, an empty-reason deny and `allow` do not, hyphenated
+# definitions load (0.163.0, 2026-10-20; the status-line column of the protocol
+# table is 0.147.0's, see the docstring). Behaviour here is version-dependent
+# (0.144.1 and 0.147.0 differ materially), so the number is recorded rather
+# than implied.
+CODEX_VERIFIED_VERSION = "0.163.0"
 
 # Agents that carry the playbook rules run unrestricted. They are the reason
 # this gate exists: the rules that make a wxcli call correct travel with the
 # agent, not with the caller.
-TRUSTED_AGENTS = ("wxc-calling-builder", "migration-advisor")
+TRUSTED_AGENTS = ("wxops", "migration-advisor")
 
 # Wrappers that take another command as an argument. Only inside one of these
 # is anything past the command position scanned — otherwise `grep -rn wxcli
 # docs/` reads as an invocation, and denying an ordinary grep is its own bug.
 WRAPPERS = frozenset(
-    "env command nohup nice time xargs sudo stdbuf setsid sh bash zsh".split()
+    "env command nohup nice time xargs sudo stdbuf setsid sh bash zsh exec eval".split()
 )
+
+# Shell keywords that put a command after them (`for …; do <cmd>`, `if …; then
+# <cmd>`, `! <cmd>`): skipped at command position, the way VAR=val is.
+KEYWORDS = frozenset("do then else elif if while until !".split())
 
 # `get*` is deliberately NOT a read: all four get-* commands issue a POST
 # (get-domain-verification, get-customer-device, get-location-device,
@@ -117,7 +132,13 @@ WRAPPERS = frozenset(
 READ_VERBS = ("list", "show")
 
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+_LEADING_GROUP = re.compile(r"^[({]+")
+_TRAILING_GROUP = re.compile(r"[)}]+$")
 _LEADING_BACKSLASH = re.compile(r"^\\+")
+# fd duplications (2>&1, >&2, <&0, >&-) and `&>` / `&>>` contain an `&` that
+# separates nothing; they are removed before a lone `&` splits commands.
+_FD_DUP = re.compile(r"[0-9]*[<>]&[0-9-]+")
+_AMP_REDIRECT = re.compile(r"&>>?")
 _LEADING_QUOTE = re.compile(r"^[\"']+")
 _TRAILING_QUOTE = re.compile(r"[\"']+$")
 _SPLIT_TOKENS = re.compile(r"[ \t]+")
@@ -129,7 +150,9 @@ _IMPORT_MODULE = re.compile(r"import_module.*wxcli")
 
 
 def _clean(token: str) -> str:
-    """Strip shell quoting a static reader can see through."""
+    """Strip shell quoting and grouping a static reader can see through."""
+    token = _LEADING_GROUP.sub("", token)
+    token = _TRAILING_GROUP.sub("", token)
     token = _LEADING_BACKSLASH.sub("", token)
     token = _LEADING_QUOTE.sub("", token)
     return _TRAILING_QUOTE.sub("", token)
@@ -143,9 +166,13 @@ def _base(token: str) -> str:
 def _segments(command: str) -> list[str]:
     """Split a compound command so each segment is judged on its own.
 
-    `wxcli people list && wxcli locations delete X` is not a read.
+    `wxcli people list && wxcli locations delete X` is not a read, and
+    neither is `wxcli people list & wxcli people delete X`: a lone `&` (run in
+    background) separates commands too (review R1 T4-B1).
     """
-    for sep in ("||", "&&", ";", "|"):
+    command = _FD_DUP.sub(" ", command)
+    command = _AMP_REDIRECT.sub(" >", command)
+    for sep in ("||", "&&", ";", "|", "&"):
         command = command.replace(sep, "\n")
     return command.split("\n")
 
@@ -190,6 +217,7 @@ def denies_wxcli_write(command: str) -> bool:
         first = 0
         while first < len(tokens) and (
             tokens[first] == "" or _ASSIGNMENT.match(tokens[first])
+            or tokens[first] in KEYWORDS
         ):
             first += 1
         if first >= len(tokens):
@@ -240,24 +268,33 @@ def denies_wxcli_write(command: str) -> bool:
 
 DENY_WRITE = (
     "Only read-only wxcli (list*/show*/whoami/--help) may run outside the "
-    "wxc-calling-builder agent. This command changes state or is unrecognized. "
-    "REQUIRED ACTION: do NOT run wxcli directly again. Ask Codex to use the "
-    "wxc-calling-builder agent and give it this intent: {command} — the agent "
-    "handles auth, planning, execution and verification. "
-    "SCOPE, measured on Codex "
-    + CODEX_VERIFIED_VERSION
-    + ": PreToolUse fires for the MAIN session only — a spawned subagent's "
-    "shell calls never reach it — so delegating is both the intended route and "
-    "the one that works. IF YOU ARE ALREADY THE BUILDER AND STILL SEE THIS, "
-    "the gate has failed closed rather than misfired: it identifies the caller "
-    "from the hook payload's `agent_type`, which is NOT a documented PreToolUse "
-    "field (Codex documents it for SubagentStart/SubagentStop only) and was not "
-    "observed on any PreToolUse payload when this shipped. If a release starts "
-    "sending it and a later one stops, every caller looks anonymous, the "
-    "builder is denied along with everyone else, and every write workflow "
-    "stops. To confirm, dump the hook payload and look for `agent_type`; to "
-    "unblock, remove the PreToolUse entry from .codex/hooks.json and accept "
-    "that this leaves every wxcli call in the main session unguarded."
+    "wxops agent. This command changes state or is unrecognized. "
+    "REQUIRED ACTION: do NOT run wxcli directly again. Ask Codex to spawn the "
+    'wxops agent (agent_type: "wxops") and give it '
+    "this intent: {command} — the agent handles auth, planning, execution and "
+    "verification. The gate matches the agent's type, not its spawn name; the "
+    "spawn name must use only lowercase letters, digits and underscores (Codex "
+    "rejects a name like custom-sub). "
+    "IF YOU ARE ALREADY THE BUILDER AND STILL SEE THIS, the gate has failed "
+    "closed rather than misfired: it identifies the caller from the hook "
+    "payload's `agent_type`, which Codex documents for SubagentStart/"
+    "SubagentStop only. It was measured on a subagent's PreToolUse payload on "
+    "Codex " + CODEX_VERIFIED_VERSION + "; if a release stops sending it, "
+    "every caller looks like the main session, the builder is denied along "
+    "with everyone else, and every write workflow stops. To confirm, dump the "
+    "hook payload and look for `agent_type`; to unblock, remove the PreToolUse "
+    "entry from .codex/hooks.json and accept that this leaves every wxcli call "
+    "unguarded."
+)
+
+# A caller with an `agent_id` is a subagent. Telling it to "use the builder"
+# invites it to spawn one, the recursion the Claude gate's P5-1 fix closes, so
+# it is told to stop and report instead.
+DENY_WRITE_SUBAGENT = (
+    "You are inside {who}, and only the wxops "
+    "agent may change the org: this command changes state or is unrecognized. "
+    "Do not spawn another agent. Stop and tell your caller that this step "
+    "needs the wxops agent: {command}"
 )
 
 DENY_IMPORT = (
@@ -267,7 +304,7 @@ DENY_IMPORT = (
     "the live org, and a Typer default is an OptionInfo (truthy), so "
     "force=False does not mean what it reads like. REQUIRED ACTION: do not "
     "call command functions directly. Use `wxcli <command> --help` to inspect "
-    "a command, or ask Codex to run the work through the wxc-calling-builder "
+    "a command, or ask Codex to run the work through the wxops "
     "agent. If a layer genuinely must be exercised, monkeypatch the HTTP layer "
     "first."
 )
@@ -276,7 +313,7 @@ DENY_UNREADABLE = (
     "The wxcli safety gate could not parse the Codex hook payload, so this "
     "call could not be evaluated. Rather than allow an unchecked wxcli "
     "invocation it is refused; unrelated commands are unaffected. REQUIRED "
-    "ACTION: ask Codex to run this work through the wxc-calling-builder agent, "
+    "ACTION: ask Codex to run this work through the wxops agent, "
     "or report the malformed payload — the gate expects a JSON object with "
     "`tool_input.command`."
 )
@@ -289,12 +326,17 @@ def decide(payload: dict) -> str | None:
     if isinstance(tool_input, dict):
         command = str(tool_input.get("command") or "")
     agent = str(payload.get("agent_type") or "")
+    agent_id = str(payload.get("agent_id") or "")
 
     if imports_wxcli_from_python(command):
         return DENY_IMPORT
     if agent in TRUSTED_AGENTS:
         return None
     if denies_wxcli_write(command):
+        if agent_id:
+            who = (f"a `{agent}` subagent" if agent
+                   else "a subagent that reports no agent type")
+            return DENY_WRITE_SUBAGENT.format(who=who, command=command)
         return DENY_WRITE.format(command=command)
     return None
 

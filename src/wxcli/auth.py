@@ -424,12 +424,18 @@ class WebexSession:
         }
 
     def _request(self, method: str, url: str, json=None, params=None,
-                 content_type: str | None = None) -> httpx.Response:
+                 content_type: str | None = None, files=None) -> httpx.Response:
         """Single HTTP path for all verbs: bounded retry on RETRY_STATUSES
         (Retry-After honored on ALL of them, capped at 30s; jittered backoff
         otherwise; POST/PATCH are retried on 429 only, never on 5xx) + one connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both."""
         import httpx  # deferred — see module docstring note above the imports
 
+        headers = self._headers(content_type)
+        extra = {}
+        if files is not None:
+            # multipart: httpx writes Content-Type itself, with the boundary.
+            del headers["Content-Type"]
+            extra["files"] = files
         enabled = _retry_enabled()
         attempts_left = _max_attempts() if enabled else 1
         connect_retries = 1 if enabled else 0
@@ -438,8 +444,8 @@ class WebexSession:
             attempt += 1
             try:
                 response = httpx.request(
-                    method, url, headers=self._headers(content_type),
-                    json=json, params=params, timeout=self._timeout,
+                    method, url, headers=headers,
+                    json=json, params=params, timeout=self._timeout, **extra,
                 )
             except (httpx.ConnectError, httpx.ConnectTimeout) as e:
                 if connect_retries:
@@ -466,7 +472,7 @@ class WebexSession:
                 continue
             return response
 
-    def _json_or_raise(self, response: httpx.Response) -> dict:
+    def _json_or_raise(self, response: httpx.Response) -> dict | list | str:
         if not response.is_success:
             body = None
             try:
@@ -474,7 +480,14 @@ class WebexSession:
             except ValueError:
                 pass
             raise WebexError(response.text, status_code=response.status_code, body=body, headers=response.headers)
-        return response.json() if response.content else {}
+        if not response.content:
+            return {}
+        # Some Flow Store endpoints answer a success in plain text (`/health`,
+        # lock/unlock); return that text rather than a JSONDecodeError traceback.
+        try:
+            return response.json()
+        except ValueError:
+            return response.text
 
     def rest_get(self, url: str, params=None, *, remedies=()) -> dict:
         """One GET. `remedies` names the paging flags the CALLING command
@@ -491,6 +504,12 @@ class WebexSession:
 
     def rest_post(self, url: str, json=None, params=None) -> dict:
         return self._json_or_raise(self._request("POST", url, json=json, params=params))
+
+    def rest_post_multipart(self, url: str, *, files: dict[str, tuple[str, bytes, str]],
+                            params: dict | None = None) -> dict | list | str:
+        """POST a multipart/form-data body, e.g. a Flow Store file import.
+        `files` maps part name -> (filename, content, content type)."""
+        return self._json_or_raise(self._request("POST", url, params=params, files=files))
 
     def rest_patch(self, url: str, json=None, params=None, content_type: str | None = None) -> dict:
         return self._json_or_raise(self._request("PATCH", url, json=json, params=params,

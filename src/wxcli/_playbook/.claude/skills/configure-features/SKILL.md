@@ -3,16 +3,11 @@ name: configure-features
 description: |
   Create, modify, or delete Webex Calling call features using wxcli CLI commands: Auto Attendants, Call Queues,
   Hunt Groups, Paging Groups, Call Park, Call Pickup, Voicemail Groups, and Calling schedules
-  (business hours, holidays). Also covers the announcement repository (greeting files) and
-  text-to-speech prompt generation, announcement playlists (music on hold) and playlist usage,
-  location call handling (internal dialing, location intercept, outgoing calling permissions,
-  access/authorization codes, outgoing digit patterns), caller reputation (spam/fraud call scoring),
-  external voicemail MWI control, and AI Receptionist (an AI that answers calls, with its
-  intents and knowledge bases). Guides the user from prerequisites through creation,
-  modification, deletion, and verification.
+  (business hours, holidays). Also covers announcement files, text-to-speech prompts and playlists,
+  location call handling (internal dialing, intercept, outgoing permissions, access codes, digit patterns),
+  caller reputation, external voicemail MWI, and AI Receptionist (an AI that answers calls).
   Use for: create, update, delete, remove, list, or troubleshoot any Calling call feature.
-  NOT for: Contact Center queues/teams/flows (use contact-center skill), Customer Assist/CX Essentials
-  (use customer-assist skill), or per-person call settings (use manage-call-settings skill).
+  NOT for: Contact Center queues (contact-center), Customer Assist (customer-assist), or per-person settings (manage-call-settings).
 allowed-tools: Read, Grep, Glob, Bash
 argument-hint: [feature-type]
 ---
@@ -850,7 +845,7 @@ wxcli ai-receptionist list --all
 > fields that are nested objects — `--default-action` and `--ai-agent` on `create`,
 > `transferTo` on `create-intents` — and the generator renders a nested object as a plain
 > TEXT option, so passing a JSON string to those flags sends a string where the API expects
-> an object (Known Issue #2). Run the command with `--generate-json-body` first, fill in the
+> an object (`docs/reference/wxcli-behavior.md` Known Issue #2). Run the command with `--generate-json-body` first, fill in the
 > skeleton, then pass it back with `--json-body`. `create-knowledge-bases` has no nested
 > required field and works with plain flags.
 
