@@ -238,7 +238,7 @@ This table shows the most commonly used groups. Run `wxcli --help` to see all 20
 
 ### CUCM-to-Webex migration
 
-A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environment, maps objects to Webex Calling equivalents, and executes the migration. 2535 tests passing. You start it by asking Claude ("Run a CUCM migration") and answer each review decision; Claude runs the phases below, one at a time.
+A full migration pipeline at `src/wxcli/migration/` that analyzes a CUCM environment, maps objects to Webex Calling equivalents, and executes the migration. 3133 tests. You start it by asking Claude ("Run a CUCM migration") and answer each review decision; Claude runs the phases below, one at a time.
 
 #### Pipeline
 
@@ -432,7 +432,7 @@ wxops/
 │   ├── drift_check.py            # The drift gate (docs, skills and CLI agree)
 │   └── field_overrides.yaml      # Table columns, display config, bug fixes
 ├── wxcli-dist/                   # assemble.py + the curated settings, MCP and hook files it ships
-├── tests/                        # 2535 tests (pytest)
+├── tests/                        # 5560 tests (pytest)
 ├── specs/                        # 10 OpenAPI 3.0 specs (calling, admin, device, messaging, meetings, CC, CC Flow Store, UCM, BroadWorks, wholesale)
 ├── docs/reference/               # 118 reference docs (API + platform knowledge + gotchas)
 ├── docs/playbooks/               # step-by-step platform guides
