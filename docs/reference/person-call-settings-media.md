@@ -94,7 +94,7 @@ Top-level settings object returned by `read()` and passed to `configure()`.
 
 By default, voicemail is enabled with unanswered calls sent to voicemail after 3 rings using the default greeting, and internal message storage with MWI on; send-all-calls, send-busy-calls, notifications, transfer-to-number, email-copy, and fax-message all start disabled.
 
-> **Verified live 2026-10-13:** those defaults are not universal. A brand-new Professional user at a location of the sandbox tenant read back `sendBusyCalls.enabled: true`, `sendUnansweredCalls.numberOfRings: 8`, `voiceMessageForwardingEnabled: true`, `messageStorage.externalEmail` populated with the user's email, and `notifications.destination: null` (not `""`). A new virtual line at the same location read `numberOfRings: 3` with `sendBusyCalls.enabled: true`. Read the setting before assuming a default.
+> **Verified live 2026-10-13:** those defaults are not universal. A brand-new Professional user at a location of the CC Bootcamp Sandbox read back `sendBusyCalls.enabled: true`, `sendUnansweredCalls.numberOfRings: 8`, `voiceMessageForwardingEnabled: true`, `messageStorage.externalEmail` populated with the user's email, and `notifications.destination: null` (not `""`). A new virtual line at the same location read `numberOfRings: 3` with `sendBusyCalls.enabled: true`. Read the setting before assuming a default.
 
 ### CLI Examples
 

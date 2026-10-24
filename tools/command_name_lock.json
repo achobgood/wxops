@@ -3105,9 +3105,6 @@
    "update": [
     "PUT /telephony/config/locations/{}/dectNetworks/{}"
    ],
-   "update-debug-level": [
-    "PUT /telephony/config/locations/{}/dectNetworks/{}/debugLevel"
-   ],
    "update-handsets": [
     "PUT /telephony/config/locations/{}/dectNetworks/{}/handsets/{}"
    ],

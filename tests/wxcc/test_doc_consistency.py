@@ -10,6 +10,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 from tests.wxcc.conftest import REPO
 
 ACT_DIR = REPO / "docs" / "reference" / "flow-designer-activities"
@@ -71,22 +73,34 @@ def test_wxcc_docs_ship_in_wxcli_bundle():
     wxcc/src/wxcc_flow/_playbook, is frozen by Plan 3 P3-1; the shipped copy is
     now the wxcli bundle.
 
-    Every doc the bundle ships under src/wxcli/_playbook/docs must exist at the
-    same path under docs/ and be byte-identical to it.
+    Every ledger row with origin wxcc, kind tracked, fate kept or superseded and
+    a current_path under docs/ must exist in src/wxcli/_playbook byte-identical.
     """
-    shipped_root = REPO / "src" / "wxcli" / "_playbook" / "docs"
+    import csv
+
+    ledger = REPO / "docs" / "merge" / "webex-ops-ledger.tsv"
+    if not ledger.is_file():
+        pytest.skip("docs/merge/ is maintainer-only and not in this tree")
+    lines = [l for l in ledger.read_text().splitlines()
+             if l and not l.startswith("#")]
+    rows = list(csv.DictReader(lines, delimiter="\t"))
     checked, bad = 0, []
-    for shipped in sorted(shipped_root.rglob("*")):
-        if not shipped.is_file():
+    for r in rows:
+        if (r["origin"] != "wxcc" or r["kind"] != "tracked"
+                or r["fate"] not in ("kept", "superseded")
+                or not r["current_path"].startswith("docs/")
+                # docs/merge/ is maintainer-only: not in wxcli-dist/assemble.py INCLUDE_PATHS;
+                # Plan 6 keeps wxcc's CHANGELOG there (P6-7).
+                or r["current_path"].startswith("docs/merge/")):
             continue
-        rel = shipped.relative_to(shipped_root)
-        src = REPO / "docs" / rel
+        src = REPO / r["current_path"]
+        shipped = REPO / "src" / "wxcli" / "_playbook" / r["current_path"]
         checked += 1
-        if not src.is_file():
-            bad.append(f"no source: docs/{rel}")
-        elif shipped.read_bytes() != src.read_bytes():
-            bad.append(f"differs: docs/{rel}")
-    assert checked > 0, "the bundle ships no docs"
+        if not shipped.is_file():
+            bad.append(f"not shipped: {r['current_path']}")
+        elif not src.is_file() or shipped.read_bytes() != src.read_bytes():
+            bad.append(f"differs: {r['current_path']}")
+    assert checked > 0, "no wxcc docs rows in the ledger had a docs/ current_path"
     assert not bad, bad[:20]
 
 

@@ -407,6 +407,7 @@ def test_folder_indexes_list_every_file():
 # ---- Plan 5 Task 2: the agent bodies' detail, moved out (A1) -----------------------
 
 PLAN5_SOURCES = REPO / "tests/wxcc/fixtures/plan5_agent_sources.md"
+PLAN5_ACCOUNTING = REPO / "docs/merge/plan-5-accounting-agents.md"
 DESIGN_AI_AGENT = REPO / ".claude/skills/design-ai-agent"
 PLAN5_FATES = {"body", "moved", "already-in", "not-carried"}
 
@@ -469,6 +470,22 @@ def test_cucm_migrate_carries_pipeline_walkthrough():
     assert sum(1 for ln in text.splitlines() if ln.startswith("## Step 1")) == 1
 
 
+def test_agent_accounting_covers_every_heading():
+    if not PLAN5_ACCOUNTING.is_file():
+        pytest.skip("docs/merge/ is maintainer-only and not in this tree")
+    rows = []
+    for ln in PLAN5_ACCOUNTING.read_text(encoding="utf-8").splitlines():
+        cells = _cells(ln)
+        m = re.fullmatch(r"([\w-]+\.md):(\d+)-(\d+)", cells[1]) if len(cells) >= 7 else None
+        if m:
+            rows.append((m.group(1), int(m.group(2)), int(m.group(3)), cells))
+    for path, line, heading in _plan5_headings():
+        name = path.rsplit("/", 1)[-1]
+        mine = [r for r in rows if r[0] == name and r[3][2] == heading]
+        assert any(a <= line <= b for _, a, b, _ in mine), (path, line, heading)
+        for _, _, _, cells in mine:
+            assert cells[4] in PLAN5_FATES, (heading, cells[4])
+            assert cells[5], (heading, "no destination")
 
 
 def test_skill_listing_net_zero_plan5():
@@ -546,6 +563,7 @@ def test_root_quick_start_has_no_user_agents_step():
 # Appendix D § Kept: the only tracked files that may still name an old agent. A
 # path ending in "/" is a folder. Each entry's reason is in the plan's table.
 OLD_AGENT_NAMES_KEPT = (
+    "docs/merge/",                                      # records of what happened
     "docs/architecture/",                               # dated decision records, not shipped
     "docs/runbooks/cucm-migration/self-review-findings.md",  # a quoted review, not shipped
     "tests/wxcc/fixtures/context_dry_merge.md",         # a captured /context output

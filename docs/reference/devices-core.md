@@ -684,7 +684,7 @@ wxcli device-settings apply-changes-for DEVICE_ID
 
 ##### Gotcha: the device-members PUT has five mandatory fields, and `SHARED_LINE` is not one of the values
 
-<!-- Verified live against org 22222222-2222-2222-2222-222222222222 on a
+<!-- Verified live against org a9527d60-e78c-4330-9c53-8331a0c5aa7b on a
      DMS Cisco 8851 (maxLineCount 16), 2026-07-24. Device members were captured
      before the probes and restored field-for-field afterwards. -->
 

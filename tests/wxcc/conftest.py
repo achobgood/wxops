@@ -8,8 +8,8 @@ auto-skip when the CLI or a token is unavailable.
 
 Plan 2 Task 20 (2026-10-19): every `wxcc-flow` call these tiers made is
 translated through docs/merge/wxcc-flow-command-map.md. The JSON shapes were
-first verified live on produs1 (the sandbox org) 2026-07-12 through
-`wxcc-flow`, and re-run through `wxcli` in the sandbox tenant 2026-10-19.
+first verified live on produs1 (org ccbcamp0199) 2026-07-12 through
+`wxcc-flow`, and re-run through `wxcli` in the CC Bootcamp Sandbox 2026-10-19.
 """
 from __future__ import annotations
 

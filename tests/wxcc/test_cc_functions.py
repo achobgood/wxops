@@ -18,7 +18,7 @@ from typer.testing import CliRunner
 
 from wxcli.main import app
 
-ORG_UUID = "11111111-1111-1111-1111-111111111111"
+ORG_UUID = "b8410147-6104-42e8-9b93-639730d983ff"
 PROJECT = "0123456789abcdef01234567"
 FLOW = "76543210fedcba9876543210"
 

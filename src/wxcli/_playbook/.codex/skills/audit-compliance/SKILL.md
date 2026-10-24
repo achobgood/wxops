@@ -391,7 +391,7 @@ wxcli data-sources list-schemas
 
 # Inspect one schema — returns serviceType, protocol, appType, and a link to the
 # schema definition on GitHub. Takes a SCHEMA_ID, not a data source ID.
-wxcli data-sources show "<dataSourceId>"
+wxcli data-sources show "523e1b7f-4693-47bc-b84e-a7b7a505fb0b"
 ```
 
 Verified against a live org, the returned schemas were `audio_forking_schema` (gRPC), `VoiceVirtualAgent_WebSocket` (web-socket), and `VA_service_schema` (gRPC) — all `appType: serviceApp`. These are real-time media/AI streaming schemas, not audit or compliance event feeds. **If the user wants message, call, or admin event history, this is the wrong API — use `events`, `audit-events`, or `security-audit` (Steps 6a-6c).**

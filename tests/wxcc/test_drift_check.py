@@ -167,9 +167,9 @@ class TestSubGroupSurface:
 
 
 class TestLegacyCliCheck:
-    """Check 34: no wxcc-flow/wxcc-toolkit command in scanned docs. A planted
-    fixture fires, a clean control does not. Half (ii), the command-map check,
-    was retired with the map (a maintainer record kept outside this repository)."""
+    """Check 34: no wxcc-flow/wxcc-toolkit command in scanned docs, and every
+    command-map row resolves. Each half: a planted fixture fires, a clean
+    control does not."""
 
     def test_wxcc_flow_token_in_docs_fires(self, tmp_path, monkeypatch):
         _sample_docs(tmp_path, monkeypatch,
@@ -213,6 +213,38 @@ class TestLegacyCliCheck:
         assert D.check_legacy_cli_tokens() == []
         assert D.CHECK_EXAMINED["34i"]["examined"] == 3
 
+    MAP = ("| Row | Old | New command | What changed |\n"
+           "|---|---|---|---|\n"
+           "| 1 | `list` | `wxcli cc-flow list P --all [--force yes\\|no]` | x |\n"
+           "| 2 | `get F` | `wxcli cc-flow nope P F` | x |\n"
+           "| H1 | `configure` | `wxcli configure` | x |\n"
+           "| H2 | `set-project` | none | x |\n"
+           "| F11 | `functions test` | `wxcli cc-functions test ID` | x |\n")
+    SURFACE = {"cc-flow": {"list": []}, "cc-functions": {"test": []}}
+
+    def _map(self, tmp_path, text):
+        path = tmp_path / "map.md"
+        path.write_text(text)
+        return path
+
+    def test_command_map_row_must_resolve(self, tmp_path):
+        path = self._map(tmp_path, self.MAP)
+        found = D.check_command_map(self.SURFACE, {"configure"}, path=path,
+                                    expected_rows={"1", "2", "H1", "H2", "F11", "H3"})
+        assert sorted((f["row"], f["problem"]) for f in found) == [
+            ("2", "command 'nope' is not registered in group 'cc-flow'"),
+            ("H3", "row missing from the map")]
+        assert D.CHECK_EXAMINED["34ii"] == {"examined": 4, "skipped": 1}
+
+    def test_command_map_clean_control(self, tmp_path):
+        path = self._map(tmp_path, self.MAP.replace("cc-flow nope", "cc-flow list"))
+        assert D.check_command_map(self.SURFACE, {"configure"}, path=path,
+                                   expected_rows={"1", "2", "H1", "H2", "F11"}) == []
+
+    def test_missing_map_is_blind(self, tmp_path):
+        found = D.check_command_map(self.SURFACE, set(), path=tmp_path / "absent.md")
+        assert [f.get("check") for f in found] == ["34ii"]
+
 
 class TestGateGreen:
     """The full wxops drift gate passes, with check 34 examining real input."""
@@ -222,7 +254,11 @@ class TestGateGreen:
                              capture_output=True, text=True, cwd=D.REPO)
         assert out.returncode == 0, out.stdout[-3000:]
         lines = [ln for ln in out.stdout.splitlines() if ln.startswith("[34]")]
-        assert len(lines) == 1 and all(": 0 " in ln for ln in lines), lines
+        assert len(lines) == 2, lines
+        if (D.REPO / D.COMMAND_MAP).is_file():
+            assert all(": 0 " in ln for ln in lines), lines
+        else:   # the public tree ships without docs/merge/: half (ii) says so
+            assert ": 0 " in lines[0] and "not checked" in lines[1], lines
         assert "(examined 0 " not in "\n".join(lines)
         assert out.stdout.rstrip().endswith("result: PASS")
 

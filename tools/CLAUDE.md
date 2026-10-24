@@ -1501,7 +1501,7 @@ with nothing watching — the same reason check 19 has no ack list).
 
 ### Three Contact Center rendering defects, fixed in the generator (2026-10-13)
 
-All three reproduced live on the sandbox tenant first, fixed at the generator,
+All three reproduced live on the CC Bootcamp Sandbox first, fixed at the generator,
 regenerated, and re-verified live. A full regen into a temp dir changed exactly 8 modules
 (`cc_agents`, `cc_ewt`, `cc_flow`, `cc_legacy_flows`, `cc_queue_stats`, `cc_search`,
 `cc_subscriptions`, `cc_tasks`); every other module was byte-identical.
@@ -1540,7 +1540,7 @@ regenerated, and re-verified live. A full regen into a temp dir changed exactly 
 ### Five more Contact Center defects, second pass (2026-10-13)
 
 All fixed in the generator/runtime, regenerated, drift gate PASS, and live-verified read-only
-on the sandbox tenant. Full regen into a temp dir before and after: only CC modules (+
+on the CC Bootcamp Sandbox. Full regen into a temp dir before and after: only CC modules (+
 `asset`/`channel`, which are CC) changed in behaviour; every other module changed in its
 group-help line only.
 
@@ -1861,7 +1861,7 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
 
     Live-proven end-to-end on supervisors: scoped delete removed exactly the named target and left the other in place. **Still unproven: the other 4 scoping deletes were fixed by the same code path but not live-tested.**
 
-    `numbers delete` — the one that most deserves it — was attempted on **2026-07-27** against the sandbox org and **could not be tested there**; it remains unproven. The test needs a throwaway number to add and then scope-delete, and that org has no API-managed number lifecycle: its only PSTN location (`Site1`, which holds all 30 inventory records) reports `pstnConnectionType: CISCO_PSTN`, the second location has no PSTN configured at all, and `call-routing list-trunks` returns `[]` — so there is no non-integrated / Local Gateway path, and creating one would mean building routing infrastructure rather than testing numbers. On CCP-integrated orgs number DELETE is refused outright with `ERR.V.TRM.TMN60004` ("DELETE number is supported only for non-integrated CCP"), because number lifecycle is owned by the PSTN portal, not the API (see `docs/reference/provisioning.md`). A run there would therefore have failed on org entitlement and proven nothing either way about whether the body scopes the delete — a false negative, not evidence. **Proving `numbers delete` requires an org with a non-integrated / Local Gateway PSTN location.** No numbers were added or removed during the attempt: inventory was byte-identical before and after.
+    `numbers delete` — the one that most deserves it — was attempted on **2026-07-27** against org `ccbcamp0199.wbx.ai` and **could not be tested there**; it remains unproven. The test needs a throwaway number to add and then scope-delete, and that org has no API-managed number lifecycle: its only PSTN location (`Site1`, which holds all 30 inventory records) reports `pstnConnectionType: CISCO_PSTN`, the second location has no PSTN configured at all, and `call-routing list-trunks` returns `[]` — so there is no non-integrated / Local Gateway path, and creating one would mean building routing infrastructure rather than testing numbers. On CCP-integrated orgs number DELETE is refused outright with `ERR.V.TRM.TMN60004` ("DELETE number is supported only for non-integrated CCP"), because number lifecycle is owned by the PSTN portal, not the API (see `docs/reference/provisioning.md`). A run there would therefore have failed on org entitlement and proven nothing either way about whether the body scopes the delete — a false negative, not evidence. **Proving `numbers delete` requires an org with a non-integrated / Local Gateway PSTN location.** No numbers were added or removed during the attempt: inventory was byte-identical before and after.
 
     Lesson (this one cost a session): the claim above was inference stated as fact, in a file whose entire purpose is to be trusted. #20 is still UNFIXED and its claim is *observed* (its own `--help` says "Delete", it prints "Updated.") — do not let this correction cast doubt on that one.
 

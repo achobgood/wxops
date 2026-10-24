@@ -190,8 +190,8 @@ class TestScalarNormalisation:
 
     def test_a_normalised_phone_number_still_differs(self, capsys):
         """Do not guess at E.164 rewriting: report it and let the caller judge."""
-        err = _err(capsys, {"phoneNumber": "+1-5559876543"}, {"phoneNumber": "+15559876543"})
-        assert "phoneNumber: sent '+15559876543', now '+1-5559876543'" in err
+        err = _err(capsys, {"phoneNumber": "+1-2094571613"}, {"phoneNumber": "+12094571613"})
+        assert "phoneNumber: sent '+12094571613', now '+1-2094571613'" in err
 
 
 class TestSupersetReadBack:

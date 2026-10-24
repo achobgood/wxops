@@ -19,7 +19,7 @@ from wxcli.errors import WebexError
 from wxcli.main import app
 
 PROJECT = "0123456789abcdef01234567"
-ORG_UUID = "11111111-1111-1111-1111-111111111111"
+ORG_UUID = "b8410147-6104-42e8-9b93-639730d983ff"
 
 runner = CliRunner()
 

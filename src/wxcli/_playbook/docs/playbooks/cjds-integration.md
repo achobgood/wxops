@@ -143,7 +143,7 @@ All CJDS events follow the [CloudEvents specification](https://cloudevents.io/):
 
 **2. What is your `type` naming convention?** It is free-form, and it is what every future RSQL filter matches against. Agree the vocabulary once, at the start — renaming an event type does not rewrite history, so old events become unfindable.
 
-**3. How will phone numbers be stored?** ⚠ CJDS may store them as 10 digits without the `+` prefix. **Neither alias lookup nor RSQL filters bridge that**: verified live 2026-10-19, a 10-digit number and its `1…` / `+1…` form do not find each other; only a leading `+` is ignored (`15551234567` ≡ `+15551234567`) [owner: `contact-center-journey.md` § 9 Gotchas, gotcha 5]. (Before 2026-10-19 this said "Alias lookup normalizes".) A lookup or filter tested against one stored form will return nothing in production if the stored form differs. Test against real stored data before relying on it.
+**3. How will phone numbers be stored?** ⚠ CJDS may store them as 10 digits without the `+` prefix. **Neither alias lookup nor RSQL filters bridge that**: verified live 2026-10-19, a 10-digit number and its `1…` / `+1…` form do not find each other; only a leading `+` is ignored (`19103915567` ≡ `+19103915567`) [owner: `contact-center-journey.md` § 9 Gotchas, gotcha 5]. (Before 2026-10-19 this said "Alias lookup normalizes".) A lookup or filter tested against one stored form will return nothing in production if the stored form differs. Test against real stored data before relying on it.
 
 ---
 
@@ -168,11 +168,11 @@ curl -s \
   "https://api.wxcc-us1.cisco.com/admin/v1/api/person/workspace-id/YOUR_WORKSPACE_ID/aliases/+15551234567"
 ```
 
-> **Phone format matching:** the alias endpoint ignores a leading `+` but does **not** add or strip a country code. Verified live 2026-10-19 with `wxcli cc-journey show-aliases`: `+15559876543` found the person stored as `+15559876543` but not a different person stored as `5559876543`; `5551234567` → 404 although `+15551234567` is stored; `15551234567` and `+15551234567` both found that person [owner: `contact-center-journey.md` § 9 Gotchas, gotcha 5]. The raw ANI from `{{NewPhoneContact.ANI}}` works in the alias path without `%2B` encoding (this doc's earlier claim; not re-tested from a flow). (Before 2026-10-19 this note said "A lookup with `+15551234567` will match a stored value of `5551234567`" — wrong.)
+> **Phone format matching:** the alias endpoint ignores a leading `+` but does **not** add or strip a country code. Verified live 2026-10-19 with `wxcli cc-journey show-aliases`: `+12094571613` found the person stored as `+12094571613` but not a different person stored as `2094571613`; `9103915567` → 404 although `+19103915567` is stored; `19103915567` and `+19103915567` both found that person [owner: `contact-center-journey.md` § 9 Gotchas, gotcha 5]. The raw ANI from `{{NewPhoneContact.ANI}}` works in the alias path without `%2B` encoding (this doc's earlier claim; not re-tested from a flow). (Before 2026-10-19 this note said "A lookup with `+19103915567` will match a stored value of `9103915567`" — wrong.)
 
-> **Phone storage format:** Phone numbers in CJDS may be stored as 10 digits without country code or `+` prefix (e.g., `5551234567` not `+15551234567`). The alias lookup does not bridge this (see the note above), and RSQL filters used in event queries (Section 4d) require exact match against the stored value. (Said "The alias lookup normalizes this" before 2026-10-19.)
+> **Phone storage format:** Phone numbers in CJDS may be stored as 10 digits without country code or `+` prefix (e.g., `9103915567` not `+19103915567`). The alias lookup does not bridge this (see the note above), and RSQL filters used in event queries (Section 4d) require exact match against the stored value. (Said "The alias lookup normalizes this" before 2026-10-19.)
 
-> **RSQL filter syntax:** When filtering by phone or other fields using RSQL, values must be single-quoted. Example: `phone=='5551234567'`, NOT `phone==5551234567`. The RSQL parser throws a `ParseException` if values are unquoted.
+> **RSQL filter syntax:** When filtering by phone or other fields using RSQL, values must be single-quoted. Example: `phone=='9103915567'`, NOT `phone==9103915567`. The RSQL parser throws a `ParseException` if values are unquoted.
 
 **Response — known caller (HTTP 200):**
 ```json
@@ -185,12 +185,12 @@ curl -s \
       "id": "68f63b8458f4b21f28121ea9",
       "firstName": null,
       "lastName": null,
-      "phone": ["5551234567"],
+      "phone": ["9103915567"],
       "email": [],
       "temporaryId": [],
       "customerId": [],
       "socialId": [],
-      "aliases": ["5551234567"],
+      "aliases": ["9103915567"],
       "organizationId": "<your-org-id>",
       "workspaceId": "65cfdcee870a2d0e4a9864b8"
     }
@@ -214,7 +214,7 @@ curl -s \
 | **Output Path Expression** | `$.data[0].id` → maps to flow variable `PersonID` |
 | Request Timeout | 5000ms |
 
-> **ANI encoding:** `%2B` encoding is not required; the raw ANI from `{{NewPhoneContact.ANI}}` works directly in the alias path, with the `+` (this doc's earlier claim; not re-tested from a flow — on 2026-10-19 `wxcli cc-journey show-aliases` with `+15551234567` found the stored `+15551234567` person). The endpoint does **not** match a stored 10-digit number from an E.164 ANI [owner: `contact-center-journey.md` § 9 Gotchas, gotcha 5]; if your data may hold 10-digit numbers, look those up too. (Before 2026-10-19 this note said the endpoint "normalizes phone formats".)
+> **ANI encoding:** `%2B` encoding is not required; the raw ANI from `{{NewPhoneContact.ANI}}` works directly in the alias path, with the `+` (this doc's earlier claim; not re-tested from a flow — on 2026-10-19 `wxcli cc-journey show-aliases` with `+19103915567` found the stored `+19103915567` person). The endpoint does **not** match a stored 10-digit number from an E.164 ANI [owner: `contact-center-journey.md` § 9 Gotchas, gotcha 5]; if your data may hold 10-digit numbers, look those up too. (Before 2026-10-19 this note said the endpoint "normalizes phone formats".)
 
 **Condition node after the HTTP Request:**
 
@@ -400,7 +400,7 @@ GET /v1/api/events/workspace-id/{workspaceId}
 curl -s \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  "https://api.wxcc-us1.cisco.com/v1/api/events/workspace-id/YOUR_WORKSPACE_ID?identity=5551234567&filter=type%3D%3D'custom%3Astore_verified'"
+  "https://api.wxcc-us1.cisco.com/v1/api/events/workspace-id/YOUR_WORKSPACE_ID?identity=9103915567&filter=type%3D%3D'custom%3Astore_verified'"
 ```
 
 **Response:**
@@ -415,7 +415,7 @@ curl -s \
       "id": "event-id-1",
       "type": "custom:store_verified",
       "source": "ai_agent",
-      "identity": "5551234567",
+      "identity": "9103915567",
       "identitytype": "phone",
       "time": "2026-04-20T14:30:00.000Z",
       "data": { "store_number": "1234", "verification_method": "pin" }

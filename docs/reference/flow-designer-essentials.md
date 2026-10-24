@@ -248,7 +248,7 @@ The Set Variable activity supports basic assignment and math operators (`+`, `-`
 
 | Operation | Pebble Syntax | Example |
 |---|---|---|
-| Strip first character | `{{ variable \| slice(1) }}` | `+15551234567` → `15551234567` |
+| Strip first character | `{{ variable \| slice(1) }}` | `+19103915567` → `19103915567` |
 | Strip first N characters | `{{ variable \| slice(N) }}` | Strip `+1` prefix |
 | Extract first N characters | `{{ variable \| slice(0,3) }}` | `+442034574333` → `+44` |
 | Last N characters | `{{ variable \| slice(variable \| length - N) }}` | Last 4 digits of phone number |
@@ -303,7 +303,7 @@ The `date()` filter accepts Java SimpleDateFormat patterns: `EEEE` (day name), `
 {{ variable | replace("+", "") }}       ❌ Fails — two arguments
 ```
 
-**Alternative when string manipulation isn't needed:** Design API calls to accept the raw variable format. For example, the CJDS alias lookup endpoint normalizes phone formats — `+15551234567` matches a stored value of `5551234567` without needing to strip the prefix.
+**Alternative when string manipulation isn't needed:** Design API calls to accept the raw variable format. For example, the CJDS alias lookup endpoint normalizes phone formats — `+19103915567` matches a stored value of `9103915567` without needing to strip the prefix.
 
 ### Output Paths
 

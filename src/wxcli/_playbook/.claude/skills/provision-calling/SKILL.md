@@ -108,7 +108,7 @@ wxcli users show PERSON_ID --output json
 # Numbers must be added to location first via numbers-manage commands
 wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers": ["+15551234567"], "numberType": "DID"}'
 ```
-Verified live 2026-10-13 on the sandbox tenant: the body shape is accepted, but the add was refused — `404 "Location ... not found or PSTN for the location is not configured"` on a location with no PSTN, and `400 ERR.V.TRM.PSP61001 "Order creation failed on PSTN provider"` on Site1. `numbers validate-phone-numbers` said `Available` for the same numbers, so it does not predict this. Check PSTN is configured at the location before promising number adds. (Success path not exercised.)
+Verified live 2026-10-13 on the CC Bootcamp Sandbox: the body shape is accepted, but the add was refused — `404 "Location ... not found or PSTN for the location is not configured"` on a location with no PSTN, and `400 ERR.V.TRM.PSP61001 "Order creation failed on PSTN provider"` on Site1. `numbers validate-phone-numbers` said `Available` for the same numbers, so it does not predict this. Check PSTN is configured at the location before promising number adds. (Success path not exercised.)
 
 ## Step 5: Build deployment plan — [SHOW BEFORE EXECUTING]
 

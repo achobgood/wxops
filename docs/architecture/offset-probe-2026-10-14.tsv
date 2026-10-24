@@ -1,4 +1,4 @@
-# --offset live probe, the sandbox tenant, 2026-10-14, read-only. Test: --offset 2 --limit 3 vs items 2-4 of --all and vs --limit 3. See ADR-18 amendment (docs/architecture/02-decisions.md). Phase 2 the same day re-tested 11 commands on temporary data.
+# --offset live probe, CC Bootcamp Sandbox, 2026-10-14, read-only. Test: --offset 2 --limit 3 vs items 2-4 of --all and vs --limit 3. See ADR-18 amendment (docs/architecture/02-decisions.md). Phase 2 the same day re-tested 11 commands on temporary data.
 group	command	verdict	records	note
 activation-email	list-errors	NEEDS_INPUT		needs job_id; no activation-email resend jobs exist in org (no producer list)
 admin-recordings	list	NOT_ENOUGH_DATA	0	

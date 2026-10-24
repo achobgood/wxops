@@ -450,7 +450,7 @@ class TestActivityCatalogCarveOut:
 class TestFlowTemplatesFilter:
     """`cc-flow-templates list` filters on `flowType`, not the CC spec's `type`.
 
-    Measured live 2026-10-19 on the sandbox tenant: `type=subflow` returned
+    Measured live 2026-10-19 on the CC Bootcamp Sandbox: `type=subflow` returned
     all 39 templates (Task 15b, docs/merge/e2e-flow-lifecycle.md row 7c);
     `flowType=SUBFLOW` returned only the 8 SUBFLOW ones
     (GTWY_2e46669b-621a-412f-96bb-5502e41e6d86). The table column reads

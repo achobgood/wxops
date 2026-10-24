@@ -335,8 +335,11 @@ Checks (docs/arch/target-architecture.md §A6):
   34. Retired wxcc CLI names (wxcc's drift check 5, Plan 2 Task 18), in two
       halves, both gated: (i) no `wxcc-flow <word>` / `wxcc-toolkit <word>`
       command inside a code span of the docs check 2 scans — those tools stop
-      shipping and every flow command is a `wxcli` command now; (ii) retired: the
-      command map it read is a maintainer record kept outside this repository. wxcc's check 2 (every emitted URL maps to
+      shipping and every flow command is a `wxcli` command now; (ii) every
+      "New command" cell of docs/merge/wxcc-flow-command-map.md (rows 1-60,
+      H1-H10, F1-F11) names a registered group + command, extension commands
+      included, and no row key is missing. Each half prints its own examined
+      count; a missing map is BLIND. wxcc's check 2 (every emitted URL maps to
       a spec operation) needed no port: check 1's CLI-ahead-of-spec fires on a
       planted invented URL (docs/merge/plan-2-decisions.md, Task 18).
 
@@ -3724,7 +3727,7 @@ def print_check_findings(check: str, findings: list[dict], limit: int = 20,
     """Print a check-23+ result: `[NN] <label>: N   (examined M <noun>, skipped
     K)`, then `note` when given (check 30's unparseable count), up to `limit`
     detail lines, then `... and N more (--json for all)`. `heading` replaces
-    `[NN]` for a check printed in halves (check 34: key 34i, printed `[34]`).
+    `[NN]` for a check printed in halves (check 34: keys 34i/34ii, both `[34]`).
 
     Never raises — the gate runs unattended, and a crash here exits 2:
       * a record_examined blind finding (`{"check", "error"}`) prints as
@@ -5372,6 +5375,15 @@ CHECK_PRINT["33"] = (
 # out — that one needs no look-behind, `\s+` already refuses it.
 LEGACY_CLI_TOKEN = re.compile(
     r"(?<![\w./-])(wxcc-flow|wxcc-toolkit)\s+([a-z][a-z0-9_-]*)")
+COMMAND_MAP = Path("docs") / "merge" / "wxcc-flow-command-map.md"
+# Task 21's row keys: 1-60 the wxcc manifest operations, H1-H10 the
+# hand-written commands, F1-F11 the Custom Functions commands.
+COMMAND_MAP_ROWS = frozenset([str(n) for n in range(1, 61)]
+                             + [f"H{n}" for n in range(1, 11)]
+                             + [f"F{n}" for n in range(1, 12)])
+_MAP_ROW_KEY = re.compile(r"^(?:\d+|H\d+|F\d+)$")
+_MAP_CELL_SPLIT = re.compile(r"(?<!\\)\|")   # `--force yes\|no` is one cell
+_MAP_COMMAND_WORD = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
 def check_legacy_cli_tokens(patterns: tuple = None) -> list[dict]:
@@ -5405,10 +5417,80 @@ def check_legacy_cli_tokens(patterns: tuple = None) -> list[dict]:
                            f"code spans in {len(files)} scanned docs")
 
 
+def check_command_map(surface: dict, top_level: set, path: Path | None = None,
+                      expected_rows=COMMAND_MAP_ROWS) -> list[dict]:
+    """Half (ii): every "New command" cell of the wxcc-flow command map names a
+    registered command, extension commands included (build_cli_surface merges
+    _lazy.GROUP_EXTENSIONS).
+
+    The command is the cell's first code span that starts with `wxcli `: its
+    first word is a top-level command (`init`), a callback-only group
+    (`configure`, which has no commands), or a registered group, and after a
+    group with commands the next word must be one of them. A cell
+    with no such span (`none`, a `python -m tools…` dev tool) is skipped and
+    counted. A key of `expected_rows` with no row, or a repeated key, is a
+    finding too, so a deleted row cannot pass quietly. A missing map makes the
+    run BLIND: retire this half in the commit that retires the map.
+    """
+    path = REPO / COMMAND_MAP if path is None else Path(path)
+    findings: list[dict] = []
+    examined = skipped = 0
+    try:
+        text = path.read_text()
+    except (OSError, UnicodeDecodeError):
+        return record_examined("34ii", findings, 0, 0,
+                               f"command-map rows ({path.name} unreadable)")
+    seen: dict[str, int] = {}
+    for lineno, line in enumerate(text.splitlines(), 1):
+        cells = [c.strip() for c in _MAP_CELL_SPLIT.split(line)]
+        if len(cells) < 5 or not _MAP_ROW_KEY.match(cells[1]):
+            continue
+        row = cells[1]
+        seen[row] = seen.get(row, 0) + 1
+        span = next((s for s in re.findall(r"`([^`]+)`", cells[3])
+                     if s.startswith("wxcli ")), None)
+        if span is None:
+            skipped += 1
+            continue
+        examined += 1
+        words = span.split()
+        group = words[1]
+        command = (words[2] if len(words) > 2
+                   and _MAP_COMMAND_WORD.match(words[2]) else None)
+        problem = None
+        if group in surface:
+            # A group with no commands is callback-only and runs by itself
+            # (`wxcli configure`); any other group needs a command word.
+            if command is None:
+                if surface[group]:
+                    problem = f"names group '{group}' but no command"
+            elif command not in surface[group]:
+                problem = f"command '{command}' is not registered in group '{group}'"
+        elif group not in top_level:
+            problem = f"'{group}' is neither a registered group nor a top-level command"
+        if problem:
+            findings.append({"row": row, "line": lineno, "cited": span,
+                             "problem": problem})
+    for row in sorted(set(expected_rows) - set(seen)):
+        findings.append({"row": row, "line": 0, "cited": "",
+                         "problem": "row missing from the map"})
+    for row in sorted(r for r, n in seen.items() if n > 1):
+        findings.append({"row": row, "line": 0, "cited": "",
+                         "problem": f"row key appears {seen[row]} times"})
+    return record_examined("34ii", findings, examined, skipped,
+                           "command-map rows naming a wxcli command")
+
+
 CHECK_PRINT["34i"] = (
     "(i) wxcc-flow / wxcc-toolkit commands in scanned docs",
     "code spans",
     lambda f: f"{f['file']}:{f['line']}  {f['ref']}  (rewrite via the command map)")
+CHECK_PRINT["34ii"] = (
+    "(ii) command-map rows whose new command does not resolve",
+    "command-map rows",
+    lambda f: (f"row {f['row']}"
+               + (f" (line {f['line']}) `{f['cited']}`" if f["line"] else "")
+               + f": {f['problem']}"))
 
 
 # ----------------------------------------------------------------- check 18
@@ -6385,6 +6467,11 @@ def main() -> int:
     query_body_spec_ops = count_query_body_spec_ops()
     paging_advice = check_paging_advice()
     legacy_cli_tokens = check_legacy_cli_tokens()
+    # The map lives in docs/merge/, which is maintainer-only and not in the public
+    # tree; without it half (ii) is not run (see check_command_map's docstring).
+    command_map_present = (REPO / COMMAND_MAP).is_file()
+    command_map_unresolved = (check_command_map(surface, top_level)
+                              if command_map_present else [])
 
     results = {
         "1_spec_cli_parity": parity,
@@ -6442,6 +6529,7 @@ def main() -> int:
         "32_query_body_params": query_body_findings,
         "33_paging_advice": paging_advice,
         "34_legacy_cli_tokens": legacy_cli_tokens,
+        "34_command_map_unresolved": command_map_unresolved,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -6463,7 +6551,7 @@ def main() -> int:
                   or doc_value_types or doc_body_keys
                   or list_drops_object_fields or query_body_findings
                   or paging_advice
-                  or legacy_cli_tokens)
+                  or legacy_cli_tokens or command_map_unresolved)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -6709,6 +6797,12 @@ def main() -> int:
                                   f"their body as a query param)")
         print_check_findings("33", paging_advice)
         print_check_findings("34i", legacy_cli_tokens, heading="[34]")
+        if command_map_present:
+            print_check_findings("34ii", command_map_unresolved, heading="[34]",
+                                 note=f"({COMMAND_MAP.as_posix()})")
+        else:
+            print(f"[34] (ii) command-map rows: not checked "
+                  f"({COMMAND_MAP.as_posix()} is not in this tree)")
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 
