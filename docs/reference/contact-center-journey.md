@@ -81,7 +81,7 @@ wxcli cc-journey show-workspace-id-api ws-abc-123
   "id": "65cfdcee870a2d0e4a9864b8",
   "name": "My JDS Workspace",
   "description": "...",
-  "wxccSubscriptionIds": ["00000000-0000-0000-0000-000000000021"]
+  "wxccSubscriptionIds": ["69ff3a55-612f-452f-80d2-884d6d248c9a"]
 }
 ```
 
@@ -118,7 +118,7 @@ Admin paths are prefixed with `/admin/v1/api`.
 wxcli cc-journey show ws-abc-123 -o json
 
 # Search by alias (use E.164 with + prefix for phone numbers)
-wxcli cc-journey show-aliases ws-abc-123 "+15551234567" -o json
+wxcli cc-journey show-aliases ws-abc-123 "+19103915567" -o json
 
 # Create a person manually
 wxcli cc-journey create ws-abc-123 --json-body '{
@@ -145,7 +145,7 @@ wxcli cc-journey create-primary-person-id ws-abc-123 person-001
   "customerId": [],
   "socialId": [],
   "aliases": ["+14403967184"],
-  "organizationId": "11111111-1111-1111-1111-111111111111",
+  "organizationId": "b8410147-6104-42e8-9b93-639730d983ff",
   "workspaceId": "65cfdcee870a2d0e4a9864b8",
   "override": null,
   "createdAt": "2026-04-27T23:02:53.490Z",
@@ -222,7 +222,7 @@ wxcli cc-journey show-workspace-id-events ws-abc-123 -o json
 
 # Filter events by type (RSQL syntax)
 wxcli cc-journey show-workspace-id-events ws-abc-123 \
-  --identity "+15551234567" \
+  --identity "+19103915567" \
   --filter "type=='custom:store_verified'" -o json
 ```
 
@@ -443,9 +443,9 @@ All JDS endpoints. Admin paths require `cjds:admin_org_read`/`cjds:admin_org_wri
 
 3. **`task:new` is the event that triggers JDS person record creation.** When a caller first contacts WXCC, the platform fires `task:new`. `journey-stream-profiles` consumes this and creates the JDS person record using the caller's ANI in E.164 format. The record appears within seconds. At the exact moment `task:new` fires the record may not yet exist — but by the time a flow HTTP node queries JDS (a few seconds later), it will be present.
 
-4. **WXCC writes ANI to JDS in E.164 format.** Phone numbers are stored as `+15551234567`, not `5551234567`. Alias lookups from a flow must pass the number with `+1` prefix or they will miss.
+4. **WXCC writes ANI to JDS in E.164 format.** Phone numbers are stored as `+19103915567`, not `9103915567`. Alias lookups from a flow must pass the number with `+1` prefix or they will miss.
 
-5. **Alias lookup ignores a leading `+` but does not normalize the country code.** A 10-digit number and its `1`-prefixed / E.164 form do not cross-match in either direction; `1…` and `+1…` do. Verified live 2026-10-19 with `cc-journey show-aliases` on stored persons: `+15559876543` found only the person stored as `+15559876543`, not a second person stored as `5559876543`; `5551234567` → 404 (`Persons not found with the searched aliases`) although `+15551234567` is stored; `15551234567` and `+15551234567` both found that person, and `15559876543` found the `+15559876543` person. So for `+15551234567` there are two aliases to try, `+15551234567` (≡ `15551234567`) and `5551234567`, not three. Not shown: whether the API strips `+` or the stored alias set holds both spellings — the result is the same for a caller. (Before 2026-10-19 this gotcha said "`5551234567`, `15551234567`, and `+15551234567` are three distinct aliases"; it was right about the 10-digit form, wrong about `1…` vs `+1…`.)
+5. **Alias lookup ignores a leading `+` but does not normalize the country code.** A 10-digit number and its `1`-prefixed / E.164 form do not cross-match in either direction; `1…` and `+1…` do. Verified live 2026-10-19 with `cc-journey show-aliases` on stored persons: `+12094571613` found only the person stored as `+12094571613`, not a second person stored as `2094571613`; `9103915567` → 404 (`Persons not found with the searched aliases`) although `+19103915567` is stored; `19103915567` and `+19103915567` both found that person, and `12094571613` found the `+12094571613` person. So for `+19103915567` there are two aliases to try, `+19103915567` (≡ `19103915567`) and `9103915567`, not three. Not shown: whether the API strips `+` or the stored alias set holds both spellings — the result is the same for a caller. (Before 2026-10-19 this gotcha said "`9103915567`, `19103915567`, and `+19103915567` are three distinct aliases"; it was right about the 10-digit form, wrong about `1…` vs `+1…`.)
 
 6. **`createdAt == updatedAt` signals a first-time caller.** A person record where both timestamps are equal and `createdBy` is `journey-stream-profiles` was just created by the current contact — this is their first interaction. A returning caller's record will have `updatedAt > createdAt` or prior events predating the current contact.
 

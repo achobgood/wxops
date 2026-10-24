@@ -66,7 +66,7 @@ Two gotchas from the guide:
 
 Scopes: `cjp:config_read` for the discovery calls (activities, choices,
 event-specifications), `cjp:config_write` for validate and import.
-`GET .../v2/flows/{flowId}:export` works: verified live 2026-10-19 on the sandbox tenant, it
+`GET .../v2/flows/{flowId}:export` works: verified live 2026-10-19 on the CC Bootcamp Sandbox, it
 returned 200 on a published flow (`CCBootCampTest`) on the Flow Store host above and on the regional
 gateway (`https://api.wxcc-us1.cisco.com`, with and without the `/flow-store` prefix); so did the v1
 `GET .../flows/{flowId}:export`. `wxcli cc-flow export PROJECT_ID FLOW_ID --version latest` calls it on the
@@ -134,7 +134,7 @@ Some activities expose **only** error ports — every entry in `outputPorts[]` h
 `timeout`, `invalid`, and `error`, with no success port at all.
 
 For `ivr-collectdigits`, write the success edge as `condition: "default"` — the form a
-Designer-built flow stores. Verified live 2026-10-19 on the sandbox tenant:
+Designer-built flow stores. Verified live 2026-10-19 on the CC Bootcamp Sandbox:
 
 | Success edge | `create-validate` (dry run) | `create-import` | Stored in a Designer-built flow |
 |---|---|---|---|
@@ -203,7 +203,7 @@ Global variables (e.g., `Global_Language`, `Global_VoiceName`, `Global_FeedbackS
 }
 ```
 
-**`source` is `"GLOBAL"`.** Verified live 2026-10-19 on the sandbox tenant: every global variable declared in the stored flows read (`Record_Agent_Greeting`, a Cisco-authored flow, and `Retail_IVR_Test` — five variables, including `Global_Language`, `Global_VoiceName` and `AuthKey`) carries `source: "GLOBAL"`; none carries `"GLOBAL_TM"`. `create-validate` passes the `Global_Language` object above with either value, so validate does not tell them apart. `"GLOBAL_TM"` is therefore "also accepted by validate, not what the stored flows hold"; how a `GLOBAL_TM` declaration behaves on a live call is untested. (History: until 2026-10-19 this section, its example and § 11 said `"GLOBAL_TM"`.)
+**`source` is `"GLOBAL"`.** Verified live 2026-10-19 on the CC Bootcamp Sandbox: every global variable declared in the stored flows read (`Record_Agent_Greeting`, a Cisco-authored flow, and `Retail_IVR_Test` — five variables, including `Global_Language`, `Global_VoiceName` and `AuthKey`) carries `source: "GLOBAL"`; none carries `"GLOBAL_TM"`. `create-validate` passes the `Global_Language` object above with either value, so validate does not tell them apart. `"GLOBAL_TM"` is therefore "also accepted by validate, not what the stored flows hold"; how a `GLOBAL_TM` declaration behaves on a live call is untested. (History: until 2026-10-19 this section, its example and § 11 said `"GLOBAL_TM"`.)
 
 **How to get the global variable metadata:** Run `wxcli cc-flow-store list-global-variables PROJECT_ID -o json --fields variables` — this returns the full object for each global variable including `id`, `source`, `isCAD`, `desktopLabel`, and `isReportable`. Copy the entire object into your FlowIR `variables` array, then make sure `source` is `"GLOBAL"`.
 
@@ -403,7 +403,7 @@ These patterns were validated by building real flows and confirming them with th
 
 Exactly one start node per flow. The server resolves event spec IDs from names. Output port: `out`.
 
-**Both start-node names validate.** Verified live 2026-10-19 on the sandbox tenant, `create-validate` returned `valid: true` for this node exactly, for the `NewContact` node in `contact-center-routing.md` § 11 (`name`, `activityName` and `event` all `NewContact`, `activityId: "start"`, the three event-spec ids and names), and for that `NewContact` node renamed `NewPhoneContact` throughout. The `FC1024 Activity is not allowed for the current flow type` that `contact-center-routing.md` § 11 reports for `NewPhoneContact` (2026-10-13, inside a 43-node flow) did **not** reproduce on the starter flow. Stored flows use both: `CCBootCampTest` and `Record_Agent_Greeting` start at `NewPhoneContact`, `Retail_IVR_Test` at `NewContact`. No deliberately wrong start node was sent, so this shows only that validate did not object to either name; runtime was not tested.
+**Both start-node names validate.** Verified live 2026-10-19 on the CC Bootcamp Sandbox, `create-validate` returned `valid: true` for this node exactly, for the `NewContact` node in `contact-center-routing.md` § 11 (`name`, `activityName` and `event` all `NewContact`, `activityId: "start"`, the three event-spec ids and names), and for that `NewContact` node renamed `NewPhoneContact` throughout. The `FC1024 Activity is not allowed for the current flow type` that `contact-center-routing.md` § 11 reports for `NewPhoneContact` (2026-10-13, inside a 43-node flow) did **not** reproduce on the starter flow. Stored flows use both: `CCBootCampTest` and `Record_Agent_Greeting` start at `NewPhoneContact`, `Retail_IVR_Test` at `NewContact`. No deliberately wrong start node was sent, so this shows only that validate did not object to either name; runtime was not tested.
 
 > **Unverified:** `NewPhoneContact` may still return `FC1024` in a larger flow. The 2026-10-13 report came from a 43-node flow and the 2026-10-19 check used the starter flow, so nothing explains why the two differ. Validating `NewPhoneContact` inside a 43-node flow would settle it.
 
@@ -608,12 +608,12 @@ Terminal node — no output ports. Multiple disconnect nodes per flow are valid 
 ```json
 {
   "activityName": "queue-contact",
-  "queueId": "00000000-0000-0000-0000-000000000001",
+  "queueId": "247ec630-c684-4a6b-8b05-7c9cfcdb8f36",
   "channelType": "TELEPHONY"
 }
 ```
 
-**`channelType` is required too.** Verified live 2026-10-19 on the sandbox tenant: a `queue-contact` node with only `queueId` failed `create-validate` with `FC1015 Required field 'Channel type' is not configured in activity 'QueueNode'`; adding `"channelType": "TELEPHONY"` passed. The live definition (`wxcli cc-flow show-activity PROJECT_ID queue-contact -o json`) marks `channelType` `required: true` with `allowedValues` `TELEPHONY`, `WORK_ITEM`, `CUSTOM_MESSAGING`, `CHAT`. (History: until 2026-10-19 this section said `queueId` was the only required field, and the minimal example had no `channelType`.)
+**`channelType` is required too.** Verified live 2026-10-19 on the CC Bootcamp Sandbox: a `queue-contact` node with only `queueId` failed `create-validate` with `FC1015 Required field 'Channel type' is not configured in activity 'QueueNode'`; adding `"channelType": "TELEPHONY"` passed. The live definition (`wxcli cc-flow show-activity PROJECT_ID queue-contact -o json`) marks `channelType` `required: true` with `allowedValues` `TELEPHONY`, `WORK_ITEM`, `CUSTOM_MESSAGING`, `CHAT`. (History: until 2026-10-19 this section said `queueId` was the only required field, and the minimal example had no `channelType`.)
 
 The `queueId` property is the field the validator checks for the queue. It accepts a queue UUID, a queue name, or a `{{variable}}` expression. The server auto-resolves the queue type, routing algorithm, and all internal fields. Resolve available queue values via `wxcli cc-flow list-activity-choices PROJECT_ID queue-contact destination --parent-input-name channelType --parent-value TELEPHONY` (the API input name is `destination` and cascades on `channelType`, but the node property the validator checks is `queueId`).
 
@@ -622,7 +622,7 @@ The `queueId` property is the field the validator checks for the queue. It accep
 ```json
 {
   "activityName": "queue-contact",
-  "queueId": "00000000-0000-0000-0000-000000000001",
+  "queueId": "247ec630-c684-4a6b-8b05-7c9cfcdb8f36",
   "channelType": "TELEPHONY",
   "fallbackQueue": "<fallback-queue-uuid>",
   "toggle": false,
@@ -675,7 +675,7 @@ The `queueId` property is the field the validator checks for the queue. It accep
 
 Output ports: `default` (queued — the hold treatment path) and `failure`. Output variables: `QueueId`, `FailureCode`, `FailureDescription`.
 
-**What each check says about the two edges** (verified live 2026-10-19 on the sandbox tenant, node with `queueId` and `channelType: "TELEPHONY"`):
+**What each check says about the two edges** (verified live 2026-10-19 on the CC Bootcamp Sandbox, node with `queueId` and `channelType: "TELEPHONY"`):
 
 | Check | `default` edge | `failure` edge |
 |---|---|---|
@@ -1022,7 +1022,7 @@ Required-property tables for activities not covered by the full snippets in § 7
 {
   "activityName": "queue-lookup",
   "channelType": "TELEPHONY",
-  "destination": "00000000-0000-0000-0000-000000000001",
+  "destination": "247ec630-c684-4a6b-8b05-7c9cfcdb8f36",
   "destination:radioName": "setToValue",
   "destination_radioName": "setToValue",
   "ewtLookbackMinutes": 5
@@ -1052,7 +1052,7 @@ Output variables: `PIQ`, `EWT`, `status`, `CallsQueuedNow`, `OldestCallTime`, `L
   "activityName": "advanced-queue-info",
   "channelType": "TELEPHONY",
   "queueRadioGroup": "staticQueue",
-  "destination": "00000000-0000-0000-0000-000000000001",
+  "destination": "247ec630-c684-4a6b-8b05-7c9cfcdb8f36",
   "destination:name": "Queue-1",
   "destination_name": "Queue-1",
   "skills": {
@@ -1253,7 +1253,7 @@ No configurable properties. Enable by placing the activity in the flow.
 
 **Gotcha (historical):** When this activity was still listed, its definition existed in the schema catalog but creation failed with `ACTIVITY_NOT_FOUND` on orgs without the Live Caller Sentiment feature provisioned (validation reported `valid: true` with a 500-level warning about the missing activity mapping). As of 2026-07-11 it is absent from the live prod registry entirely — `wxcli cc-flow show-activity PROJECT_ID NAME` and `wxcli cc-flow show-node-template PROJECT_ID NAME` (run then as wxcc-flow describe and schema) now return "not found in the registry".
 
-**Re-checked 2026-10-19 (live, the sandbox tenant): hidden by default, not gone.** It is absent from `wxcli cc-flow list-activities PROJECT_ID` (54) and from `--flow-type SUBFLOW` (29), and listed with `--check-ui-enabled true` (57). Whether `show-activity`, choices and import still fail for it was not re-tested.
+**Re-checked 2026-10-19 (live, CC Bootcamp Sandbox): hidden by default, not gone.** It is absent from `wxcli cc-flow list-activities PROJECT_ID` (54) and from `--flow-type SUBFLOW` (29), and listed with `--check-ui-enabled true` (57). Whether `show-activity`, choices and import still fail for it was not re-tested.
 
 ### queue-reservation (Queue Reservation) — ⚠️ FEATURE-GATED
 
@@ -1268,7 +1268,7 @@ No configurable properties. Enable by placing the activity in the flow.
 
 Output variables (from definition): `QueueId`, `status`, `FailureCode`, `FailureDescription`.
 
-**Re-checked 2026-10-19 (live, the sandbox tenant): hidden by default, not gone.** It is absent from `wxcli cc-flow list-activities PROJECT_ID` (54) and from `--flow-type SUBFLOW` (29), and listed with `--check-ui-enabled true` (57). Whether `show-activity`, choices and import still fail for it was not re-tested.
+**Re-checked 2026-10-19 (live, CC Bootcamp Sandbox): hidden by default, not gone.** It is absent from `wxcli cc-flow list-activities PROJECT_ID` (54) and from `--flow-type SUBFLOW` (29), and listed with `--check-ui-enabled true` (57). Whether `show-activity`, choices and import still fail for it was not re-tested.
 
 ### flow-test-activity (Test Activity Flow) — ⚠️ FEATURE-GATED
 
@@ -1289,7 +1289,7 @@ Output variables (from definition): `QueueId`, `status`, `FailureCode`, `Failure
 
 **Warning (historical):** When this activity was still listed, it returned `ACTIVITY_NOT_FOUND` on both choices lookups and `create` (HTTP 500); validation passed with a warning. As of 2026-07-11 it is absent from the live prod registry entirely — `wxcli cc-flow show-activity PROJECT_ID NAME` and `wxcli cc-flow show-node-template PROJECT_ID NAME` (run then as wxcc-flow describe and schema) now return "not found in the registry". Properties above are from the historical registry definition and have NOT been validated via round-trip.
 
-**Re-checked 2026-10-19 (live, the sandbox tenant): hidden by default, not gone.** It is absent from `wxcli cc-flow list-activities PROJECT_ID` (54) and from `--flow-type SUBFLOW` (29), and listed with `--check-ui-enabled true` (57). Whether `show-activity`, choices and import still fail for it was not re-tested.
+**Re-checked 2026-10-19 (live, CC Bootcamp Sandbox): hidden by default, not gone.** It is absent from `wxcli cc-flow list-activities PROJECT_ID` (54) and from `--flow-type SUBFLOW` (29), and listed with `--check-ui-enabled true` (57). Whether `show-activity`, choices and import still fail for it was not re-tested.
 
 ### Feedback (Feedback) — ✅ TESTED
 
@@ -1599,7 +1599,7 @@ Body: {"upsert_nodes": [...], "upsert_edges": [...],
 
 CLI: `wxcli cc-flow update PROJECT_ID FLOW_ID --json-body file://patch.json` (wxcc-flow patch resolved `expectedVersion` from the current draft itself; `wxcli cc-flow update` does not — omitting `--expected-version` skips the check, or read N with `wxcli cc-flow show PROJECT_ID FLOW_ID -o json --fields version` and pass `--expected-version N`). Top-level FlowV2 fields (`name`, `description`, `variables`, …) can also be patched directly — this is how renames work (`wxcli cc-flow update PROJECT_ID FLOW_ID --json-body '{"name":"NEW"}'`); the new name propagates to the flow level (list/get) on the next publish. All four patch keys plus top-level fields verified live 2026-07-11 with content round-trips.
 
-**Rename timing depends on whether the flow was ever published.** Verified live 2026-10-19 on the sandbox tenant, on a flow published once: after `wxcli cc-flow update PROJECT_ID FLOW_ID --json-body '{"name":"NEW"}'`, the draft (`wxcli cc-flow show PROJECT_ID FLOW_ID`) carried the new name, but the flow level (`wxcli cc-flow-store show-metadata PROJECT_ID FLOW_ID` and `wxcli cc-flow list PROJECT_ID`) kept the old one until `wxcli cc-flow publish FLOW_ID PROJECT_ID` (run with publish-time validation on), after which it showed the new name. On a **never-published** flow (one observation, 2026-10-19), the flow-level name changed at once, before any publish. The never-published case was not repeated.
+**Rename timing depends on whether the flow was ever published.** Verified live 2026-10-19 on the CC Bootcamp Sandbox, on a flow published once: after `wxcli cc-flow update PROJECT_ID FLOW_ID --json-body '{"name":"NEW"}'`, the draft (`wxcli cc-flow show PROJECT_ID FLOW_ID`) carried the new name, but the flow level (`wxcli cc-flow-store show-metadata PROJECT_ID FLOW_ID` and `wxcli cc-flow list PROJECT_ID`) kept the old one until `wxcli cc-flow publish FLOW_ID PROJECT_ID` (run with publish-time validation on), after which it showed the new name. On a **never-published** flow (one observation, 2026-10-19), the flow-level name changed at once, before any publish. The never-published case was not repeated.
 
 **`--expected-version` is enforced, but the draft version never moves.** Verified live 2026-10-19: `wxcli cc-flow update PROJECT_ID FLOW_ID --json-body file://patch.json --expected-version 99` on a draft at version `0` returned `409 Version conflict for flow …: expected version 99 but found 0`, and nothing was written; the same patch with `--expected-version 0` was accepted. The draft `version` stayed `0` after that patch, after two publishes and after a rename (and through every save-draft and patch measured earlier the same day). So the check rejects a wrong number, but two writers who both read `0` both pass it: it does not separate concurrent edits of one draft.
 
@@ -1674,7 +1674,7 @@ Expressions referencing activity output variables — `{{ActivityName.OutputVar}
 
 ### Queue Contact `default` Edge Condition Warning
 
-**Corrected 2026-10-19 (verified live on the sandbox tenant, § 7 `queue-contact`):** the warning runs the other way. With `channelType` set, `create-validate` accepts both `default` and `failure`; `create-import` accepts both but attaches a preflight WARNING to `failure` — `Condition 'failure' is not valid for activity 'queue-contact'. Use one of: default` — and none to `default`. The activity definition lists both ports, and stored flows use `default`. Wire `default`. The rest of this subsection is the earlier (pre-2026-10-19) reading, kept as history: the FlowIR validator warns that `default` is not a valid condition for `queue-contact`, suggesting `failure` instead. However, `default` works correctly at runtime — the hold music/treatment path after Queue Contact executes while the caller waits for an agent. The warning is safe to ignore. Using `failure` instead would only wire the error path, not the hold treatment path. This is a validator limitation — the `queue-contact` activity's success continuation is implicit (agent answers), but the hold treatment path needs an edge condition to wire the downstream activities.
+**Corrected 2026-10-19 (verified live on the CC Bootcamp Sandbox, § 7 `queue-contact`):** the warning runs the other way. With `channelType` set, `create-validate` accepts both `default` and `failure`; `create-import` accepts both but attaches a preflight WARNING to `failure` — `Condition 'failure' is not valid for activity 'queue-contact'. Use one of: default` — and none to `default`. The activity definition lists both ports, and stored flows use `default`. Wire `default`. The rest of this subsection is the earlier (pre-2026-10-19) reading, kept as history: the FlowIR validator warns that `default` is not a valid condition for `queue-contact`, suggesting `failure` instead. However, `default` works correctly at runtime — the hold music/treatment path after Queue Contact executes while the caller waits for an agent. The warning is safe to ignore. Using `failure` instead would only wire the error path, not the hold treatment path. This is a validator limitation — the `queue-contact` activity's success continuation is implicit (agent answers), but the hold treatment path needs an edge condition to wire the downstream activities.
 
 ### Bridged Transfer Has No Success Port
 
@@ -1905,13 +1905,13 @@ Known cascading fields:
 
 ### HTTP Connector Choices (`http-request-v2` `connectorId`)
 
-Listable as of 2026-10-19 (verified live on the sandbox tenant): `wxcli cc-flow list-activity-choices PROJECT_ID http-request-v2 connectorId` returned 200 with 4 HTTP connectors, and `wxcli cc-flow list-connectors PROJECT_ID` returned 7 (the 4 HTTP connectors and 3 TTS connectors) with no failing source on stderr. Take `connectorId` from discovery; if a source fails again, `list-connectors` names it on stderr.
+Listable as of 2026-10-19 (verified live on the CC Bootcamp Sandbox): `wxcli cc-flow list-activity-choices PROJECT_ID http-request-v2 connectorId` returned 200 with 4 HTTP connectors, and `wxcli cc-flow list-connectors PROJECT_ID` returned 7 (the 4 HTTP connectors and 3 TTS connectors) with no failing source on stderr. Take `connectorId` from discovery; if a source fails again, `list-connectors` names it on stderr.
 
 History: on 2026-07-25 the same choices call returned 502 wrapping an upstream `401 Unauthorized` from `GET /v1/config/organization/{orgId}/credentials`, and the connectors listing returned only the `Cisco Cloud Text-to-Speech` connector, so authenticated `http-request-v2` could not be configured from discovery and the ID came from Control Hub. Why it changed is not known. ⚠ Still UNTESTED: whether a connector ID that discovery does **not** list is accepted on import.
 
 ### `list-all-latest` Returns 500 Org-Wide
 
-`wxcli cc-flow-versions list-all-latest PROJECT_ID` (the latest version of every flow) returns 500 for the whole org when any flow in the project has never been published (wxcc, 2026-07; the Flow Store answered JSON 500 on the sandbox tenant project again on 2026-10-19). wxcc-flow printed a warning before every call; `wxcli` does not. Fall back to the paged list of every version: `wxcli cc-flow-versions list-all PROJECT_ID --all`.
+`wxcli cc-flow-versions list-all-latest PROJECT_ID` (the latest version of every flow) returns 500 for the whole org when any flow in the project has never been published (wxcc, 2026-07; the Flow Store answered JSON 500 on the CC Bootcamp Sandbox project again on 2026-10-19). wxcc-flow printed a warning before every call; `wxcli` does not. Fall back to the paged list of every version: `wxcli cc-flow-versions list-all PROJECT_ID --all`.
 
 ### SUBFLOW Templates Return 404
 
@@ -1984,7 +1984,7 @@ Fully mapped in §7/§7b: `queue-contact`, `ivr-virtualassistantvoice`, `start-m
 
 ### Feature-Gated Activities
 
-These activities returned `ACTIVITY_NOT_FOUND` on create when they were still listed. As of 2026-07-11 they no longer appeared in the live prod registry at all. Re-checked 2026-10-19 (live, the sandbox tenant): they are **hidden by default, not gone** — absent from `wxcli cc-flow list-activities PROJECT_ID` (54) and `--flow-type SUBFLOW` (29), listed with `--check-ui-enabled true` (57). The `ACTIVITY_NOT_FOUND` status below is from when they were listed; it was not re-tested.
+These activities returned `ACTIVITY_NOT_FOUND` on create when they were still listed. As of 2026-07-11 they no longer appeared in the live prod registry at all. Re-checked 2026-10-19 (live, CC Bootcamp Sandbox): they are **hidden by default, not gone** — absent from `wxcli cc-flow list-activities PROJECT_ID` (54) and `--flow-type SUBFLOW` (29), listed with `--check-ui-enabled true` (57). The `ACTIVITY_NOT_FOUND` status below is from when they were listed; it was not re-tested.
 
 | Activity | Status |
 |----------|--------|

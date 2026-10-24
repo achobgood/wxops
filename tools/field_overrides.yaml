@@ -515,7 +515,7 @@
       - ["Model", "model"]
       - ["Display Name", "displayName"]
       - ["Type", "type"]
-  # ADR-18 amendment. Measured live 2026-10-14 (CLI, read-only, the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 (CLI, read-only, CC Bootcamp
   # Sandbox): `list --all`, `--offset 2 --limit 3` and `--limit 3` each returned
   # all 136 supported devices, so `GET /telephony/config/supportedDevices`
   # ignores `start` AND `max`. Its spec declares neither (only a Link header).
@@ -523,7 +523,7 @@
     list: "measured live 2026-10-14: --offset 2 --limit 3 and --limit 3 both returned all 136 (start and max ignored)"
 
 "Resource Group Memberships":
-  # ADR-18 amendment. Measured live 2026-10-14 (CLI, read-only, the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 (CLI, read-only, CC Bootcamp
   # Sandbox, 84 memberships): on both commands `--offset 2 --limit 3` returned
   # the same 3 records as `--limit 3`, not items 2-4 of `--all`; repeated, same
   # result. `max` IS honoured. The spec declares `max` but no `start`.
@@ -603,7 +603,7 @@
       - ["City", "address.city"]
       - ["State", "address.state"]
       - ["Time Zone", "timeZone"]
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   offset_ignored:
@@ -627,7 +627,7 @@
       - ["ID", "id"]
       - ["Title", "title"]
       - ["Type", "type"]
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   offset_ignored:
@@ -638,7 +638,7 @@
     table_columns:
       - ["ID", "id"]
       - ["Name", "name"]
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   offset_ignored:
@@ -658,14 +658,14 @@
       - ["Name", "name"]
       - ["Target URL", "targetUrl"]
       - ["Resource", "resource"]
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   offset_ignored:
     list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3 (6 records)"
 
 "Room Tabs":
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   # `--limit 3` also returned all 5: `max` is ignored too.
@@ -673,7 +673,7 @@
     list: "measured live 2026-10-14: --offset 2 --limit 3 returned the same records as --limit 3; --limit 3 returned all 5 (start and max ignored)"
 
 "Team Memberships":
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   offset_ignored:
@@ -694,7 +694,7 @@
       - ["Person", "personDisplayName"]
       - ["Email", "personEmail"]
       - ["Moderator", "isModerator"]
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   offset_ignored:
@@ -776,7 +776,7 @@
       - ["Site URL", "siteUrl"]
       - ["Service", "service"]
       - ["Type", "type"]
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   offset_ignored:
@@ -798,7 +798,7 @@
       - ["ID", "id"]
       - ["Display Name", "displayName"]
       - ["Email", "email"]
-  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (the sandbox tenant
+  # ADR-18 amendment. Measured live 2026-10-14 on temporary data (CC Bootcamp
   # Sandbox, created then deleted): `--offset 2 --limit 3` returned the same
   # records as `--limit 3`, not items 2-4 of `--all`. The spec declares no `start`.
   offset_ignored:
@@ -1972,7 +1972,7 @@ tag_overrides:
       command_name_overrides:
         "create-purge-inactive-entities": "delete-purge-inactive-entities"
     # POST /organization/{orgid}/dial-number: the spec marks `location`
-    # optional, the API does not. Live 2026-10-13 (the sandbox tenant): create
+    # optional, the API does not. Live 2026-10-13 (CC Bootcamp Sandbox): create
     # with --dialled-number/--entry-point-id/--entry-point-name -> 400
     # "location: should not be null or blank"; adding location alone -> 400
     # "Telephony regionId should be provided."; with both -> created. The spec

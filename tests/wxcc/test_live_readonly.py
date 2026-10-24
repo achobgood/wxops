@@ -12,7 +12,7 @@ docs/merge/wxcc-flow-command-map.md; the row is named next to each call.
 Run:  pytest tests/wxcc/test_live_readonly.py -m live                      # full Tier 1
       pytest tests/wxcc/test_live_readonly.py -m "live and not portaudit"  # skip the port audit
 Auto-skips when no token resolves. Every contract verified live on produs1
-(the sandbox org) 2026-07-12 through wxcc-flow, and in the sandbox tenant
+(org ccbcamp0199) 2026-07-12 through wxcc-flow, and in the CC Bootcamp Sandbox
 2026-10-19 through wxcli.
 """
 from __future__ import annotations

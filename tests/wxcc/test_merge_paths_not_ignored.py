@@ -22,6 +22,8 @@ PLANNED_PATHS = [
     "tools/flow_store_spec.py",
     "tools/flow_store_host_probe.py",
     "wxcli-dist/mcp.bundled.json",
+    "docs/merge/flow-store-host-map.md",
+    "docs/merge/wxcc-flow-command-map.md",
     "docs/playbooks/wxcc-setup.md",
     "docs/examples/flowir/simple-inbound.json",
     "docs/reference/flow-designer-activities/_index.md",

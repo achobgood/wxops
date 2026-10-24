@@ -731,7 +731,7 @@ commands were added 2026-10-13).
 > takes `PROJECT_ID` first. Always check `--help`. Verified live 2026-10-13: `export PROJECT_ID FLOW_ID`
 > returns 200; `export FLOW_ID PROJECT_ID` returns 404 "Flow ... not found".
 
-> **Verified live, 2026-10-13** (org "the sandbox tenant", full-admin PAT):
+> **Verified live, 2026-10-13** (org "CC Bootcamp Sandbox", full-admin PAT):
 > - **Finding the project ID.** No `cc-*` command lists projects. Get a flow id from
 >   `cc-entry-point show <id>` (field `flowId`), then read the `projectId` field of
 >   `cc-flow show <project-id> <flow-id>`; if you already know a project id, `cc-flow list <project-id>`
@@ -753,8 +753,8 @@ commands were added 2026-10-13).
 >   merge: it returns `409 FLOW_ALREADY_EXISTS` ("set overwrite to yes or rename it") when the name is
 >   taken, unless `--overwrite true` is passed. The response can carry non-fatal preflight warnings
 >   (`preflightWarningsCount`, severity WARNING) that dry-run `create-validate` does not report. The
->   earlier 500s ("Oops... Something broke", trackingIds `<trackingId-1>`,
->   `<trackingId-2>`) were on export-derived bodies, and no flow was created. Their
+>   earlier 500s ("Oops... Something broke", trackingIds `693ce99d-ab7d-48f0-aef4-4ca1080105ca`,
+>   `5fb767c8-9135-48d5-93df-35a0c09c1425`) were on export-derived bodies, and no flow was created. Their
 >   cause is unproven. **Hypothesis (not re-tested):** the incomplete start-node `flowType`, the same
 >   defect that makes `create-validate` say "key not found: eventSourceName". See "Building a flow from
 >   scratch" below for the body shape.
@@ -841,7 +841,7 @@ Content-Type: application/json
 
 ### Building a flow from scratch
 
-Verified live 2026-10-13 (org "the sandbox tenant", full-admin PAT, region us1): a 43-node, 108-edge
+Verified live 2026-10-13 (org "CC Bootcamp Sandbox", full-admin PAT, region us1): a 43-node, 108-edge
 bilingual IVR (language menu, business hours, emergency fast path, outage lookup with callback, billing,
 service) was written by hand, imported with `cc-flow create-import`, published as version 1 with
 `cc-flow publish` (validation not skipped), and wired to a new entry point. **No test call was placed**, so
@@ -884,7 +884,7 @@ FLOW, channelType = telephony`), and the three `*Name` fields must be present ev
 definition's own default `flowType` omits them (without them: `FC0000 Validation pipeline error: key not
 found: eventSourceName`).
 
-The `FC1024` did **not** reproduce on 2026-10-19 (verified live, the sandbox tenant): on the starter
+The `FC1024` did **not** reproduce on 2026-10-19 (verified live, CC Bootcamp Sandbox): on the starter
 flow, `create-validate` returned `valid: true` for this node, for the same node with `name`,
 `activityName` and `event` all `NewPhoneContact`, and for the `NewPhoneContact` node of
 `flow-designer-flowir.md` § 7 `start`. The 2026-10-13 `FC1024` came inside the 43-node flow; whether
@@ -1011,9 +1011,9 @@ Seven groups generated from the WxCC Flow Store spec (`specs/webex-cc-flow-store
 operations `cc-flow` does not cover. Six call the Flow Store host,
 `https://flow-store.produs1.ciscoccservice.com/flow-store` by default (a tenant outside the US sets
 `flow_store_url`); the gateway does not route most of their reads (the merge's Flow Store host map, § Decision:
-flow-store-host-map.md, a maintainer record kept outside this repository). Every command takes `PROJECT_ID` positionally; read it from
+flow-store-host-map.md under docs/merge in the source repository; not shipped). Every command takes `PROJECT_ID` positionally; read it from
 `wxcli cc-flow-projects show-user-preferences` (`projectId`). The old-to-new command map
-(wxcc-flow-command-map.md, a maintainer record kept outside this repository) maps every
+(wxcc-flow-command-map.md under docs/merge in the source repository; not shipped) maps every
 `wxcc-flow` command to its `wxcli` command. FlowIR authoring — the body shape, the validate →
 create → publish workflow and its gotchas — is in `flow-designer-flowir.md` (§ 9 and § 11); the
 Custom Functions API is in `custom-functions.md`.
@@ -1692,7 +1692,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 
 14. **Before wxcli 1.7.6.1, every `/v1/` Contact Center command called the wrong URL (404).** The generator stripped the spec's `/v1` prefix for all paths because the Webex Calling base URL already ends in `/v1` — but the CC base URL (`https://api.wxcc-{region}.cisco.com`) does not. Affected: `cc-callbacks`, `cc-tasks`, `cc-agents`, `cc-call-monitoring`, `cc-subscriptions`, `cc-journey` (progressive-profile/events), `cc-campaign` (dialer), `cc-agent-wellbeing`, `cc-captures`, `cc-ewt`, `cc-notification`, `cc-queue-stats`, `cc-realtime`. Unversioned config paths (`/organization/{orgid}/...`) were never affected. If an older wxcli returns 404 on one of these, upgrade.
 
-12. **CC config APIs need `cjp:config_read` / `cjp:config_write` on the token.** Verified live 2026-10-13: a full-admin personal access token (PAT) from developer.webex.com worked on org "the sandbox tenant" — `cc-flow` list/show/export/list-validate/create-validate/create-lock/create-unlock, `cc-queue list`, `cc-entry-point list` and `cc-global-vars list-cad-variable` all returned 200, no 403. (An April 2026 claim that PATs get 403 came from global variables on this same org; that now returns 200.) If you get a 403 (`ccconfig_` trackingId), the token lacks those scopes: use an OAuth integration or Service App with them selected and re-authorize after adding scopes; also run `wxcli set-cc-region <region>` and verify the region.
+12. **CC config APIs need `cjp:config_read` / `cjp:config_write` on the token.** Verified live 2026-10-13: a full-admin personal access token (PAT) from developer.webex.com worked on org "CC Bootcamp Sandbox" — `cc-flow` list/show/export/list-validate/create-validate/create-lock/create-unlock, `cc-queue list`, `cc-entry-point list` and `cc-global-vars list-cad-variable` all returned 200, no 403. (An April 2026 claim that PATs get 403 came from global variables on this same org; that now returns 200.) If you get a 403 (`ccconfig_` trackingId), the token lacks those scopes: use an OAuth integration or Service App with them selected and re-authorize after adding scopes; also run `wxcli set-cc-region <region>` and verify the region.
 
 13. **Region matters.** All CC API calls go to `api.wxcc-{region}.cisco.com`. Valid regions: `us1`, `eu1`, `eu2`, `anz1`, `ca1`, `jp1`, `sg1`. Using the wrong region returns 401/403. Set with `wxcli set-cc-region`.
 
@@ -1716,7 +1716,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 
 17. **Flow Designer HTTP connector requires a full absolute URL.** Relative paths like `/publish/v1/api/event` return HTTP 500 "is not a valid HTTP URL". Always prefix with `https://api.wxcc-{region}.cisco.com`.
 
-18. **Use JDS alias lookup to detect returning callers in a flow.** Query `GET /admin/v1/api/person/workspace-id/{workspaceId}/aliases/{callerANI}` at flow entry. If the person exists and has prior events (events with timestamps before the current contact), they are a returning caller. If NOT_FOUND or no prior events, treat as first-time. WXCC writes ANI in E.164 format (`+15551234567`) — pass the number with `+1` prefix in the lookup or it will miss.
+18. **Use JDS alias lookup to detect returning callers in a flow.** Query `GET /admin/v1/api/person/workspace-id/{workspaceId}/aliases/{callerANI}` at flow entry. If the person exists and has prior events (events with timestamps before the current contact), they are a returning caller. If NOT_FOUND or no prior events, treat as first-time. WXCC writes ANI in E.164 format (`+19103915567`) — pass the number with `+1` prefix in the lookup or it will miss.
 
 19. **`cc-flow create-validate` / `list-validate` verdicts are not authoritative, and `publish` does not enforce them.** Verified live 2026-10-13: `valid:false` came back for correct flows because of two proven false positives (`default` rejected as the `ivr-collectdigits` success edge, which Designer writes — on 2026-10-19 an edge with no `condition` validated clean; FC1038 on every `{{Node.Output}}` reference except the start node's), only one edge-condition error is reported per call, and a draft that `list-validate` flagged `ERROR FC1038` published without `--skip-validation`. Use validate to find real errors (FC1015, FC1024, missing start-node fields), not as a pass/fail gate. Details and the working body shape are in §11, "Building a flow from scratch".
 

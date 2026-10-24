@@ -91,7 +91,7 @@
       "group": "action",
       "properties": {
         "activityName": "queue-contact",
-        "queueId": "00000000-0000-0000-0000-000000000001",
+        "queueId": "247ec630-c684-4a6b-8b05-7c9cfcdb8f36",
         "channelType": "TELEPHONY"
       }
     },

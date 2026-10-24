@@ -538,7 +538,7 @@ Keep `--limit` and `--offset` on all list commands, including the 105 page-numbe
 
 ### Context
 
-Verified live 2026-10-13 on the sandbox tenant: `cc-queue list --limit 2` sent `?max=2` and returned 17 records; `cc-flow list --offset 10` sent `start=10` and returned page 0 again. Both exit 0 — a wrong answer delivered confidently. The previous fix had pointed the truncation note at `--page N` instead, but `cc-tasks list` has no `--page` flag (its spec declares `pageSize` only, although the server pages by `page` and says so in a `Link` header), so the note named a flag that does not exist there.
+Verified live 2026-10-13 on the CC Bootcamp Sandbox: `cc-queue list --limit 2` sent `?max=2` and returned 17 records; `cc-flow list --offset 10` sent `start=10` and returned page 0 again. Both exit 0 — a wrong answer delivered confidently. The previous fix had pointed the truncation note at `--page N` instead, but `cc-tasks list` has no `--page` flag (its spec declares `pageSize` only, although the server pages by `page` and says so in a `Link` header), so the note named a flag that does not exist there.
 
 ### Alternatives Considered
 
@@ -818,7 +818,7 @@ The regen changed exactly 3 modules (`cc_team.py`, `cc_skill_profile.py`, `cc_de
 
 `verify_write` (`src/wxcli/common.py`) still compares **only the fields you sent** and still **never changes the exit code**. What changed is how one sent field is judged against the read-back:
 
-- **Scalars** are equal after one normalisation: a string that spells the number (`'30'` vs `30`, `'2.5'` vs `2.5`) or the boolean (`'true'`/`'false'`, either case, vs `True`/`False`) is equal to it, in both directions. A boolean is never equal to a number (Python says `True == 1`; a boolean field reading back `1` proves nothing). `'030'` is not `30`. A rewritten value (an E.164 phone number `+15559876543` read back as `+1-5559876543`) still differs: there is no safe rule for it.
+- **Scalars** are equal after one normalisation: a string that spells the number (`'30'` vs `30`, `'2.5'` vs `2.5`) or the boolean (`'true'`/`'false'`, either case, vs `True`/`False`) is equal to it, in both directions. A boolean is never equal to a number (Python says `True == 1`; a boolean field reading back `1` proves nothing). `'030'` is not `30`. A rewritten value (an E.164 phone number `+12094571613` read back as `+1-2094571613`) still differs: there is no safe rule for it.
 - **Objects** match when every sent key matches, recursively; keys only the read-back has (defaults, server-added ids, empty arrays) are ignored. A nested difference is reported by its path: `callForwarding.always.enabled: sent True, now False`.
 - **Lists of scalars** compare as multisets: order is ignored, duplicates count, and an extra or missing element is a difference.
 - **Lists of objects** must also come back with **exactly as many elements** as were sent, and each sent element must be matched by a **distinct** read-back element under the object rule, so extra keys *inside* an element are ignored. Same order is tried first; otherwise iterative augmenting-path matching runs, so a first-fit choice cannot block a real match and no input recurses deeply. Above 1,000 elements an out-of-order list is not matched (that is n² element compares). It raises `ListTooLongToMatch` and is reported as described below.
@@ -927,7 +927,7 @@ The regen changed 105 command modules and nothing else under `src/wxcli/commands
 
 ### Amendment — 2026-10-14: the 158 unmeasured walker lists probed
 
-Every walker list that sent `--offset` as `start` (162 on the tree, minus the 4 measured above) was probed live, read-only, on the sandbox tenant with the test from Decision 3: `--offset 2 --limit 3` against items 2–4 of `--all` and against `--limit 3`. Results, per command, in `docs/architecture/offset-probe-2026-10-14.tsv`:
+Every walker list that sent `--offset` as `start` (162 on the tree, minus the 4 measured above) was probed live, read-only, on the CC Bootcamp Sandbox with the test from Decision 3: `--offset 2 --limit 3` against items 2–4 of `--all` and against `--limit 3`. Results, per command, in `docs/architecture/offset-probe-2026-10-14.tsv`:
 
 | Verdict | Count | Meaning |
 |---|---|---|
@@ -966,7 +966,7 @@ Revive the Flow Store as eight new Contact Center command groups — `cc-flow-st
 
 ### Context
 
-Three Flow Store hostnames have been tried. ADR-11 measured two: `flow-store.intgus1.ciscoccservice.com` is Cisco's integration environment and rejects production tokens (401 `FAIL_VALIDATE_TOKEN`), and `flow-store.us1.ciscoccservice.com` does not resolve. The third, `flow-store.produs1.ciscoccservice.com`, answered a production token on 2026-10-18 (merge spec §10.5), and `docs/merge/flow-store-host-map.md` (Plan 2 Task 3, read-only, the sandbox tenant, 2026-10-19) measured it against every GET the spec declares: all 47 were `ROUTED` or `ERRORED` by the service itself, and the 5 `AUTH` cells are `/admin/*` and `/metrics`, service-admin surfaces outside the revival. The same run measured the Contact Center gateway (`api.wxcc-us1.cisco.com`, with and without `/flow-store`): it routes 14 of the 47 GETs, answers `/metrics` with 403, and returns an empty-body 404 from `istio-envoy` for the other 32. ADR-11's two hosts were re-probed in that run (intgus1: 404 on the path tried; us1: DNS failure). So both statements hold: ADR-11's facts stay true; its reasoning never reached `produs1`.
+Three Flow Store hostnames have been tried. ADR-11 measured two: `flow-store.intgus1.ciscoccservice.com` is Cisco's integration environment and rejects production tokens (401 `FAIL_VALIDATE_TOKEN`), and `flow-store.us1.ciscoccservice.com` does not resolve. The third, `flow-store.produs1.ciscoccservice.com`, answered a production token on 2026-10-18 (merge spec §10.5), and `docs/merge/flow-store-host-map.md` (Plan 2 Task 3, read-only, CC Bootcamp Sandbox, 2026-10-19) measured it against every GET the spec declares: all 47 were `ROUTED` or `ERRORED` by the service itself, and the 5 `AUTH` cells are `/admin/*` and `/metrics`, service-admin surfaces outside the revival. The same run measured the Contact Center gateway (`api.wxcc-us1.cisco.com`, with and without `/flow-store`): it routes 14 of the 47 GETs, answers `/metrics` with 403, and returns an empty-body 404 from `istio-envoy` for the other 32. ADR-11's two hosts were re-probed in that run (intgus1: 404 on the path tried; us1: DNS failure). So both statements hold: ADR-11's facts stay true; its reasoning never reached `produs1`.
 
 ### Alternatives Considered
 

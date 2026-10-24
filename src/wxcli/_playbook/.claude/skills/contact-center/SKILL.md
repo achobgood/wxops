@@ -69,7 +69,7 @@ If this returns 403, the token lacks CC-specific OAuth scopes. Required scopes:
 
 The user may need to re-authenticate with CC scopes enabled.
 
-> **NOTE (verified live 2026-10-13):** A full-admin personal access token (PAT) from developer.webex.com worked for CC config calls on org "the sandbox tenant" — `cc-flow` list/show/export/list-validate/create-validate/create-lock/create-unlock, `cc-queue list`, `cc-entry-point list` and `cc-global-vars list-cad-variable` all returned 200, no 403. An earlier (April 2026) finding that PATs get 403 on global variables on this same org no longer reproduces. Whether a PAT works can still vary by org/token, so try it first.
+> **NOTE (verified live 2026-10-13):** A full-admin personal access token (PAT) from developer.webex.com worked for CC config calls on org "CC Bootcamp Sandbox" — `cc-flow` list/show/export/list-validate/create-validate/create-lock/create-unlock, `cc-queue list`, `cc-entry-point list` and `cc-global-vars list-cad-variable` all returned 200, no 403. An earlier (April 2026) finding that PATs get 403 on global variables on this same org no longer reproduces. Whether a PAT works can still vary by org/token, so try it first.
 >
 > If you get 403 "Access denied - Client is forbidden access to the resource" with a `ccconfig_` tracking ID, the token lacks `cjp:config_*` scopes. Two options:
 >
@@ -85,7 +85,7 @@ The user may need to re-authenticate with CC scopes enabled.
 > 3. Generate tokens in the developer portal (Access Token: 14-day, Refresh Token: 90-day)
 > 4. Run `wxcli configure` with the access token
 
-> **Note:** The CC API requires the bare UUID org ID (e.g., `22222222-...`), not the base64-encoded Spark ID (`Y2lzY29...`). The CLI handles this automatically via `get_cc_org_id()`, which decodes the Spark ID to extract the UUID. No manual conversion is needed.
+> **Note:** The CC API requires the bare UUID org ID (e.g., `a9527d60-...`), not the base64-encoded Spark ID (`Y2lzY29...`). The CLI handles this automatically via `get_cc_org_id()`, which decodes the Spark ID to extract the UUID. No manual conversion is needed.
 
 ## Step 3: Identify the operation
 
@@ -969,7 +969,7 @@ wxcli cc-flow list-event-specifications PROJECT_ID
 >
 > **`create-validate` is safe to run but not authoritative.** It is a POST that changes nothing, but `valid:false` can be a false positive. Two are proven (verified live 2026-10-13, against Designer-built flows): `ivr-collectdigits` has no accepted success-edge condition (`default`, `out`, `done`, `success` all rejected, yet Designer writes `default`), and `FC1038 Variable 'X' is referenced but not declared` fires on every `{{Node.Output}}` reference except the start node's (`{{NewContact.ANI}}` passes). It also reports only **one** edge-condition error per call, and edge checks gate the FC checks, so errors appear one layer at a time. `cc-flow publish` (without `--skip-validation`) succeeded on a draft that `list-validate` reported as `ERROR FC1038`, so neither validate endpoint is the publish gate. Treat validate as a way to find real errors (FC1015, FC1024, missing start-node fields), not a pass/fail verdict.
 >
-> **Import works (verified live 2026-10-13; supersedes the earlier "HTTP 500 / not demonstrated" note).** `cc-flow create-import` (POST `/{orgId}/project/{projectId}/v2/flows:import`) created a 43-node flow on the first try from a well-formed FlowIr 2.0 body; `show` read back identical. It is a **full create**: a name clash returns `409 FLOW_ALREADY_EXISTS` unless `--overwrite true`. The response can carry non-fatal preflight warnings (`preflightWarningsCount`) that dry-run validate does not report. The earlier 500s (trackingIds `<trackingId-1>`, `<trackingId-2>`) were on export-derived bodies, cause unproven. **Hypothesis (not re-tested):** the incomplete start-node `flowType`.
+> **Import works (verified live 2026-10-13; supersedes the earlier "HTTP 500 / not demonstrated" note).** `cc-flow create-import` (POST `/{orgId}/project/{projectId}/v2/flows:import`) created a 43-node flow on the first try from a well-formed FlowIr 2.0 body; `show` read back identical. It is a **full create**: a name clash returns `409 FLOW_ALREADY_EXISTS` unless `--overwrite true`. The response can carry non-fatal preflight warnings (`preflightWarningsCount`) that dry-run validate does not report. The earlier 500s (trackingIds `693ce99d-ab7d-48f0-aef4-4ca1080105ca`, `5fb767c8-9135-48d5-93df-35a0c09c1425`) were on export-derived bodies, cause unproven. **Hypothesis (not re-tested):** the incomplete start-node `flowType`.
 >
 > **Exports do not round-trip (as observed):** `create-validate` on export-derived bodies returned `valid:false` with errors such as "key not found: eventSourceName" and "Condition 'default' is not valid for activity 'bridged-transfer'". Likely cause (not proven): the start node's incomplete `flowType` plus the validator false positives above.
 

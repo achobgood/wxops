@@ -46,8 +46,8 @@
 
 | Type | Path | Tokens |
 |------|------|--------|
-| Project | /tmp/exp-dry/CLAUDE.md | 22.5k |
-| Project | /tmp/exp-dry/.claude/rules/large-operation-batching.md | 409 |
+| Project | /private/tmp/claude-501/-Users-ahobgood-Documents-webexCalling/59fde8fc-f562-4287-9ef7-6775cae6d541/scratchpad/exp-dry/CLAUDE.md | 22.5k |
+| Project | /private/tmp/claude-501/-Users-ahobgood-Documents-webexCalling/59fde8fc-f562-4287-9ef7-6775cae6d541/scratchpad/exp-dry/.claude/rules/large-operation-batching.md | 409 |
 
 ### Skills
 

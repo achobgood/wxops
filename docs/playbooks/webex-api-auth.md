@@ -494,7 +494,7 @@ Full reference: `docs/reference/wxcc-platform.md` → Custom Connectors section.
 > A **Personal Access Token does carry `cjp:user`** (verified live 2026-07-31 driving
 > `register()`, `stationLogin()` and `setAgentState()` against a live tenant), so a PAT is
 > enough to run a custom agent desktop. A full-admin PAT also reached the CC config endpoints
-> (verified live on the sandbox tenant: on 2026-10-13 `cc-flow`, `cc-queue list`,
+> (verified live on the CC Bootcamp Sandbox: on 2026-10-13 `cc-flow`, `cc-queue list`,
 > `cc-entry-point list` and `cc-global-vars list-cad-variable` returned 200; on 2026-10-19 a
 > full-admin PAT read `cc-global-vars list-cad-variable` and created, read and deleted a team,
 > a queue, an entry point, a global variable and flows), so a
