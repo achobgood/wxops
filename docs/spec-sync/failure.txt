@@ -1,0 +1,193 @@
+spec-sync 2026-10-26 — FAILED CLOSED at contract §4 (pass bar), item 3 (pytest).
+No commit to main, no release-notes file, no version, no tag, nothing published.
+
+=====================================================================
+1. WHAT UPSTREAM CHANGED (the cause; evidence, not inference)
+=====================================================================
+
+update-specs.py exit 0, 2 of 7 specs updated:
+
+  DIFF webex-cloud-calling.json (776 -> 777 paths, +1 added)
+       + /telephony/config/locations/{locationId}/dectNetworks/{dectNetworkId}/debugLevel
+  DIFF webex-contact-center.json (356 -> 356 paths)
+
+spec-snapshot refresh (.spec-sync/spec-delta.txt): 2 structural, 0 ID-kind flips,
+24 prose deltas. The two structural deltas:
+
+  STRUCTURAL   operation_added    webex-cloud-calling.json
+               PUT /telephony/config/locations/{}/dectNetworks/{}/debugLevel
+               DECT Devices Settings - Update DECT Network Debug Level
+
+  STRUCTURAL   field_removed      webex-contact-center.json
+               POST /{}/project/{}/flows/{}:publish   query:skipValidation
+
+The second one is the cause of this failure. Cisco removed the skipValidation
+query parameter from the flow-publish operation, so the generator no longer
+renders --skip-validation on `cc-flow publish`:
+
+  --- a/src/wxcli/commands/cc_flow.py
+  +++ b/src/wxcli/commands/cc_flow.py
+  @@ -309,7 +309,6 @@ def publish(
+       flow_id: str = typer.Argument(help="24-char hex id"),
+       project_id: str = typer.Argument(help="24-char hex id"),
+  -    skip_validation: str = typer.Option(None, "--skip-validation", help="If true, the flow's pre-publish validation is skipped. Use with care."),
+       flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
+  @@ -327,8 +326,6 @@ def publish(
+       params = {}
+  -    if skip_validation is not None:
+  -        params["skipValidation"] = skip_validation
+
+No new command group appeared (`git diff --stat origin/main -- src/wxcli/commands/_registry.py`
+is empty), so contract §2 rules B and C never triggered. The name-lock refresh
+printed one additive LOCK (dect_devices update-debug-level) and no MOVED lines,
+so rule A never triggered either. sync_classify verdict = patch
+(added=1 removed=0 retargeted=0, groups +0/-0).
+
+=====================================================================
+2. WHAT THE ROUTINE DID ABOUT IT (repair attempt 1, doc side)
+=====================================================================
+
+The flag's removal failed drift gate checks 6 and 7 on the first gate run
+(.spec-sync/gate.txt):
+
+  [6] non-existent flags cited: 2
+        docs/reference/flow-designer-flowir.md:1578  wxcli cc-flow publish  --skip-validation
+        docs/reference/wxcc-provisioning-api.md:237  wxcli cc-flow publish  --skip-validation
+  [7] prose flags on no command: 4
+        .claude/skills/contact-center/SKILL.md:970  --skip-validation
+        docs/reference/contact-center-routing.md:795  --skip-validation
+        docs/reference/contact-center-routing.md:947  --skip-validation
+        docs/reference/contact-center-routing.md:1721  --skip-validation
+
+Ten citations of the removed flag were rewritten across 5 files (the 6 gated
+findings plus 4 more that checks 6/7 are structurally blind to, because
+PROSE_FLAG only matches a bare backticked flag and `--skip-validation true`
+carries a value inside the backticks):
+
+  docs/reference/contact-center-routing.md            (4 citations)
+  docs/reference/flow-designer-flowir.md              (2)
+  docs/reference/wxcc-provisioning-api.md             (1)
+  .claude/skills/contact-center/SKILL.md              (1)
+  .claude/skills/build-flow-programmatic/SKILL.md     (1)
+  .claude/skills/build-flow-programmatic/reference.md (1)
+
+Each rewrite states that upstream dropped the parameter in this spec sync, keeps
+the live-verified history (the skip path was verified live 2026-07-11 as
+wxcc-flow publish --validate; publish succeeded on a draft list-validate called
+ERROR FC1038, verified live 2026-10-13) in the past tense, and labels the one
+thing this run could not test as `> **Unverified:**` — whether the server still
+honours a hand-sent ?skipValidation=true now that the parameter has left the
+spec. No existing live-verified value was replaced with a spec value.
+
+That cleared checks 6 and 7. Pass bar items 1, 2, 4 and 5 all hold:
+
+  sync_guard diff --base origin/main              -> 0 forbidden edit(s), exit 0
+  drift_check --enforce                           -> result: PASS, exit 0
+    drift-check: 200 command sets (203 registered names incl. aliases),
+    2221 commands, 2042 non-skipped spec ops (194 deliberately skipped)
+    [22] 0 moved, 0 removed, 0 groups gone, 0 unlocked
+  assemble.py / _playbook                         -> not reached (see below)
+  sync_classify --base origin/main --fail-on-human -> exit 0 (verdict=patch)
+
+=====================================================================
+3. WHY IT STILL FAILS — THE PART THAT NEEDS A HUMAN
+=====================================================================
+
+Pass bar item 3:
+  TERM=dumb COLUMNS=400 python3 -m pytest tests/ -m "not live" -q
+  -> 2 failed, 5484 passed, 21 skipped, 57 deselected, 2 xfailed   (exit 1)
+
+Both failures pin --skip-validation as a contract. Verbatim:
+
+--- FAILURE 1 -------------------------------------------------------
+FAILED tests/wxcc/test_doc_consistency.py::test_rewritten_flow_commands_keep_wxcc_defaults
+
+                if "cc-flow publish " in span and "--skip-validation" not in span:
+                    near = " ".join(lines[max(lineno - 1, 0):lineno + 3]).lower()
+                    if "validat" not in near:
+                        publish.append(where)
+        assert not legacy, legacy[:20]
+        assert not export, ("cc-flow export without --version", export[:20])
+>       assert not publish, ("cc-flow publish without --skip-validation", publish[:20])
+E       AssertionError: ('cc-flow publish without --skip-validation', ['docs/reference/wxcc-provisioning-api.md:237'])
+E       assert not ['docs/reference/wxcc-provisioning-api.md:237']
+
+tests/wxcc/test_doc_consistency.py:169: AssertionError
+
+Its docstring: "Review Focus 1: a rewritten flow command must keep what wxcc's
+did. ... cc-flow publish validates unless --skip-validation".
+
+--- FAILURE 2 -------------------------------------------------------
+FAILED tests/wxcc/test_generator.py::TestPhaseCFeatures::test_param_defaults_setdefault_after_query_build
+
+    def test_param_defaults_setdefault_after_query_build(self, tmp_path, monkeypatch):
+        """NOT NEEDED (`param_defaults`: both users are fate (a)). Nothing is
+        sent unless the caller passes it; the command map passes `cc-flow
+        export --version draft` and `cc-flow publish --skip-validation true`."""
+        ...
+        assert '"--version"' in fn(CC_FLOW, "export")
+>       assert '"--skip-validation"' in fn(CC_FLOW, "publish")
+E       assert '"--skip-validation"' in '@app.command("publish", short_help="Publish a Flow or Subflow.")\ndef publish(\n    flow_id: str = typer.Argument(hel...'
+
+tests/wxcc/test_generator.py:799: AssertionError
+
+--- WHY THE ROUTINE STOPPED HERE, instead of spending attempt 2 ------
+
+FAILURE 1 is doc-side and would yield: the check has an escape hatch (a
+"validat" mention within the surrounding 4 lines excuses the span, which is why
+the rewritten flow-designer-flowir.md citation already passes), so one more
+sentence near wxcc-provisioning-api.md:237 would clear it honestly.
+
+FAILURE 2 cannot be cleared from anything this routine may touch. It asserts
+that the RENDERED cc-flow publish source contains "--skip-validation". That is
+true only if the flag exists, and the flag exists only if the spec declares the
+parameter. The three ways to make it pass are all forbidden or wrong:
+
+  * edit tests/                     -> forbidden (tools/sync_guard.py FORBIDDEN_PATHS;
+                                       and the routine may never skip, mark or
+                                       delete a failing test)
+  * edit the generator or add an override that re-creates the parameter
+                                    -> forbidden (tools/, and field_overrides.yaml
+                                       outside cli_name_overrides /
+                                       command_name_overrides); no override key
+                                       re-adds a query param upstream deleted
+  * edit specs/webex-contact-center.json to put skipValidation back
+                                    -> fabricating a parameter Cisco removed
+
+So clearing FAILURE 1 alone would still leave the bar red, and the bar is
+all-or-nothing. Fixing one of two blockers is not a repair.
+
+=====================================================================
+4. THE DECISION THAT IS OWED
+=====================================================================
+
+Both tests encode a Plan 2 migration contract: that the rewritten cc-flow
+commands can still reproduce wxcc-flow's old defaults, publish's
+skip-validation among them (docs/merge/wxcc-flow-command-map.md, referenced by
+both docstrings; the map is not in this tree). Upstream has now removed the
+parameter that contract depends on. Someone has to choose:
+
+  (a) Accept the capability loss. Update tests/wxcc/test_generator.py:799 and
+      tests/wxcc/test_doc_consistency.py:160-169 to stop requiring a flag the
+      API no longer declares, update the command map row for publish, and keep
+      the doc rewrites from section 2 (they are already written and gate-clean —
+      see the branch note below).
+
+  (b) Keep the capability. Verify live whether the server still honours
+      ?skipValidation=true. If it does, the flag is a "measured to work, carried
+      even though the spec dropped it" case under the CLI-surface decision
+      record in tools/CLAUDE.md ("Which API options get a flag", Adam
+      2026-10-19), which needs a generator/override mechanism and a human
+      commit. If it does not, (a) is the only option.
+
+Either way the two tests must change, and this routine may not change them.
+
+Nothing from the failed regen is on this branch: it is a clean branch off
+origin/main (99c3f3f4a29b8bae697efa1d74318ea6bb9ead2b) carrying only
+docs/spec-sync/last-run.json and this file. The spec refresh, the regenerated
+modules, the lock/snapshot refresh and the ten doc rewrites were all left
+uncommitted in the sandbox and are gone with it; re-run update-specs.py and
+spec_sync.py to reproduce them.
+
+ENVIRONMENT NOTE: unchanged from the probe table in docs/spec-sync-contract.md.
+python3 is 3.11.17 (the contract records 3.11.15; same minor, no action).
