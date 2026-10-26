@@ -1,0 +1,138 @@
+diff --git a/.claude/skills/build-flow-programmatic/SKILL.md b/.claude/skills/build-flow-programmatic/SKILL.md
+index 54a42838..5fbecbae 100644
+--- a/.claude/skills/build-flow-programmatic/SKILL.md
++++ b/.claude/skills/build-flow-programmatic/SKILL.md
+@@ -133,7 +133,7 @@ Ask the user if they want to publish:
+ wxcli cc-flow publish {flow-id} PROJECT_ID
+ ```
+ 
+-`wxcli cc-flow publish` validates the flow first (wxcc-flow publish did not, unless asked); add `--skip-validation true` to publish without that check.
++`wxcli cc-flow publish` validates the flow first (wxcc-flow publish did not, unless asked), and that check cannot be skipped: upstream dropped the `skipValidation` query parameter in the 2026-10-26 spec sync, so the flag that skipped it is gone [`contact-center-routing.md` § 11].
+ 
+ Remind them to assign the flow to an Entry Point in Control Hub (see `docs/playbooks/wxcc-setup.md`).
+ 
+diff --git a/.claude/skills/build-flow-programmatic/reference.md b/.claude/skills/build-flow-programmatic/reference.md
+index 02f19e4f..7b111cba 100644
+--- a/.claude/skills/build-flow-programmatic/reference.md
++++ b/.claude/skills/build-flow-programmatic/reference.md
+@@ -396,7 +396,7 @@ Template:
+ | `wxcli cc-flow create-validate PROJECT_ID --json-body file://FLOW_FILE` | Dry-run validate FlowIR (no save) |
+ | `wxcli cc-flow create-import PROJECT_ID --json-body file://FLOW_FILE` | Import flow from FlowIR JSON |
+ | `wxcli cc-flow export PROJECT_ID FLOW_ID --version draft` | Export flow as FlowIR for verification |
+-| `wxcli cc-flow publish FLOW_ID PROJECT_ID` | Publish a draft flow (validates first; add `--skip-validation true` to publish without that check) |
++| `wxcli cc-flow publish FLOW_ID PROJECT_ID` | Publish a draft flow (always validates first; the skip-validation flag was dropped in the 2026-10-26 spec sync when upstream removed the `skipValidation` query parameter) |
+ | `wxcli cc-flow list-connectors PROJECT_ID` | List all available connectors (TTS + HTTP) |
+ | `wxcli cc-flow-store list-global-variables PROJECT_ID --fields variables` | List org global variables |
+ 
+diff --git a/.claude/skills/contact-center/SKILL.md b/.claude/skills/contact-center/SKILL.md
+index 8dedf69d..b6739d05 100644
+--- a/.claude/skills/contact-center/SKILL.md
++++ b/.claude/skills/contact-center/SKILL.md
+@@ -967,7 +967,7 @@ wxcli cc-flow list-event-specifications PROJECT_ID
+ 
+ > A dependent input (e.g. `queue-contact` `destination`) returns 400 "requires a parent value" unless you also pass `--parent-input-name channelType --parent-value TELEPHONY`. Use these to look up activity names, inputs and choice values when hand-writing a FlowIr body; raw `GET /v2/activities` is the fallback. `cc-flow list-search` is not routed on us1: the API gateway returns an empty-body 404 (`GTWY_` trackingId) for every path and parameter variant while `…/flows` returns 200 (verified 2026-10-13). Search by name with `cc-flow list PROJECT_ID --all --fields "[?contains(name, 'X')].name"`.
+ >
+-> **`create-validate` is safe to run but not authoritative.** It is a POST that changes nothing, but `valid:false` can be a false positive. Two are proven (verified live 2026-10-13, against Designer-built flows): `ivr-collectdigits` has no accepted success-edge condition (`default`, `out`, `done`, `success` all rejected, yet Designer writes `default`), and `FC1038 Variable 'X' is referenced but not declared` fires on every `{{Node.Output}}` reference except the start node's (`{{NewContact.ANI}}` passes). It also reports only **one** edge-condition error per call, and edge checks gate the FC checks, so errors appear one layer at a time. `cc-flow publish` (without `--skip-validation`) succeeded on a draft that `list-validate` reported as `ERROR FC1038`, so neither validate endpoint is the publish gate. Treat validate as a way to find real errors (FC1015, FC1024, missing start-node fields), not a pass/fail verdict.
++> **`create-validate` is safe to run but not authoritative.** It is a POST that changes nothing, but `valid:false` can be a false positive. Two are proven (verified live 2026-10-13, against Designer-built flows): `ivr-collectdigits` has no accepted success-edge condition (`default`, `out`, `done`, `success` all rejected, yet Designer writes `default`), and `FC1038 Variable 'X' is referenced but not declared` fires on every `{{Node.Output}}` reference except the start node's (`{{NewContact.ANI}}` passes). It also reports only **one** edge-condition error per call, and edge checks gate the FC checks, so errors appear one layer at a time. `cc-flow publish` succeeded on a draft that `list-validate` reported as `ERROR FC1038`, so neither validate endpoint is the publish gate. (That run passed no skip-validation flag; the flag existed then and was dropped in the 2026-10-26 spec sync when upstream removed the `skipValidation` query parameter, so publish now always validates.) Treat validate as a way to find real errors (FC1015, FC1024, missing start-node fields), not a pass/fail verdict.
+ >
+ > **Import works (verified live 2026-10-13; supersedes the earlier "HTTP 500 / not demonstrated" note).** `cc-flow create-import` (POST `/{orgId}/project/{projectId}/v2/flows:import`) created a 43-node flow on the first try from a well-formed FlowIr 2.0 body; `show` read back identical. It is a **full create**: a name clash returns `409 FLOW_ALREADY_EXISTS` unless `--overwrite true`. The response can carry non-fatal preflight warnings (`preflightWarningsCount`) that dry-run validate does not report. The earlier 500s (trackingIds `693ce99d-ab7d-48f0-aef4-4ca1080105ca`, `5fb767c8-9135-48d5-93df-35a0c09c1425`) were on export-derived bodies, cause unproven. **Hypothesis (not re-tested):** the incomplete start-node `flowType`.
+ >
+diff --git a/docs/reference/contact-center-routing.md b/docs/reference/contact-center-routing.md
+index d3b0a3c3..52fb8a16 100644
+--- a/docs/reference/contact-center-routing.md
++++ b/docs/reference/contact-center-routing.md
+@@ -792,7 +792,6 @@ commands were added 2026-10-13).
+ - `--include-pagination` -- Include pagination metadata in response (`list` only)
+ - `--version` -- Version to export; use `latest` for the most recent published (`export` only)
+ - `--expected-version` -- Optimistic-locking guard for draft writes (`create-flows` / `update`). Verified live 2026-10-19: `cc-flow update` with `--expected-version 99` on a draft at version 0 returned `409 Version conflict … expected version 99 but found 0` and wrote nothing; `--expected-version 0` was accepted. The draft `version` stayed `0` after the accepted patch, after publishes and after a rename, so the guard rejects a wrong number but does not separate two writers who both read `0` [`flow-designer-flowir.md` § 9 Step 6]
+-- `--skip-validation` -- Skip pre-publish validation (`publish` only)
+ - `--overwrite` -- Replace an existing flow of the same name (`create-import` only)
+ - `--json-body` -- Full JSON body for import/draft/publish/lock
+ 
+@@ -819,7 +818,12 @@ wxcli cc-flow create-import <project-id> --json-body file://flow.json
+ wxcli cc-flow publish <flow-id> <project-id>
+ ```
+ 
+-`cc-flow publish` runs the pre-publish validation; add `--skip-validation true` to publish without it.
++`cc-flow publish` runs the pre-publish validation, and there is no flag to skip it. Upstream dropped the
++`skipValidation` query parameter from the publish operation in the spec sync of 2026-10-26, so the generated
++command no longer renders the skip flag it carried until then.
++
++> **Unverified:** whether the server still honours a hand-sent `?skipValidation=true` on the raw HTTP path
++> was not retested after the parameter left the spec. Only the CLI flag's removal is established.
+ 
+ ### Raw HTTP
+ 
+@@ -943,8 +947,8 @@ Designer-built flows, so the flow is not at fault:
+   one of: default`, although `GET /v2/activities` (`cc-flow list-activities` / `show-activity queue-contact`) lists `failure` as a queue-contact output port. Only
+   the tail of the response was captured, so three of the five are named (the callback, billing and
+   service queues); the other two are presumably the emergency and outage queues (unverified).
+-- *Publish does not enforce what `list-validate` calls ERROR.* `cc-flow publish` without
+-  `--skip-validation` returned 200 with `latestVersion.version: 1` while `cc-flow list-validate` reported
++- *Publish does not enforce what `list-validate` calls ERROR.* `cc-flow publish` with no skip-validation
++  flag passed returned 200 with `latestVersion.version: 1` while `cc-flow list-validate` reported
+   `ERROR FC1038` on the same draft. Publish's validation is evidently not the same check as either
+   validate endpoint; which checks it does enforce was not mapped.
+ 
+@@ -1037,8 +1041,9 @@ rotated, and it covered 12 of 63+ endpoints (wxcc, 2026-07; see `flow-designer-f
+ Defaults that differ from `wxcc-flow` (the command map's "pass the old defaults explicitly"):
+ - `cc-flow export` with no `--version` gives the **published** version; wxcc-flow's `export`
+   gave the draft. Pass `--version draft` for the draft: `wxcli cc-flow export PROJECT_ID FLOW_ID --version draft -o json`.
+-- `cc-flow publish` validates first; wxcc-flow's `publish` skipped validation unless asked. Add
+-  `--skip-validation true` to publish without it (see CLI Examples above).
++- `cc-flow publish` validates first; wxcc-flow's `publish` skipped validation unless asked. There is no
++  longer any way to reproduce the old default from the CLI — upstream dropped the `skipValidation` query
++  parameter in the spec sync of 2026-10-26, so the flag that did it is gone (see CLI Examples above).
+ - `cc-flow delete` sends `--force` to the server: `--force yes` also deletes a flow that is
+   still referenced, `--force no` is the server default; any value also skips the confirmation
+   prompt (`wxcli cc-flow delete PROJECT_ID FLOW_ID --force no`; read from the command source, not run live). wxcc's bare `--force` only
+@@ -1718,7 +1723,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
+ 
+ 18. **Use JDS alias lookup to detect returning callers in a flow.** Query `GET /admin/v1/api/person/workspace-id/{workspaceId}/aliases/{callerANI}` at flow entry. If the person exists and has prior events (events with timestamps before the current contact), they are a returning caller. If NOT_FOUND or no prior events, treat as first-time. WXCC writes ANI in E.164 format (`+19103915567`) — pass the number with `+1` prefix in the lookup or it will miss.
+ 
+-19. **`cc-flow create-validate` / `list-validate` verdicts are not authoritative, and `publish` does not enforce them.** Verified live 2026-10-13: `valid:false` came back for correct flows because of two proven false positives (`default` rejected as the `ivr-collectdigits` success edge, which Designer writes — on 2026-10-19 an edge with no `condition` validated clean; FC1038 on every `{{Node.Output}}` reference except the start node's), only one edge-condition error is reported per call, and a draft that `list-validate` flagged `ERROR FC1038` published without `--skip-validation`. Use validate to find real errors (FC1015, FC1024, missing start-node fields), not as a pass/fail gate. Details and the working body shape are in §11, "Building a flow from scratch".
++19. **`cc-flow create-validate` / `list-validate` verdicts are not authoritative, and `publish` does not enforce them.** Verified live 2026-10-13: `valid:false` came back for correct flows because of two proven false positives (`default` rejected as the `ivr-collectdigits` success edge, which Designer writes — on 2026-10-19 an edge with no `condition` validated clean; FC1038 on every `{{Node.Output}}` reference except the start node's), only one edge-condition error is reported per call, and a draft that `list-validate` flagged `ERROR FC1038` published with no skip-validation flag passed. Use validate to find real errors (FC1015, FC1024, missing start-node fields), not as a pass/fail gate. Details and the working body shape are in §11, "Building a flow from scratch".
+ 
+ ---
+ 
+diff --git a/docs/reference/flow-designer-flowir.md b/docs/reference/flow-designer-flowir.md
+index 0cac4f9d..733eadf7 100644
+--- a/docs/reference/flow-designer-flowir.md
++++ b/docs/reference/flow-designer-flowir.md
+@@ -1572,10 +1572,12 @@ Confirm the flow was created with all nodes, edges, and resolved properties.
+ ### Step 5: Publish (Optional)
+ 
+ ```
+-POST /{orgId}/project/{projectId}/flows/{flowId}:publish?skipValidation=true
++POST /{orgId}/project/{projectId}/flows/{flowId}:publish
+ ```
+ 
+-Publishes the draft. Only available via REST API, not MCP. `skipValidation` (default `false` on the server) controls whether the server re-validates at publish time. wxcc-flow publish skipped it by default because that CLI workflow validated explicitly beforehand and publish-time validation can false-positive (e.g. FC1015 on hand-off flows); `wxcli cc-flow publish FLOW_ID PROJECT_ID` now validates at publish time, and `wxcli cc-flow publish FLOW_ID PROJECT_ID --skip-validation true` reproduces the old default after an explicit `wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json` (both paths verified live 2026-07-11, run then as wxcc-flow publish and wxcc-flow publish --validate).
++Publishes the draft. Only available via REST API, not MCP. `wxcli cc-flow publish FLOW_ID PROJECT_ID` validates at publish time, and that is now the only publish behaviour the CLI offers: upstream dropped the `skipValidation` query parameter from this operation in the spec sync of 2026-10-26, so the generated command no longer renders the skip flag it carried until then. Until that removal, `skipValidation` (default `false` on the server) controlled whether the server re-validated at publish time, and wxcc-flow publish skipped it by default because that CLI workflow validated explicitly beforehand and publish-time validation can false-positive (e.g. FC1015 on hand-off flows); the skip path, run after an explicit `wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json`, was verified live 2026-07-11 (run then as wxcc-flow publish and wxcc-flow publish --validate).
++
++> **Unverified:** whether the server still honours a hand-sent `?skipValidation=true` now that the parameter has left the spec was not retested. Only the CLI flag's removal is established.
+ 
+ ### Step 6: Iterate with PATCH (partial draft updates)
+ 
+@@ -1753,7 +1755,7 @@ If a listed activity behaves this way in the future, the signal is a 400 "Activi
+ 
+ Subflow creation via FlowIR import WORKS, but only through the `?flowType=SUBFLOW` **query parameter** (verified live 2026-07-11, run then as wxcc-flow create file.json --type SUBFLOW; today `wxcli cc-flow create-import PROJECT_ID --json-body file://file.json --flow-type SUBFLOW` — created, listed under `wxcli cc-flow list PROJECT_ID --all --flow-type SUBFLOW`, exported with `flowType: "SUBFLOW"`, and published). The `flowType: "SUBFLOW"` **body field alone** is ignored — without the query param the import resolves activities against the FLOW registry (so `end-subflow` returns `ACTIVITY_NOT_FOUND`) and creates a `FLOW`. Minimal working subflow: start node `activityName: "start"` / `activityType: "start-subflow"`, end node `activityName: "end-subflow"` / `activityType: "end"`.
+ 
+-Two validator quirks (both verified live): dry-run validate (`POST /v2/flows:validate`) has no flowType query param and always validates as FLOW — a valid subflow fails it with ACTIVITY_NOT_FOUND for `end-subflow`; and post-create `wxcli cc-flow list-validate PROJECT_ID FLOW_ID --version-id draft --flow-type SUBFLOW` reports a cosmetic FC1024 on the start node while publish (`skipValidation=true`, wxcc-flow's old default; today `--skip-validation true`) succeeds.
++Two validator quirks (both verified live): dry-run validate (`POST /v2/flows:validate`) has no flowType query param and always validates as FLOW — a valid subflow fails it with ACTIVITY_NOT_FOUND for `end-subflow`; and post-create `wxcli cc-flow list-validate PROJECT_ID FLOW_ID --version-id draft --flow-type SUBFLOW` reports a cosmetic FC1024 on the start node while publish (`skipValidation=true`, wxcc-flow's old default; the CLI has had no skip flag since the 2026-10-26 spec sync dropped the parameter) succeeds.
+ 
+ **Consequence (updated 2026-07-11):** subflows CAN now be created programmatically, so `subflow-handoff` is round-trip testable end-to-end (create subflow → publish → reference its ID in `subflowVersion`). `fn-activity` still requires a function ID. The Flow Store has no Functions API (the string FUNCTION appears 0 times in its live /v3/api-docs contract), but the Custom Functions API on the regional CC gateway does: create the function with `wxcli cc-functions create --json-body file://fn.json` and publish it with `wxcli cc-functions publish ID --json-body '{"tags":["Live"],"comment":"…"}'` [`custom-functions.md` § Lifecycle]. (History: until 2026-10-19 this line said the function "can only be created in the UI".)
+ 
+diff --git a/docs/reference/wxcc-provisioning-api.md b/docs/reference/wxcc-provisioning-api.md
+index 53d1be88..24135b33 100644
+--- a/docs/reference/wxcc-provisioning-api.md
++++ b/docs/reference/wxcc-provisioning-api.md
+@@ -234,7 +234,7 @@ When building a flow programmatically, provision resources in this order:
+ 6. Compose FlowIR             → reference queue/BH UUIDs + global var metadata
+ 7. Dry-run check → wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json
+ 8. Import flow → wxcli cc-flow create-import PROJECT_ID --json-body file://flow.json
+-9. Publish draft → wxcli cc-flow publish FLOW_ID PROJECT_ID --skip-validation true
++9. Publish draft → wxcli cc-flow publish FLOW_ID PROJECT_ID
+ 10. Create entry point, body with flowId + musicOnHoldId → wxcli cc-entry-point create --json-body file://ep.json
+ 11. Assign PSTN number        → Control Hub or wxcli numbers (Webex Calling API)
+ ```

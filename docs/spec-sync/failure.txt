@@ -170,8 +170,11 @@ parameter that contract depends on. Someone has to choose:
   (a) Accept the capability loss. Update tests/wxcc/test_generator.py:799 and
       tests/wxcc/test_doc_consistency.py:160-169 to stop requiring a flag the
       API no longer declares, update the command map row for publish, and keep
-      the doc rewrites from section 2 (they are already written and gate-clean —
-      see the branch note below).
+      the doc rewrites from section 2 — they are already written and gate-clean,
+      and they are preserved on this branch as
+      docs/spec-sync/2026-10-26-doc-rewrites.patch (apply with
+      `git apply docs/spec-sync/2026-10-26-doc-rewrites.patch` on a tree that has
+      been regenerated, then delete the patch file in the landing commit).
 
   (b) Keep the capability. Verify live whether the server still honours
       ?skipValidation=true. If it does, the flag is a "measured to work, carried
@@ -182,12 +185,18 @@ parameter that contract depends on. Someone has to choose:
 
 Either way the two tests must change, and this routine may not change them.
 
-Nothing from the failed regen is on this branch: it is a clean branch off
-origin/main (99c3f3f4a29b8bae697efa1d74318ea6bb9ead2b) carrying only
-docs/spec-sync/last-run.json and this file. The spec refresh, the regenerated
-modules, the lock/snapshot refresh and the ten doc rewrites were all left
-uncommitted in the sandbox and are gone with it; re-run update-specs.py and
-spec_sync.py to reproduce them.
+Nothing from the failed regen is on this branch, per contract §4: it is a clean
+branch off origin/main (99c3f3f4a29b8bae697efa1d74318ea6bb9ead2b) carrying only
+docs/spec-sync/last-run.json, this file, and the doc-rewrites patch named in
+option (a). The machine-reproducible half — the spec refresh, the regenerated
+modules, and the command-name-lock and spec-snapshot refreshes — was left
+uncommitted in the sandbox and is gone with it. That is deliberate and costs
+nothing: the generator's output depends only on the specs, the overrides and the
+generator source, and repeated runs agree byte-identically (tools/CLAUDE.md,
+"python3.14 is a convention"), so `python3 tools/update-specs.py` followed by
+`python3 tools/spec_sync.py --skip-update --run-dir .spec-sync` reproduces all of
+it. The ten doc rewrites are the only part a re-run would NOT recreate, which is
+why they are attached as a patch rather than described.
 
 ENVIRONMENT NOTE: unchanged from the probe table in docs/spec-sync-contract.md.
 python3 is 3.11.17 (the contract records 3.11.15; same minor, no action).
