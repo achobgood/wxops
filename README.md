@@ -26,12 +26,16 @@ You need [Claude Code](https://claude.com/claude-code) or Codex. Then you type t
 **1. Install.**
 
 ```bash
-pipx install wxcli      # recommended — isolated, always on PATH
-# or:
-pip install wxcli
+pipx install wxcli      # isolated, always on PATH
 ```
 
-Works on macOS, Linux, and Windows. On Windows, first install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup); then `python -m pip install --user pipx && python -m pipx ensurepath` gives you `pipx`. `pipx`/`pip` pull every dependency automatically.
+Works on macOS, Linux, and Windows, with Python 3.11 or newer. `pipx` pulls every dependency automatically. Don't have `pipx` (`command not found: pipx`)? Install it first, then open a new terminal and run `pipx install wxcli`:
+
+- **macOS** (with [Homebrew](https://brew.sh)): `brew install pipx && pipx ensurepath`
+- **Linux** (Debian/Ubuntu): `sudo apt install pipx && pipx ensurepath`
+- **Windows:** install [Python 3.11+](https://www.python.org/downloads/) (tick **"Add python.exe to PATH"** during setup), then `python -m pip install --user pipx && python -m pipx ensurepath`
+
+Plain `pip install wxcli` usually fails on macOS and recent Linux: there may be no `pip` command at all, `pip3` with Homebrew's Python refuses with `externally-managed-environment`, and the Python built into macOS is 3.9, too old for wxcli. Use `pipx`.
 
 **2. Put the playbook in a folder, and start Claude Code or Codex there.**
 
