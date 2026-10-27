@@ -396,7 +396,7 @@ Template:
 | `wxcli cc-flow create-validate PROJECT_ID --json-body file://FLOW_FILE` | Dry-run validate FlowIR (no save) |
 | `wxcli cc-flow create-import PROJECT_ID --json-body file://FLOW_FILE` | Import flow from FlowIR JSON |
 | `wxcli cc-flow export PROJECT_ID FLOW_ID --version draft` | Export flow as FlowIR for verification |
-| `wxcli cc-flow publish FLOW_ID PROJECT_ID` | Publish a draft flow (validates first; add `--skip-validation true` to publish without that check) |
+| `wxcli cc-flow publish FLOW_ID PROJECT_ID` | Publish a draft flow (always validates first; the skip-validation flag was dropped in the 2026-10-26 spec sync when upstream removed the `skipValidation` query parameter) |
 | `wxcli cc-flow list-connectors PROJECT_ID` | List all available connectors (TTS + HTTP) |
 | `wxcli cc-flow-store list-global-variables PROJECT_ID --fields variables` | List org global variables |
 

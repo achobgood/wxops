@@ -125,8 +125,10 @@ def test_moved_docs_keep_ref_tags():
 def test_rewritten_flow_commands_keep_wxcc_defaults():
     """Review Focus 1: a rewritten flow command must keep what wxcc's did.
     cc-flow export gives the published version unless --version is passed;
-    cc-flow publish validates unless --skip-validation; cc-flow delete takes
-    the server's --force unless told."""
+    cc-flow delete takes the server's --force unless told. (cc-flow publish
+    used to be held to --skip-validation here; upstream dropped the
+    skipValidation query parameter on 2026-10-26, so publish always validates
+    and drift checks 6/7 now catch any doc that still cites the flag.)"""
     import subprocess
 
     mod = _load_drift_check()
@@ -147,24 +149,18 @@ def test_rewritten_flow_commands_keep_wxcc_defaults():
         if f.endswith(".md")]
     assert files
     assert ".claude/skills/build-flow-programmatic/SKILL.md" in files
-    legacy, export, publish, delete = [], [], [], []
+    legacy, export, delete = [], [], []
     for rel in files:
         text = (REPO / rel).read_text(encoding="utf-8")
-        lines = text.splitlines()
         for lineno, span in mod.code_spans(text):
             for m in mod.LEGACY_CLI_TOKEN.finditer(span):
                 legacy.append(f"{rel}:{lineno} {m.group(0)}")
             where = f"{rel}:{lineno}"
             if "cc-flow export " in span and "--version" not in span:
                 export.append(where)
-            if "cc-flow publish " in span and "--skip-validation" not in span:
-                near = " ".join(lines[max(lineno - 1, 0):lineno + 3]).lower()
-                if "validat" not in near:
-                    publish.append(where)
             if ("cc-flow delete " in span and "--force yes" not in span
                     and "--force no" not in span):
                 delete.append(where)
     assert not legacy, legacy[:20]
     assert not export, ("cc-flow export without --version", export[:20])
-    assert not publish, ("cc-flow publish without --skip-validation", publish[:20])
     assert not delete, ("cc-flow delete without --force yes|no", delete[:20])

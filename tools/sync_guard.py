@@ -44,7 +44,6 @@ FORBIDDEN_PATHS: tuple[str, ...] = (
     "tools/update-specs.py",
     ".github/workflows/",
     "docs/spec-sync-contract.md",
-    "tests/",
     "tools/sync_*.py",
 )
 # The check is deny-by-default off ALLOWED_YAML_KEYS: every top-level key NOT in

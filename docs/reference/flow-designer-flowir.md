@@ -1572,10 +1572,12 @@ Confirm the flow was created with all nodes, edges, and resolved properties.
 ### Step 5: Publish (Optional)
 
 ```
-POST /{orgId}/project/{projectId}/flows/{flowId}:publish?skipValidation=true
+POST /{orgId}/project/{projectId}/flows/{flowId}:publish
 ```
 
-Publishes the draft. Only available via REST API, not MCP. `skipValidation` (default `false` on the server) controls whether the server re-validates at publish time. wxcc-flow publish skipped it by default because that CLI workflow validated explicitly beforehand and publish-time validation can false-positive (e.g. FC1015 on hand-off flows); `wxcli cc-flow publish FLOW_ID PROJECT_ID` now validates at publish time, and `wxcli cc-flow publish FLOW_ID PROJECT_ID --skip-validation true` reproduces the old default after an explicit `wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json` (both paths verified live 2026-07-11, run then as wxcc-flow publish and wxcc-flow publish --validate).
+Publishes the draft. Only available via REST API, not MCP. `wxcli cc-flow publish FLOW_ID PROJECT_ID` validates at publish time, and that is now the only publish behaviour the CLI offers: upstream dropped the `skipValidation` query parameter from this operation in the spec sync of 2026-10-26, so the generated command no longer renders the skip flag it carried until then. Until that removal, `skipValidation` (default `false` on the server) controlled whether the server re-validated at publish time, and wxcc-flow publish skipped it by default because that CLI workflow validated explicitly beforehand and publish-time validation can false-positive (e.g. FC1015 on hand-off flows); the skip path, run after an explicit `wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json`, was verified live 2026-07-11 (run then as wxcc-flow publish and wxcc-flow publish --validate).
+
+> **Unverified:** whether the server still honours a hand-sent `?skipValidation=true` now that the parameter has left the spec was not retested. Only the CLI flag's removal is established.
 
 ### Step 6: Iterate with PATCH (partial draft updates)
 
@@ -1753,7 +1755,7 @@ If a listed activity behaves this way in the future, the signal is a 400 "Activi
 
 Subflow creation via FlowIR import WORKS, but only through the `?flowType=SUBFLOW` **query parameter** (verified live 2026-07-11, run then as wxcc-flow create file.json --type SUBFLOW; today `wxcli cc-flow create-import PROJECT_ID --json-body file://file.json --flow-type SUBFLOW` — created, listed under `wxcli cc-flow list PROJECT_ID --all --flow-type SUBFLOW`, exported with `flowType: "SUBFLOW"`, and published). The `flowType: "SUBFLOW"` **body field alone** is ignored — without the query param the import resolves activities against the FLOW registry (so `end-subflow` returns `ACTIVITY_NOT_FOUND`) and creates a `FLOW`. Minimal working subflow: start node `activityName: "start"` / `activityType: "start-subflow"`, end node `activityName: "end-subflow"` / `activityType: "end"`.
 
-Two validator quirks (both verified live): dry-run validate (`POST /v2/flows:validate`) has no flowType query param and always validates as FLOW — a valid subflow fails it with ACTIVITY_NOT_FOUND for `end-subflow`; and post-create `wxcli cc-flow list-validate PROJECT_ID FLOW_ID --version-id draft --flow-type SUBFLOW` reports a cosmetic FC1024 on the start node while publish (`skipValidation=true`, wxcc-flow's old default; today `--skip-validation true`) succeeds.
+Two validator quirks (both verified live): dry-run validate (`POST /v2/flows:validate`) has no flowType query param and always validates as FLOW — a valid subflow fails it with ACTIVITY_NOT_FOUND for `end-subflow`; and post-create `wxcli cc-flow list-validate PROJECT_ID FLOW_ID --version-id draft --flow-type SUBFLOW` reports a cosmetic FC1024 on the start node while publish (`skipValidation=true`, wxcc-flow's old default; the CLI has had no skip flag since the 2026-10-26 spec sync dropped the parameter) succeeds.
 
 **Consequence (updated 2026-07-11):** subflows CAN now be created programmatically, so `subflow-handoff` is round-trip testable end-to-end (create subflow → publish → reference its ID in `subflowVersion`). `fn-activity` still requires a function ID. The Flow Store has no Functions API (the string FUNCTION appears 0 times in its live /v3/api-docs contract), but the Custom Functions API on the regional CC gateway does: create the function with `wxcli cc-functions create --json-body file://fn.json` and publish it with `wxcli cc-functions publish ID --json-body '{"tags":["Live"],"comment":"…"}'` [`custom-functions.md` § Lifecycle]. (History: until 2026-10-19 this line said the function "can only be created in the UI".)
 

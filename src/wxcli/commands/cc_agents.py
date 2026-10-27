@@ -453,10 +453,10 @@ _BODY_SKELETON_UPDATE_STATE_SESSION_1 = '{"channelType":["..."],"state":"...","a
 
 @app.command("update-state-session-1", short_help="State Change.")
 def update_state_session_1(
-    state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to ```Available``` or ```Idle``` or ```LoggedOut``` or ```Reserved``` or ```Engaged``` or or ```EngagedOther``` ."),
+    state: str = typer.Option(None, "--state", help="It represents the current state of the user. Can be set to ```Available``` or ```Idle``` or ```LoggedOut``` or ```Reserved``` or ```Engaged``` or ```EngagedOther``` ."),
     aux_code_id: str = typer.Option(None, "--aux-code-id", help="Auxiliary Codes are status codes which an agent can select in Webex Contact Center Agent Desktop. They are of two types: ```Idle``` and ```Wrap-Up``` codes, and every agent profile must have one of each for the agent to use. Idle codes are used to explain an agent's unavailability to take customer..."),
     reason: str = typer.Option(None, "--reason", help="It represents the reason of the last agent channel state change request, maximum length 128 characters."),
-    agent_id: str = typer.Option(None, "--agent-id", help="User for which agent channel state change is initiated, maximum length 36 characters."),
+    agent_id: str = typer.Option(None, "--agent-id", help="User for which the agent channel state change is initiated, maximum length 36 characters."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),

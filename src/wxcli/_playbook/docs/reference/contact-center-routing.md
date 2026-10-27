@@ -792,7 +792,6 @@ commands were added 2026-10-13).
 - `--include-pagination` -- Include pagination metadata in response (`list` only)
 - `--version` -- Version to export; use `latest` for the most recent published (`export` only)
 - `--expected-version` -- Optimistic-locking guard for draft writes (`create-flows` / `update`). Verified live 2026-10-19: `cc-flow update` with `--expected-version 99` on a draft at version 0 returned `409 Version conflict … expected version 99 but found 0` and wrote nothing; `--expected-version 0` was accepted. The draft `version` stayed `0` after the accepted patch, after publishes and after a rename, so the guard rejects a wrong number but does not separate two writers who both read `0` [`flow-designer-flowir.md` § 9 Step 6]
-- `--skip-validation` -- Skip pre-publish validation (`publish` only)
 - `--overwrite` -- Replace an existing flow of the same name (`create-import` only)
 - `--json-body` -- Full JSON body for import/draft/publish/lock
 
@@ -819,7 +818,12 @@ wxcli cc-flow create-import <project-id> --json-body file://flow.json
 wxcli cc-flow publish <flow-id> <project-id>
 ```
 
-`cc-flow publish` runs the pre-publish validation; add `--skip-validation true` to publish without it.
+`cc-flow publish` runs the pre-publish validation, and there is no flag to skip it. Upstream dropped the
+`skipValidation` query parameter from the publish operation in the spec sync of 2026-10-26, so the generated
+command no longer renders the skip flag it carried until then.
+
+> **Unverified:** whether the server still honours a hand-sent `?skipValidation=true` on the raw HTTP path
+> was not retested after the parameter left the spec. Only the CLI flag's removal is established.
 
 ### Raw HTTP
 
@@ -943,8 +947,8 @@ Designer-built flows, so the flow is not at fault:
   one of: default`, although `GET /v2/activities` (`cc-flow list-activities` / `show-activity queue-contact`) lists `failure` as a queue-contact output port. Only
   the tail of the response was captured, so three of the five are named (the callback, billing and
   service queues); the other two are presumably the emergency and outage queues (unverified).
-- *Publish does not enforce what `list-validate` calls ERROR.* `cc-flow publish` without
-  `--skip-validation` returned 200 with `latestVersion.version: 1` while `cc-flow list-validate` reported
+- *Publish does not enforce what `list-validate` calls ERROR.* `cc-flow publish` with no skip-validation
+  flag passed returned 200 with `latestVersion.version: 1` while `cc-flow list-validate` reported
   `ERROR FC1038` on the same draft. Publish's validation is evidently not the same check as either
   validate endpoint; which checks it does enforce was not mapped.
 
@@ -1037,8 +1041,9 @@ rotated, and it covered 12 of 63+ endpoints (wxcc, 2026-07; see `flow-designer-f
 Defaults that differ from `wxcc-flow` (the command map's "pass the old defaults explicitly"):
 - `cc-flow export` with no `--version` gives the **published** version; wxcc-flow's `export`
   gave the draft. Pass `--version draft` for the draft: `wxcli cc-flow export PROJECT_ID FLOW_ID --version draft -o json`.
-- `cc-flow publish` validates first; wxcc-flow's `publish` skipped validation unless asked. Add
-  `--skip-validation true` to publish without it (see CLI Examples above).
+- `cc-flow publish` validates first; wxcc-flow's `publish` skipped validation unless asked. There is no
+  longer any way to reproduce the old default from the CLI — upstream dropped the `skipValidation` query
+  parameter in the spec sync of 2026-10-26, so the flag that did it is gone (see CLI Examples above).
 - `cc-flow delete` sends `--force` to the server: `--force yes` also deletes a flow that is
   still referenced, `--force no` is the server default; any value also skips the confirmation
   prompt (`wxcli cc-flow delete PROJECT_ID FLOW_ID --force no`; read from the command source, not run live). wxcc's bare `--force` only
@@ -1718,7 +1723,7 @@ All 112 endpoints across 17 CLI groups, grouped by resource.
 
 18. **Use JDS alias lookup to detect returning callers in a flow.** Query `GET /admin/v1/api/person/workspace-id/{workspaceId}/aliases/{callerANI}` at flow entry. If the person exists and has prior events (events with timestamps before the current contact), they are a returning caller. If NOT_FOUND or no prior events, treat as first-time. WXCC writes ANI in E.164 format (`+19103915567`) — pass the number with `+1` prefix in the lookup or it will miss.
 
-19. **`cc-flow create-validate` / `list-validate` verdicts are not authoritative, and `publish` does not enforce them.** Verified live 2026-10-13: `valid:false` came back for correct flows because of two proven false positives (`default` rejected as the `ivr-collectdigits` success edge, which Designer writes — on 2026-10-19 an edge with no `condition` validated clean; FC1038 on every `{{Node.Output}}` reference except the start node's), only one edge-condition error is reported per call, and a draft that `list-validate` flagged `ERROR FC1038` published without `--skip-validation`. Use validate to find real errors (FC1015, FC1024, missing start-node fields), not as a pass/fail gate. Details and the working body shape are in §11, "Building a flow from scratch".
+19. **`cc-flow create-validate` / `list-validate` verdicts are not authoritative, and `publish` does not enforce them.** Verified live 2026-10-13: `valid:false` came back for correct flows because of two proven false positives (`default` rejected as the `ivr-collectdigits` success edge, which Designer writes — on 2026-10-19 an edge with no `condition` validated clean; FC1038 on every `{{Node.Output}}` reference except the start node's), only one edge-condition error is reported per call, and a draft that `list-validate` flagged `ERROR FC1038` published with no skip-validation flag passed. Use validate to find real errors (FC1015, FC1024, missing start-node fields), not as a pass/fail gate. Details and the working body shape are in §11, "Building a flow from scratch".
 
 ---
 

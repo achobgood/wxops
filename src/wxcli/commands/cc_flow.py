@@ -309,7 +309,6 @@ _BODY_SKELETON_PUBLISH = '{"comment":"...","tagIds":["..."]}'
 def publish(
     flow_id: str = typer.Argument(help="24-char hex id"),
     project_id: str = typer.Argument(help="24-char hex id"),
-    skip_validation: str = typer.Option(None, "--skip-validation", help="If true, the flow's pre-publish validation is skipped. Use with care."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     comment: str = typer.Option(None, "--comment", help="A comment to provide context on publishing the flow."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -327,8 +326,6 @@ def publish(
     org_id = get_cc_org_id(api.session)
     url = f"{cc_base_url}/{org_id}/project/{project_id}/flows/{flow_id}:publish"
     params = {}
-    if skip_validation is not None:
-        params["skipValidation"] = skip_validation
     if flow_type is not None:
         params["flowType"] = flow_type
     if json_body:

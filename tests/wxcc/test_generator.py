@@ -790,13 +790,15 @@ class TestPhaseCFeatures:
     def test_param_defaults_setdefault_after_query_build(self, tmp_path, monkeypatch):
         """NOT NEEDED (`param_defaults`: both users are fate (a)). Nothing is
         sent unless the caller passes it; the command map passes `cc-flow
-        export --version draft` and `cc-flow publish --skip-validation true`."""
+        export --version draft`. (It also passed `cc-flow publish
+        --skip-validation true` until upstream dropped the skipValidation query
+        parameter on 2026-10-26; publish now always validates.)"""
         app, calls, _ = load_app(widgets(tmp_path), monkeypatch)
         assert invoke(app, "show", "P").exit_code == 0
         assert invoke(app, "show", "P", "--kind", "A").exit_code == 0
         assert [c[2]["params"] for c in calls] == [{}, {"kind": "A"}]
         assert '"--version"' in fn(CC_FLOW, "export")
-        assert '"--skip-validation"' in fn(CC_FLOW, "publish")
+        assert '"--skip-validation"' not in fn(CC_FLOW, "publish")
 
     def test_require_some_body_guard(self):
         """NOT NEEDED: wxcc's only `require_some_body` user was the `update`

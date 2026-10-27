@@ -1,6 +1,6 @@
 {
  "_about": "Drift gate check 19. Regenerate with `python -m tools.drift_check --refresh-spec-snapshot`; never hand-edit. Field encoding: ! required, ~name/~id the kind its description states, #hash of the description, %hash of the rules stated in it, =enum values.",
- "captured": "2026-10-19",
+ "captured": "2026-10-26",
  "specs": {
   "webex-admin.json": {
    "DELETE /admin/recordings/{}": {
@@ -13774,7 +13774,7 @@
    },
    "PUT /telephony/config/locations/{}/dectNetworks/{}": {
     "fields": {
-     "(operation)": "#1ab7e9",
+     "(operation)": "#9e5a7c",
      "body:defaultAccessCode": "!#577512",
      "body:defaultAccessCodeEnabled": "!#420d3f",
      "body:displayName": "#cece60",
@@ -13784,6 +13784,17 @@
      "query:orgId": "#9b79ee"
     },
     "summary": "Update DECT Network",
+    "tag": "DECT Devices Settings"
+   },
+   "PUT /telephony/config/locations/{}/dectNetworks/{}/debugLevel": {
+    "fields": {
+     "(operation)": "#934790",
+     "body:debugLevel": "!#63b47c=DEBUG|STANDARD",
+     "path:dectNetworkId": "!#c41f4b",
+     "path:locationId": "!#7133cd",
+     "query:orgId": "#294f1f"
+    },
+    "summary": "Update DECT Network Debug Level",
     "tag": "DECT Devices Settings"
    },
    "PUT /telephony/config/locations/{}/dectNetworks/{}/handsets/{}": {
@@ -17284,7 +17295,7 @@
    },
    "DELETE /monitor/{}": {
     "fields": {
-     "(operation)": "#75ac51",
+     "(operation)": "#97b6cd%739d0e",
      "path:requestId": "!#f93ee5"
     },
     "summary": "Delete Monitoring Request",
@@ -17787,7 +17798,7 @@
    },
    "GET /agents/activities": {
     "fields": {
-     "(operation)": "#536e6f%4711f5",
+     "(operation)": "#379fee%4711f5",
      "header:TrackingId": "#059bfe",
      "query:agentIds": "#488fcb",
      "query:channelTypes": "#0f8ce3%39474e",
@@ -17803,7 +17814,7 @@
    },
    "GET /agents/statistics": {
     "fields": {
-     "(operation)": "#b7b122%4711f5",
+     "(operation)": "#e3f805%4711f5",
      "header:TrackingId": "#059bfe",
      "query:agentIds": "#e97271",
      "query:from": "!#aee75b",
@@ -17989,7 +18000,7 @@
    },
    "GET /monitor/sessions": {
     "fields": {
-     "(operation)": "#d73989"
+     "(operation)": "#3141f4%739d0e"
     },
     "summary": "Fetch Monitoring Sessions",
     "tag": "Call Monitoring"
@@ -20804,7 +20815,7 @@
    },
    "POST /agents/buddyList": {
     "fields": {
-     "(operation)": "#579d39",
+     "(operation)": "#237096",
      "body:agentProfileId": "!~id#cee4a9",
      "body:mediaType": "!#5a5ce7",
      "body:state": "#91d329"
@@ -20814,7 +20825,7 @@
    },
    "POST /agents/login": {
     "fields": {
-     "(operation)": "#fd1234",
+     "(operation)": "#bf4c1a%8d0ff6",
      "body:deviceId": "#525c92",
      "body:deviceType": "#dbe9d8",
      "body:dialNumber": "!#5c01cf",
@@ -20827,7 +20838,7 @@
    },
    "POST /agents/reload": {
     "fields": {
-     "(operation)": "#aa29b1"
+     "(operation)": "#5f41f1"
     },
     "summary": "Reload",
     "tag": "Agents"
@@ -20852,7 +20863,7 @@
    },
    "POST /captures/query": {
     "fields": {
-     "(operation)": "#685442%1c9ebc",
+     "(operation)": "#24948e%1c9ebc",
      "body:query": "!",
      "body:query.includeAllDigitalVersions": "#14c079",
      "body:query.includeScreenRecordings": "#f18932",
@@ -20983,11 +20994,11 @@
    },
    "POST /monitor": {
     "fields": {
-     "(operation)": "#d784aa",
+     "(operation)": "#2ab0ad%3347cd",
      "body:agents": "#6fb3d8",
      "body:id": "!#a0aece",
      "body:invisibleMode": "#4dee59",
-     "body:monitorType": "!#dbe6c1",
+     "body:monitorType": "!#a0b164",
      "body:queueIds": "#916cd1",
      "body:sites": "#406e0b",
      "body:taskId": "#88ffe3",
@@ -20999,7 +21010,7 @@
    },
    "POST /monitor/{}/bargeIn": {
     "fields": {
-     "(operation)": "#adf892",
+     "(operation)": "#c24844%e40970",
      "path:taskId": "!#92d0f6"
     },
     "summary": "BargeIn Request",
@@ -21007,7 +21018,7 @@
    },
    "POST /monitor/{}/coach": {
     "fields": {
-     "(operation)": "#eee131",
+     "(operation)": "#62198f%02078a",
      "path:interactionId": "!#993c95"
     },
     "summary": "Whisper Coach Request",
@@ -21015,7 +21026,7 @@
    },
    "POST /monitor/{}/end": {
     "fields": {
-     "(operation)": "#dc2f3e",
+     "(operation)": "#8cf740%739d0e",
      "path:taskId": "!#921e7f"
     },
     "summary": "End Monitoring Request",
@@ -21023,7 +21034,7 @@
    },
    "POST /monitor/{}/hold": {
     "fields": {
-     "(operation)": "#d0392b",
+     "(operation)": "#089405%739d0e",
      "path:taskId": "!#3334bd"
     },
     "summary": "Hold Monitoring Request",
@@ -21031,7 +21042,7 @@
    },
    "POST /monitor/{}/unhold": {
     "fields": {
-     "(operation)": "#10ce47",
+     "(operation)": "#25fb97%739d0e",
      "path:taskId": "!#6dbe5a"
     },
     "summary": "Unhold Monitoring Request",
@@ -23258,7 +23269,7 @@
    },
    "POST /v2/agents/login": {
     "fields": {
-     "(operation)": "#38602f",
+     "(operation)": "#4d6627%8d0ff6",
      "body:deviceId": "#525c92",
      "body:deviceType": "#dbe9d8",
      "body:dialNumber": "!#5c01cf",
@@ -23272,7 +23283,7 @@
    },
    "POST /v2/agents/reload": {
     "fields": {
-     "(operation)": "#aa29b1",
+     "(operation)": "#5f41f1",
      "header:Authorization": "!#03de6e"
     },
     "summary": "Reload",
@@ -23463,8 +23474,7 @@
      "path:flowId": "!~id#5c00f1",
      "path:orgId": "!#9d2154",
      "path:projectId": "!#a79614",
-     "query:flowType": "#0f73cb",
-     "query:skipValidation": "#755bdf"
+     "query:flowType": "#0f73cb"
     },
     "summary": "Publish a Flow or Subflow",
     "tag": "Flows"
@@ -23715,7 +23725,7 @@
    },
    "PUT /agents/logout": {
     "fields": {
-     "(operation)": "#70e7a6",
+     "(operation)": "#1cf2d8%7ab2f2",
      "body:agentId": "~id#9456b3",
      "body:logoutReason": "!#4be33d"
     },
@@ -23724,7 +23734,7 @@
    },
    "PUT /agents/session/state": {
     "fields": {
-     "(operation)": "#63daf1",
+     "(operation)": "#5dda7a%0f14be",
      "body:agentId": "#14c272",
      "body:auxCodeId": "!#f1df4c%af96df",
      "body:lastStateChangeReason": "#d36e01",
@@ -24852,7 +24862,7 @@
    },
    "PUT /v2/agents/logout": {
     "fields": {
-     "(operation)": "#d8686d",
+     "(operation)": "#a19ae0%7ab2f2",
      "body:agentId": "~id#9456b3",
      "body:logoutReason": "!#4be33d",
      "header:Authorization": "!#03de6e"
@@ -24862,12 +24872,12 @@
    },
    "PUT /v2/agents/session/state": {
     "fields": {
-     "(operation)": "#2f7880",
-     "body:agentId": "#025014",
+     "(operation)": "#ad7211%9c5626",
+     "body:agentId": "#991aca",
      "body:auxCodeId": "#f1df4c%af96df",
      "body:channelType": "!#8a8696",
      "body:reason": "#495b84",
-     "body:state": "!#46011e",
+     "body:state": "!#c0a27a",
      "header:Authorization": "!#03de6e"
     },
     "summary": "State Change",

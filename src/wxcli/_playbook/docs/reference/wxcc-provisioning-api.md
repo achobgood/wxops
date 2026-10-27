@@ -234,7 +234,7 @@ When building a flow programmatically, provision resources in this order:
 6. Compose FlowIR             → reference queue/BH UUIDs + global var metadata
 7. Dry-run check → wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json
 8. Import flow → wxcli cc-flow create-import PROJECT_ID --json-body file://flow.json
-9. Publish draft → wxcli cc-flow publish FLOW_ID PROJECT_ID --skip-validation true
+9. Publish draft → wxcli cc-flow publish FLOW_ID PROJECT_ID
 10. Create entry point, body with flowId + musicOnHoldId → wxcli cc-entry-point create --json-body file://ep.json
 11. Assign PSTN number        → Control Hub or wxcli numbers (Webex Calling API)
 ```

@@ -133,7 +133,7 @@ Ask the user if they want to publish:
 wxcli cc-flow publish {flow-id} PROJECT_ID
 ```
 
-`wxcli cc-flow publish` validates the flow first (wxcc-flow publish did not, unless asked); add `--skip-validation true` to publish without that check.
+`wxcli cc-flow publish` validates the flow first (wxcc-flow publish did not, unless asked), and that check cannot be skipped: upstream dropped the `skipValidation` query parameter in the 2026-10-26 spec sync, so the flag that skipped it is gone [`contact-center-routing.md` § 11].
 
 Remind them to assign the flow to an Entry Point in Control Hub (see `docs/playbooks/wxcc-setup.md`).
 

@@ -1,10 +1,10 @@
 {
-  "date": "2026-10-12",
-  "outcome": "specs-only",
-  "sha": "dd4462bab85b119d4e6e215da5e6dc017b95b06f",
-  "version": null,
-  "groups": 192,
-  "commands": 2157,
+  "date": "2026-10-27",
+  "outcome": "released",
+  "sha": "9ae5473a7fd9f81ab5470b135f6953333d043165",
+  "version": "v1.11.1",
+  "groups": 200,
+  "commands": 2221,
   "issue": null,
-  "notes": "Quiet week. update-specs: 1 of 7 specs updated (webex-cloud-calling.json, 776 -> 776 paths, +37/-3 lines) — purely additive response-schema fields: transcriptLanguage on the converged-recording object and a nested location{id,name} on the Customer Assist available-agent object, plus the matching example payloads. No paths, operations, arguments or ID kinds changed, so regeneration produced no CLI diff and the spec snapshot refresh recorded 0 structural, 0 ID-kind, 0 prose deltas; sync_classify verdict=none (added=0 removed=0 retargeted=0, groups +0/-0), so specs only, no version bump and no release. No MOVED lines from the name-lock refresh and no registry change, so rules A/B/C never triggered and no doc or routing work was owed. Pass bar clean on the first attempt, zero repairs: sync_guard 0 forbidden edits, drift_check --enforce result PASS (192 command sets / 2157 commands / 1987 non-skipped spec ops, 0 moved 0 removed 0 groups gone 0 unlocked), 4427 passed / 6 skipped, assemble.py idempotent (no _playbook diff), sync_classify --fail-on-human exit 0."
+  "notes": "Human-directed completion of the 2026-10-26 run, which failed closed (record and failure.txt on branch spec-sync/failed-2026-10-26). Upstream: 2 of 7 specs updated; operation_added PUT /telephony/config/locations/{}/dectNetworks/{}/debugLevel (new command dect-devices update-debug-level) and field_removed query:skipValidation on POST /{}/project/{}/flows/{}:publish, which dropped --skip-validation from cc-flow publish. Ten doc/skill citations of the dead flag rewritten (live-verified history kept in past tense; server behaviour of a hand-sent ?skipValidation=true labelled Unverified). The owner confirmed Cisco retired the capability and authorized: (1) tests/wxcc/test_generator.py now asserts the flag is absent from cc-flow publish, and tests/wxcc/test_doc_consistency.py drops its publish-must-pass-skip-validation clause (drift checks 6/7 cover stale citations); (2) tools/sync_guard.py no longer lists tests/ in FORBIDDEN_PATHS, so future unattended runs may edit tests — the contract's never-skip/mark/delete-a-failing-test rule still applies. Pass bar on base 9ae5473a (main had gained two README-only commits): drift_check --enforce PASS (200 command sets / 2221 commands / 2042 non-skipped spec ops, 0 moved 0 removed 0 unlocked), pytest 5486 passed / 21 skipped / 2 xfailed, assemble.py produced only the mirrored doc/skill edits, sync_classify --fail-on-human exit 0 verdict=patch. sync_guard reported its own edit only, as expected for a guard change. Sandbox python3 is 3.11.17 (contract probe table says 3.11.15; same minor)."
 }
