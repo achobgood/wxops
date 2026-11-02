@@ -66,9 +66,8 @@ git checkout -B spec-sync/failed-$(date -u +%F) origin/main      # a clean branc
 # write docs/spec-sync/failure.txt — the failing output, verbatim
 git add docs/spec-sync/last-run.json docs/spec-sync/failure.txt
 git commit -m "spec-sync $(date -u +%F): failed — <one-line reason>"
-git push origin HEAD:refs/heads/spec-sync/failed-$(date -u +%F)
+git push origin HEAD:refs/heads/spec-sync/failed-YYYY-MM-DD   # type today's date literally
 ```
-
 Then exit non-zero. The run record goes **to that branch only** (not `main`). The GitHub Actions liveness workflow (`.github/workflows/spec-sync-liveness.yml`, Wednesdays 16:00 UTC) opens the `spec-sync` issue from that branch, quoting `failure.txt`. A human deletes the branch when the cause is fixed.
 
 ## 5. Land and release
