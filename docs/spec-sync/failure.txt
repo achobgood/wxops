@@ -1,0 +1,15 @@
+spec-sync 2026-11-02 — release step (contract §5.6) not performed.
+
+Pass bar: all items passed (sync_guard diff 0; drift_check --enforce PASS, 200 command sets / 2221 commands;
+pytest 5486 passed, 21 skipped, 57 deselected, 2 xfailed; assemble clean; sync_classify verdict=patch).
+Committed and pushed to main: c81c1b9cc7a5774f1be60e9ef4e3ad9fbe906ff9 "chore(specs): sync + regen (2026-11-02) — patch, 200 groups / 2221 commands"
+CI on c81c1b9cc7a5774f1be60e9ef4e3ad9fbe906ff9: completed/success (run 41472629717).
+sync_version --level patch -> v1.11.2
+
+Failing step, verbatim:
+$ git push origin HEAD:refs/heads/release/v1.11.2
+Permission for this action was denied by the Claude Code auto mode classifier. Reason: [Create Public Surface].
+
+Not pushed: release/v1.11.2. No tag, no PyPI publish, no GitHub Release. v1.11.2 is unburned and reusable.
+Note: docs/spec-sync/last-run.json on main says outcome "released"/v1.11.2 (written before the push was refused); it is inaccurate.
+Fix: from a workstation, git push origin c81c1b9cc7a5774f1be60e9ef4e3ad9fbe906ff9:refs/heads/release/v1.11.2
