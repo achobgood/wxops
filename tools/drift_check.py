@@ -342,6 +342,15 @@ Checks (docs/arch/target-architecture.md §A6):
       count; a missing map is BLIND. wxcc's check 2 (every emitted URL maps to
       a spec operation) needed no port: check 1's CLI-ahead-of-spec fires on a
       planted invented URL (docs/merge/plan-2-decisions.md, Task 18).
+  35. A documented command's request surface the docs never mention
+      (tools/doc_gap.py): for every command a docs/reference/ file cites, each
+      request-body property, query parameter and enum value of its spec
+      operation must appear in a `## ` section that cites it. Gated only for a
+      gap absent from tools/doc_gap_baseline.json (the 2026-11-02 debt
+      snapshot, shrink-only: --refresh-doc-gap-baseline). A baseline entry
+      that is no longer a gap is ADVISORY. Closes the hole where Cisco adds a
+      field or value to an existing command and the weekly sync releases it
+      with no doc (CUSTOM_MESSAGING on `channel create`, 2026-10-13).
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -5481,6 +5490,11 @@ def check_command_map(surface: dict, top_level: set, path: Path | None = None,
                            "command-map rows naming a wxcli command")
 
 
+CHECK_PRINT["35"] = (
+    "documented commands whose new request fields/values no doc section names",
+    "documented commands",
+    lambda f: f"{f['cmd']:40} {f['key'].split(' ', 2)[2]:40} {', '.join(f['docs'])}",
+)
 CHECK_PRINT["34i"] = (
     "(i) wxcc-flow / wxcc-toolkit commands in scanned docs",
     "code spans",
@@ -6387,6 +6401,9 @@ def main() -> int:
                              "additive — refuses if a locked name moved")
     parser.add_argument("--force", action="store_true",
                         help="with --refresh-name-lock: accept moved/removed names")
+    parser.add_argument("--refresh-doc-gap-baseline", action="store_true",
+                        help="shrink tools/doc_gap_baseline.json (check 35) to the gaps "
+                             "that still exist; refuses to add one unless --force")
     parser.add_argument("--name-lock-diff", metavar="DIR",
                         help="compare a rendered commands directory against the lock "
                              "and print what moved; exits 1 if anything did")
@@ -6396,6 +6413,9 @@ def main() -> int:
         return refresh_spec_snapshot()
     if args.refresh_name_lock:
         return refresh_name_lock(force=args.force)
+    if args.refresh_doc_gap_baseline:
+        from tools import doc_gap  # noqa: PLC0415
+        return doc_gap.refresh_baseline(force=args.force)
     if args.name_lock_diff:
         d = Path(args.name_lock_diff)
         stems = sorted(p.stem for p in d.glob("*.py") if not p.stem.startswith("_"))
@@ -6472,6 +6492,8 @@ def main() -> int:
     command_map_present = (REPO / COMMAND_MAP).is_file()
     command_map_unresolved = (check_command_map(surface, top_level)
                               if command_map_present else [])
+    from tools import doc_gap  # noqa: PLC0415 — doc_gap imports this module lazily
+    doc_gaps, doc_gaps_closed = doc_gap.check_doc_gaps(sys.modules[__name__])
 
     results = {
         "1_spec_cli_parity": parity,
@@ -6530,6 +6552,8 @@ def main() -> int:
         "33_paging_advice": paging_advice,
         "34_legacy_cli_tokens": legacy_cli_tokens,
         "34_command_map_unresolved": command_map_unresolved,
+        "35_doc_gaps": doc_gaps,
+        "35_doc_gaps_closed_advisory": doc_gaps_closed,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -6551,7 +6575,8 @@ def main() -> int:
                   or doc_value_types or doc_body_keys
                   or list_drops_object_fields or query_body_findings
                   or paging_advice
-                  or legacy_cli_tokens or command_map_unresolved)
+                  or legacy_cli_tokens or command_map_unresolved
+                  or doc_gaps)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -6803,6 +6828,11 @@ def main() -> int:
         else:
             print(f"[34] (ii) command-map rows: not checked "
                   f"({COMMAND_MAP.as_posix()} is not in this tree)")
+        print_check_findings("35", doc_gaps,
+                             note=f"({len(doc_gap.load_baseline())} in the baseline)")
+        print(f"[35] ADVISORY — baseline gaps now closed: {len(doc_gaps_closed)}"
+              + ("   (shrink it: python -m tools.drift_check "
+                 "--refresh-doc-gap-baseline)" if doc_gaps_closed else ""))
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

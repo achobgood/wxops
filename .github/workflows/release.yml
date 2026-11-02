@@ -10,9 +10,58 @@ on:
                               # release/vX.Y.Z at the commit to release and this job makes the tag.
                               # A tag pushed with github.token starts no workflow run, so the tag
                               # this job pushes does not come back in on `tags`.
+  workflow_run:
+    # The unattended path (since 2026-11-02). The spec-sync routine only pushes its
+    # sync commit, with docs/spec-sync/release-notes.md headed `# vX.Y.Z `, to main.
+    # When CI on main finishes green, `decide` releases that version if it is not
+    # tagged yet. The routine's sandbox never pushes a release ref itself: on
+    # 2026-11-02 Claude Code's auto-mode classifier refused `release/v1.11.2`
+    # ("Create Public Surface") after the main push had gone through.
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: release           # never two publishes at once; a second one waits and then finds its tag taken
+  cancel-in-progress: false
 
 jobs:
+  decide:
+    # workflow_run only. Releases nothing itself: it names the version the notes on the
+    # green main commit ask for, or nothing (no notes header, or that tag already exists,
+    # which is every main commit after a release). An empty tag skips `publish`.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.pick.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Pick the untagged version the release notes name
+        id: pick
+        run: |
+          NOTES=docs/spec-sync/release-notes.md
+          TAG="$(head -1 "$NOTES" 2>/dev/null | sed -nE 's/^# (v[0-9]+\.[0-9]+\.[0-9]+) .*/\1/p')"
+          if [ -z "$TAG" ]; then
+            echo "$NOTES has no '# vX.Y.Z ' header on $(git rev-parse HEAD): nothing to release"; exit 0
+          fi
+          if [ -n "$(git ls-remote --tags origin "refs/tags/$TAG")" ]; then
+            echo "$TAG is already tagged: nothing to release"; exit 0
+          fi
+          echo "releasing $TAG from $(git rev-parse HEAD)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
   publish:
+    needs: decide
+    # A push (tag or release/v* branch) skips `decide`; !cancelled() keeps this job alive
+    # through that skip. A workflow_run publishes only when `decide` named a tag.
+    if: >-
+      !cancelled() && (github.event_name == 'push' ||
+      (needs.decide.result == 'success' && needs.decide.outputs.tag != ''))
     runs-on: ubuntu-latest
     permissions:
       id-token: write      # OIDC for PyPI Trusted Publishing
@@ -21,10 +70,13 @@ jobs:
     env:
       REF_NAME: ${{ github.ref_name }}   # the tag, or release/vX.Y.Z; never interpolate it into a run: body
       REF_TYPE: ${{ github.ref_type }}   # tag | branch. TAG is set only by "Resolve the release tag"
+      EVENT: ${{ github.event_name }}    # push | workflow_run (on workflow_run, REF_NAME is main)
+      AUTO_TAG: ${{ needs.decide.outputs.tag }}   # workflow_run only: the version `decide` picked
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0    # setuptools-scm needs full history + the tag
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}   # workflow_run: the commit CI judged, not main's tip
 
       - uses: actions/setup-python@v5
         with:
@@ -67,10 +119,14 @@ jobs:
         # made locally here so setuptools-scm stamps the build; it reaches origin only
         # in "Push the tag", just before PyPI.
         run: |
-          if [ "$REF_TYPE" = "tag" ]; then
+          if [ "$EVENT" = "push" ] && [ "$REF_TYPE" = "tag" ]; then
             echo "TAG=$REF_NAME" >> "$GITHUB_ENV"; exit 0
           fi
-          TAG="${REF_NAME#release/}"
+          if [ "$EVENT" = "workflow_run" ]; then
+            TAG="$AUTO_TAG"               # the same four checks below apply to it
+          else
+            TAG="${REF_NAME#release/}"
+          fi
           if ! printf '%s' "$TAG" | grep -Eqx 'v[0-9]+\.[0-9]+\.[0-9]+'; then
             echo "::error::Branch $REF_NAME does not name a vX.Y.Z version"; exit 1
           fi
@@ -123,6 +179,8 @@ jobs:
       - name: Push the tag (release branch only)
         # Just before PyPI, so both paths reach PyPI with the tag already on origin: a
         # publish that fails after this leaves the tag burned, and sync_version skips it.
+        # "release branch only" = every path where this job made the tag: a release/v*
+        # push or a workflow_run (whose ref is main, so ref_type is also 'branch').
         if: github.ref_type == 'branch'
         run: git push origin "refs/tags/$TAG"
 
@@ -146,5 +204,6 @@ jobs:
 
       - name: Delete the release branch
         # The tag names the release now; the branch was only the sandbox's way to ask for it.
-        if: github.ref_type == 'branch'
+        # Never on workflow_run: there REF_NAME is `main`, and this step would delete main.
+        if: github.event_name == 'push' && github.ref_type == 'branch'
         run: git push origin --delete "refs/heads/$REF_NAME"

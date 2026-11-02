@@ -389,6 +389,36 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
   made the gate FAIL with one finding.
 
+**GATED SINCE 2026-11-02 — check 35 (`tools/doc_gap.py`).** Checks 19 and 20 left a hole
+between them: check 19 sees that Cisco added a field or enum value, check 20 sees a group with
+no doc, and nothing asked whether a field added to an **already-documented** command ever
+reached its doc. So the weekly routine regenerated and released it silently: `channel create`
+gained `CUSTOM_MESSAGING` and a required `messagingPolicy` by the 2026-10-13 sync while
+`contact-center-routing.md` § 15 kept listing four channel types.
+
+- **What it reads.** Every `wxcli <group> <command>` a `docs/reference/` file cites (the shared
+  `command_heads` reader), the spec operation that block renders, and that operation's request
+  surface: top-level body properties (allOf/oneOf/anyOf merged; a lifted query body counts as the
+  body, ADR-16; a CC bulk-save `{items:[{requestAction, item}]}` is judged by its `item` DTO),
+  query parameters minus the org-id/paging names the CLI owns, and the enum values of both.
+  readOnly properties, read-only prose and server timestamps are not asked of a doc.
+- **Covered** = the name, its `--kebab-flag` form, or the enum value appears in a `## ` section
+  that cites the command. **Section, not file:** `CUSTOM_MESSAGING` listed under Assets does not
+  cover `channel create` under Channels; file-level matching hid exactly that case in the first
+  draft.
+- **The baseline is a debt snapshot** (`tools/doc_gap_baseline.json`, 1,492 gaps on 2026-11-02
+  over 1,377 documented commands): gated = a gap NOT in it; a baseline entry no longer a gap is
+  ADVISORY. `--refresh-doc-gap-baseline` is shrink-only and refuses to add without `--force`.
+  Both files are in `sync_guard.FORBIDDEN_PATHS`; the routine clears a new gap by writing the
+  doc (contract § 2 E), in pure-addition hunks, labelled Unverified.
+- **Proven by mutation on the live tree:** renaming `agentACDState` in `call-features-major.md`
+  made the gate FAIL with exactly one finding; restoring it passed. Tests:
+  `tests/test_drift_check_doc_gaps.py` (fires / baseline suppresses / doc mention clears /
+  other-section mention does not count / refresh is shrink-only / live-tree floor).
+- **Known false-positive class:** a body property the server sets but the spec does not mark
+  readOnly (`numberOfAsset` on channels). Widen `_SERVER_OWNED_BODY` in a reviewed commit with
+  the evidence; never baseline a new one with `--force` to quiet the gate.
+
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
   within a tag and silently demote an operator-facing command. Diff `@app.command` names.

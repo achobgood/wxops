@@ -1075,6 +1075,22 @@ wxcli hunt-group switch-mode-for LOC_ID HG_ID
 
 When creating/updating, only `agent_id` is required. Set `weight` or `skill_level` as needed for the routing policy.
 
+### One agent's settings across several queues (`call-queue update-settings-agents`)
+
+Sets one agent's per-queue settings (`joinEnabled`) for one or more queues in a single call, and, since the 2026-11-02 spec, the agent's ACD state. This is **not** the way to add or remove an agent from a queue (that is the queue's own `agents` list, `call-queue update`), and it is **not** a Contact Center agent state (`contact-center` skill).
+
+**Unverified:** (spec only, 2026-11-02) the request body accepts `agentACDState` with the values `SIGN_IN`, `SIGN_OUT`, `AVAILABLE`, `UNAVAILABLE`, `WRAP_UP`; the spec gives no rules on which transitions are allowed.
+
+```bash
+# The flag form sets only the ACD state; queue settings need --json-body.
+wxcli call-queue update-settings-agents PERSON_ID --agent-acd-state SIGN_IN
+wxcli call-queue update-settings-agents PERSON_ID --json-body '{"settings":[{"queueId":"QUEUE_ID","joinEnabled":true}],"agentACDState":"SIGN_IN"}'
+```
+
+Raw HTTP: `PUT /v1/telephony/config/queues/agents/{personId}/settings` (add `?hasCxEssentials=true` for an agent with a Customer Assist license).
+
+**`--has-cx-essentials true` is required for a Customer Assist agent.** **Unverified:** the option help says it must be `true` to modify an agent that has a Customer Assist license; Known Issue #7 in `wxcli-behavior.md` covers the same flag on `call-queue`, so read it before debugging a failure here.
+
 ---
 
 ## 6. Required Scopes
