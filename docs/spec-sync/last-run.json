@@ -1,10 +1,1 @@
-{
-  "date": "2026-10-27",
-  "outcome": "released",
-  "sha": "9ae5473a7fd9f81ab5470b135f6953333d043165",
-  "version": "v1.11.1",
-  "groups": 200,
-  "commands": 2221,
-  "issue": null,
-  "notes": "Human-directed completion of the 2026-10-26 run, which failed closed (record and failure.txt on branch spec-sync/failed-2026-10-26). Upstream: 2 of 7 specs updated; operation_added PUT /telephony/config/locations/{}/dectNetworks/{}/debugLevel (new command dect-devices update-debug-level) and field_removed query:skipValidation on POST /{}/project/{}/flows/{}:publish, which dropped --skip-validation from cc-flow publish. Ten doc/skill citations of the dead flag rewritten (live-verified history kept in past tense; server behaviour of a hand-sent ?skipValidation=true labelled Unverified). The owner confirmed Cisco retired the capability and authorized: (1) tests/wxcc/test_generator.py now asserts the flag is absent from cc-flow publish, and tests/wxcc/test_doc_consistency.py drops its publish-must-pass-skip-validation clause (drift checks 6/7 cover stale citations); (2) tools/sync_guard.py no longer lists tests/ in FORBIDDEN_PATHS, so future unattended runs may edit tests — the contract's never-skip/mark/delete-a-failing-test rule still applies. Pass bar on base 9ae5473a (main had gained two README-only commits): drift_check --enforce PASS (200 command sets / 2221 commands / 2042 non-skipped spec ops, 0 moved 0 removed 0 unlocked), pytest 5486 passed / 21 skipped / 2 xfailed, assemble.py produced only the mirrored doc/skill edits, sync_classify --fail-on-human exit 0 verdict=patch. sync_guard reported its own edit only, as expected for a guard change. Sandbox python3 is 3.11.17 (contract probe table says 3.11.15; same minor)."
-}
+{"date": "2026-11-02", "outcome": "released", "sha": "6e84cd2bc08ec2b5d06010b7f504912e9f5c4f20", "version": "v1.11.2", "groups": 200, "commands": 2221, "issue": null, "notes": "3 specs updated (cloud-calling, contact-center, meetings); patch: regenerated ai_receptionist, call_queue; 0 new/removed commands"}

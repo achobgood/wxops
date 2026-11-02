@@ -2092,7 +2092,7 @@
         },
         "summary": "Admit Participants",
         "operationId": "Admit Participants",
-        "description": "Admit multiple participants to a meeting in progress.\n\nThis API limits the maximum size of `items` in the request body to 100.\n\nEach `participantId` of `items` in the request body should have the same prefix of `meetingId`.",
+        "description": "To admit participants into a live meeting or its breakout sessions in bulk. If `breakoutSessionId` is null for all the requested participants, they are admitted into the main session of the meeting. If `breakoutSessionId` is not null for all the requested participants, they are admitted into the breakout sessions specified by each `breakoutSessionId`. It's not allowed that some requested participants have `breakoutSessionId` and the others haven't.\n\nThis API limits the maximum size of `items` in the request body to 100.\n\nEach `participantId` of `items` in the request body should have the same prefix of `meetingId`.",
         "tags": [
           "Participants"
         ],
@@ -2103,10 +2103,12 @@
               "example": {
                 "items": [
                   {
-                    "participantId": "560d7b784f5143e3be2fc3064a5c4999_I_204252993233618782_23e16d67-17f3-3ef1-b830-f33d17c0232e"
+                    "participantId": "560d7b784f5143e3be2fc3064a5c4999_I_204252993233618782_23e16d67-17f3-3ef1-b830-f33d17c0232e",
+                    "breakoutSessionId": "23e16d67-17f3-3ef1-b830-f33d17c0232e"
                   },
                   {
-                    "participantId": "560d7b784f5143e3be2fc3064a5c4999_I_204252993233618782_23e16d67-17f3-3ef1-b830-f33d17c0233d"
+                    "participantId": "560d7b784f5143e3be2fc3064a5c4999_I_204252993233618782_23e16d67-17f3-3ef1-b830-f33d17c0233d",
+                    "breakoutSessionId": "046afcde-d6c0-44da-aa79-96cb88762151"
                   }
                 ]
               },
@@ -39007,13 +39009,18 @@
           }
         }
       },
-      "ParticipantID": {
+      "AdmitParticipant": {
         "type": "object",
         "properties": {
           "participantId": {
             "type": "string",
             "example": "560d7b784f5143e3be2fc3064a5c4999_I_204252993233618782_23e16d67-17f3-3ef1-b830-f33d17c0232e",
             "description": "The ID that identifies the meeting participant."
+          },
+          "breakoutSessionId": {
+            "type": "string",
+            "example": "23e16d67-17f3-3ef1-b830-f33d17c0232e",
+            "description": "The breakout session ID that identifies which breakout session to admit the participant into. Admit into the main session if the value is empty."
           }
         }
       },
@@ -39128,21 +39135,6 @@
             "type": "string",
             "example": "d8c3347d7ec04242ba9b856184b334ac_I_630641605678082408_57514861-50f7-3f5b-864f-ce0e308bf653",
             "description": "ID of the SIP participant on whom the callout is to be cancelled. It can be retrieved from the response of the \"Call Out a SIP Participant\" API."
-          }
-        }
-      },
-      "AdmitParticipant": {
-        "type": "object",
-        "properties": {
-          "participantId": {
-            "type": "string",
-            "example": "560d7b784f5143e3be2fc3064a5c4999_I_204252993233618782_23e16d67-17f3-3ef1-b830-f33d17c0232e",
-            "description": "The ID that identifies the meeting participant."
-          },
-          "breakoutSessionId": {
-            "type": "string",
-            "example": "23e16d67-17f3-3ef1-b830-f33d17c0232e",
-            "description": "The breakout session ID that identifies which breakout session to admit the participant into. Admit into the main session if the value is empty."
           }
         }
       },

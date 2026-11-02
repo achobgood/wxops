@@ -497,7 +497,7 @@ _BODY_SKELETON_CREATE_INTENTS = '{"name":"...","description":"...","transferTo":
 def create_intents(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     ai_receptionist_id: str = typer.Argument(help="Webex AI_RECEPTIONIST id, from: wxcli ai-receptionist list"),
-    name: str = typer.Option(None, "--name", help="(required) Name of the intent."),
+    name: str = typer.Option(None, "--name", help="(required) Name of the intent. 1–64 characters; can only contain alphanumeric characters, hyphens (-), and underscores (_)."),
     description: str = typer.Option(None, "--description", help="(required) Description of the intent (Action)."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -578,7 +578,7 @@ def update_intents(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     ai_receptionist_id: str = typer.Argument(help="Webex AI_RECEPTIONIST id, from: wxcli ai-receptionist list"),
     intent_id: str = typer.Argument(help="Webex INTENT id, from: wxcli ai-receptionist list-intents"),
-    name: str = typer.Option(None, "--name", help="Name of the intent."),
+    name: str = typer.Option(None, "--name", help="New name of the intent. 1–64 characters; can only contain alphanumeric characters, hyphens (-), and underscores (_)."),
     description: str = typer.Option(None, "--description", help="Description of the intent (Action)."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),

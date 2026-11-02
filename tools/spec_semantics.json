@@ -1,6 +1,6 @@
 {
  "_about": "Drift gate check 19. Regenerate with `python -m tools.drift_check --refresh-spec-snapshot`; never hand-edit. Field encoding: ! required, ~name/~id the kind its description states, #hash of the description, %hash of the rules stated in it, =enum values.",
- "captured": "2026-10-26",
+ "captured": "2026-11-02",
  "specs": {
   "webex-admin.json": {
    "DELETE /admin/recordings/{}": {
@@ -10704,7 +10704,7 @@
     "fields": {
      "(operation)": "#11fa5b",
      "body:description": "!#a00860",
-     "body:name": "!~name#865e26",
+     "body:name": "!~name#4167f0",
      "body:transferTo": "!#972385",
      "body:transferTo.contactId": "#82efa4",
      "body:transferTo.contactType": "!#9a8371=CONTACT|PEOPLE|PHONE_NUMBER|RESOURCE_GROUP",
@@ -13440,7 +13440,7 @@
     "fields": {
      "(operation)": "#1ba3ba",
      "body:description": "#a00860",
-     "body:name": "~name#865e26",
+     "body:name": "~name#865101",
      "body:transferTo": "#972385",
      "body:transferTo.contactId": "#82efa4",
      "body:transferTo.contactType": "!#9a8371=CONTACT|PEOPLE|PHONE_NUMBER|RESOURCE_GROUP",
@@ -15074,7 +15074,7 @@
    "PUT /telephony/config/people/me/settings/queues": {
     "fields": {
      "(operation)": "#8de561",
-     "body:agentACDState": "#459902=AVAILABLE|SIGN_IN|SIGN_OUT|UNAVAILABLE|WRAP_UP",
+     "body:agentACDState": "#e14294=AVAILABLE|SIGN_IN|SIGN_OUT|UNAVAILABLE|WRAP_UP",
      "body:queues": "#094c7c",
      "body:queues[].available": "#bdf812",
      "body:queues[].id": "!#7888dc"
@@ -15131,7 +15131,7 @@
    "PUT /telephony/config/people/me/settings/secondaryLines/{}/queues": {
     "fields": {
      "(operation)": "#83f73b",
-     "body:agentACDState": "#459902=AVAILABLE|SIGN_IN|SIGN_OUT|UNAVAILABLE|WRAP_UP",
+     "body:agentACDState": "#e14294=AVAILABLE|SIGN_IN|SIGN_OUT|UNAVAILABLE|WRAP_UP",
      "body:queues": "#094c7c",
      "body:queues[].available": "#bdf812",
      "body:queues[].id": "!#7888dc",
@@ -16047,7 +16047,8 @@
    },
    "PUT /telephony/config/queues/agents/{}/settings": {
     "fields": {
-     "(operation)": "#4921cc",
+     "(operation)": "#e8401f",
+     "body:agentACDState": "#e14294=AVAILABLE|SIGN_IN|SIGN_OUT|UNAVAILABLE|WRAP_UP",
      "body:settings": "!",
      "body:settings[].joinEnabled": "!#b28583",
      "body:settings[].queueId": "!#7888dc",
@@ -23259,7 +23260,7 @@
    },
    "POST /usage-reports": {
     "fields": {
-     "(operation)": "#6c69a4",
+     "(operation)": "#007f82",
      "body:endDate": "#3e83b8",
      "body:resourceType": "#625bc2",
      "body:startDate": "#c12112"
@@ -26696,7 +26697,7 @@
    },
    "POST /meetingParticipants/admit": {
     "fields": {
-     "(operation)": "#2bff69",
+     "(operation)": "#95be39%05031b",
      "body:items": "",
      "body:items[].breakoutSessionId": "#0365ef",
      "body:items[].participantId": "#418f8d"

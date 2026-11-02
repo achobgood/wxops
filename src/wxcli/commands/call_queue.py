@@ -1701,19 +1701,20 @@ def show_agents(
 
 
 
-_BODY_SKELETON_UPDATE_SETTINGS_AGENTS = '{"settings":[{"queueId":"...","joinEnabled":true}]}'
+_BODY_SKELETON_UPDATE_SETTINGS_AGENTS = '{"settings":[{"queueId":"...","joinEnabled":true}],"agentACDState":"SIGN_IN"}'
 
 @app.command("update-settings-agents", short_help="Update an Agent's Settings for One or More Call Queue or Customer Assist Queues.")
 def update_settings_agents(
     id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli call-queue list-agents"),
     has_cx_essentials: str = typer.Option(None, "--has-cx-essentials", help="Must be set to `true` to modify an agent that has Customer Assist license. This can otherwise be ommited or set to `false`."),
+    agent_acd_state: str = typer.Option(None, "--agent-acd-state", help="Choices: SIGN_IN, SIGN_OUT, AVAILABLE, UNAVAILABLE, WRAP_UP"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Agent's Settings for One or More Call Queue or Customer Assist Queues.\n\n\b\nExample: wxcli call-queue update-settings-agents ID --json-body '{"settings":[{"queueId":"...","joinEnabled":true}]}'"""
+    """Update an Agent's Settings for One or More Call Queue or Customer Assist Queues.\n\n\b\nExample: wxcli call-queue update-settings-agents ID --json-body '{"settings":[{"queueId":"...","joinEnabled":true}]}'\n\n\b\nExample --json-body: '{"settings":[{"queueId":"...","joinEnabled":true}],"agentACDState":"SIGN_IN"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SETTINGS_AGENTS), indent=2))
         raise typer.Exit(0)
@@ -1729,6 +1730,8 @@ def update_settings_agents(
         body = load_json_body(json_body)
     else:
         body = {}
+        if agent_acd_state is not None:
+            body["agentACDState"] = agent_acd_state
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
