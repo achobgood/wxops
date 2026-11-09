@@ -356,6 +356,8 @@ is `_expand_device`, which takes `config`).
 
 **Undo cascade on retry:** If a previously-failed op succeeds on retry, its cascade-skipped dependents are reset to `pending` so they execute in the next batch.
 
+**The whole status machine** (every edge and the function that writes it) is `OP_STATUS_TRANSITIONS` in `models.py`; `tests/migration/execute/test_op_status_machine.py` fails if a writer produces an edge it lacks. `mark-failed` without `--skip` **does** cascade (the old help text said it did not); `mark-complete` on an already-completed op without `--webex-id` is a no-op (it used to overwrite the recorded `webex_id` with NULL).
+
 **dry_run_all_batches()** — uses a SQLite SAVEPOINT to simulate full execution without state changes. Useful for previewing the execution plan.
 
 ---

@@ -59,6 +59,55 @@ class OpStatus(str, Enum):
     FAILED      = "failed"
 
 
+#: Every status change the execution layer makes on its own, and who makes it.
+#: The writers are set-based SQL spread across ``execute/runtime.py``,
+#: ``execute/engine.py`` and ``commands/cucm.py``; this table is the one place
+#: the whole machine is readable. ``tests/migration/execute/
+#: test_op_status_machine.py`` drives each writer and fails if any of them
+#: produces an edge missing here — add the edge here when you add a writer.
+#:
+#: =============  ===========  ==============================================
+#: from           to           writer
+#: =============  ===========  ==============================================
+#: pending        in_progress  ``runtime.mark_ops_in_progress`` (engine, just
+#:                             before dispatch); ``update_op_status``
+#: pending,       completed    ``update_op_status`` (engine result,
+#: in_progress                 ``mark-complete``)
+#: pending,       failed       ``update_op_status`` (engine result,
+#: in_progress                 ``mark-failed``)
+#: pending,       skipped      ``update_op_status`` (handler ``skipped()``,
+#: in_progress                 ``mark-failed --skip``); ``_cascade_skip`` (a
+#:                             hard dependency failed or was skipped)
+#: in_progress    pending      ``engine.reset_in_progress`` (next ``execute``
+#:                             after a crash)
+#: failed         pending      ``wxcli cucm retry-failed``
+#: skipped        pending      ``_undo_cascade_skip`` — only a cascade whose
+#:                             FAILED root has now completed. An explicit skip
+#:                             is permanent.
+#: failed         completed    ``mark-complete`` (the resource turned out to
+#:                             exist — cucm-migrate skill recovery path)
+#: failed         skipped      ``mark-failed --skip`` (operator gives up)
+#: =============  ===========  ==============================================
+#:
+#: ``completed`` is terminal for the engine. ``mark-complete`` /
+#: ``mark-failed`` are operator overrides and do not check the current status;
+#: ``mark-complete`` on an already-completed op without ``--webex-id`` is a
+#: no-op, so a retried step cannot erase the recorded Webex id.
+OP_STATUS_TRANSITIONS: dict[OpStatus, frozenset[OpStatus]] = {
+    OpStatus.PENDING: frozenset({
+        OpStatus.IN_PROGRESS, OpStatus.COMPLETED, OpStatus.FAILED, OpStatus.SKIPPED,
+    }),
+    OpStatus.IN_PROGRESS: frozenset({
+        OpStatus.PENDING, OpStatus.COMPLETED, OpStatus.FAILED, OpStatus.SKIPPED,
+    }),
+    OpStatus.FAILED: frozenset({
+        OpStatus.PENDING, OpStatus.COMPLETED, OpStatus.SKIPPED,
+    }),
+    OpStatus.SKIPPED: frozenset({OpStatus.PENDING}),
+    OpStatus.COMPLETED: frozenset(),
+}
+
+
 class LineClassification(str, Enum):
     """DN classification result from E.164 normalization algorithm.
     (from 03b-transform-mappers.md, line_mapper E.164 algorithm lines 208-211)

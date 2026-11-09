@@ -13,7 +13,7 @@ argument-hint: [project name]
 # CUCM Migration Execution Workflow
 
 **Checkpoint — do NOT proceed until you can answer these:**
-1. What pipeline stage must be complete before this skill can run? (Answer: ANALYZED — run `wxcli cucm status` to verify. If not at ANALYZED or later, the admin must run the remaining pipeline stages first.)
+1. What pipeline stage must be complete before this skill can run? (Answer: `analyze` — run `wxcli cucm status` and check that the **`Stages:`** line contains `analyze`. Gate on `Stages:`, never on the `State:` line: re-running an earlier stage rolls `Stages:` back but cannot roll `State:` back, so `State:` can claim a stage that no longer holds. If `analyze` is missing, run the command on the `Next:` line (or `Next stage to run:`), and repeat until it is.)
 2. What must be resolved before the plan can be generated? (Answer: All PENDING decisions — run `wxcli cucm decisions --status pending` to check. Location addresses must also be imported via `wxcli cucm import-locations`.)
 
 If you cannot answer both, you skipped reading this skill. Go back and read it.
@@ -38,7 +38,7 @@ Before asking the interview questions, check for an existing CUCM migration proj
 wxcli cucm status 2>/dev/null
 ```
 
-**If the pipeline is at stage ANALYZED or later** (or a deployment plan exists at `docs/plans/*cucm-migration*`):
+**If the `Stages:` line contains `analyze`** (or a deployment plan exists at `docs/plans/*cucm-migration*`):
 > "I found an existing CUCM migration project. Loading the migration workflow."
 
 Continue at Step 1 below.
@@ -120,7 +120,7 @@ Phases 1-2 of CUCM Migration can often run together (they're fast). Phases 3-5 s
    ```bash
    wxcli cucm status
    ```
-   Verify stage is `ANALYZED` or later. If not, tell the admin which pipeline stages remain.
+   Verify the `Stages:` line contains `analyze` (not the `State:` line — see the checkpoint above). If not, run the command on the `Next:` line and repeat; tell the admin which stages remain.
 
 2. **Generate the assessment report:**
    ```bash
