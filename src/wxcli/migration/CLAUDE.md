@@ -13,6 +13,9 @@ All 11 phases complete. **3133 tests.** Wired into the CLI as `wxcli cucm <comma
 | `src/wxcli/commands/cucm_config.py` | Phase 08 — Config management helpers |
 | `models.py` | Canonical data models — 38 types, DecisionType (27 values), Decision, MapperResult, TransformResult |
 | `store.py` | SQLite-backed store — objects, cross_refs, decisions, journal, merge_log, merge_decisions() |
+| `stages.py` | The pipeline-stage state machine — `STAGE_ORDER`, `STAGE_PREREQUISITES` (every gated command, incl. `execute`, `report`, `user-diff`, `user-notice`), `downstream_of`, `next_stage`, `command_for`, `stage_divergence`. Pure, no I/O. See § State machines |
+| `state.py` | `ProjectState` + `VALID_TRANSITIONS` — forward-only project state. Display only; never gate on it |
+| `decision_state.py` | Decision resolution: pending / resolved / stale (`chosen_option` sentinel). Use its predicates, never `chosen_option` truthiness |
 | `cucm/` | Phase 03 — AXL connection, 14 extractors, discovery pipeline |
 | `transform/normalizers.py` | Phase 04 — 42 Pass 1 normalizers |
 | `transform/cross_reference.py` | Phase 04 — CrossReferenceBuilder (31 relationships + 3 enrichments) |
@@ -31,6 +34,22 @@ All 11 phases complete. **3133 tests.** Wired into the CLI as `wxcli cucm <comma
 
 Each subdirectory has its own CLAUDE.md (local context) and TODO.md (outstanding work).
 See `docs/plans/cucm-migration-roadmap.md` for the master project status.
+
+## State machines
+
+Five state machines run the migration. Each now has one module that holds its rules as data; when you add a state, an edge or a gated command, change that table, not a call site.
+
+| Machine | Where it is stored | Rules live in | Who reads it |
+|---|---|---|---|
+| Pipeline stage | `state.json` `completed_stages` | `stages.py` | every `cucm` gate (`_check_prerequisite`), `status` `Next:` line |
+| Project state | `state.json` `state` | `state.py` `VALID_TRANSITIONS` | `status` `State:` line only |
+| Object status | `objects.status` (`MigrationStatus`) | `models.py` | planner (`analyzed` / `needs_decision`) |
+| Decision | `decisions.chosen_option` | `decision_state.py` | reports, `status`, planner |
+| Operation status | `plan_operations.status` (`OpStatus`) | `models.py` `OP_STATUS_TRANSITIONS` | engine, runtime, `mark-*`, `retry-failed` |
+
+**Decided 2026-11-09 (pipeline stage):** the stage machine moved out of `commands/cucm.py` into `stages.py`. Before, the order existed twice (`PIPELINE_STAGES`, unused, and `STAGE_ORDER`), `report` / `user-diff` / `user-notice` each re-implemented the gate with their own wording, and nothing answered "what do I run next?". Now one gate serves every gated command, and every refusal and `status` print the literal next command. **Rejected: rewinding `ProjectState` on a re-run.** It needs backwards edges in `VALID_TRANSITIONS` and rewrites `state.json` under the operator, against the F07/F13 precedent (disclose, never rewrite); `completed_stages` is already authoritative and `status` says so. **Rejected: deleting `ProjectState`.** The cucm-migrate skill and saved projects read it; it costs nothing as display.
+
+**Decided 2026-11-09 (operation status):** `OP_STATUS_TRANSITIONS` documents the machine instead of enforcing it. The writers are set-based SQL with `WHERE status IN (...)` guards where it matters; a runtime check in `update_op_status` would duplicate those and break the operator overrides (`mark-complete` on a failed op is the skill's recovery path). `tests/migration/execute/test_op_status_machine.py` drives every real writer and fails on an edge the table lacks.
 
 ## Known Issues
 

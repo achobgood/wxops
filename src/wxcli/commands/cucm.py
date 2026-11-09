@@ -39,8 +39,29 @@ from wxcli.commands.cucm_config import (
 from wxcli.common import emit, FIELDS_HELP
 from wxcli.output import plain_mode
 
+# The pipeline-stage state machine — stage order, every command's prerequisite,
+# invalidation, "what runs next" — lives in `wxcli.migration.stages` (a
+# dependency-free module, so `wxcli --help` stays off the heavy migration import
+# path). STAGE_ORDER / STAGE_PREREQUISITES / STATE_IMPLIES_STAGE are re-exported
+# here because tests and older callers import them from this module.
+from wxcli.migration.stages import (
+    STAGE_ORDER,
+    STAGE_PREREQUISITES,
+    STATE_IMPLIES_STAGE,
+    command_for as _stage_command,
+    downstream_of as _downstream_of,
+    missing_prerequisite as _missing_prerequisite,
+    next_stage as _next_stage,
+    stage_divergence as _stage_divergence_impl,
+)
+
 logger = logging.getLogger(__name__)
-console = Console()
+# emoji=False on both consoles: op node_ids and canonical ids embed customer
+# CUCM names (`location:<device pool>:create`), and Rich's emoji substitution
+# rewrote any `:name:` segment that is an emoji code — a device pool named `A`
+# printed as `location🅰create`, which no operator or agent can paste back.
+# Nothing in this module prints an intentional emoji code.
+console = Console(emoji=False)
 # stderr=True: report()/user_diff()/user_notice() below print human prose
 # (e.g. "Report generated: ...") ahead of a machine-readable
 # emit(..., output="json") on stdout, so `wxcli cucm report | jq .reportHtml`
@@ -51,7 +72,7 @@ console = Console()
 # redirecting the whole module console to stderr would silently empty
 # `wxcli cucm decisions -o table > file.txt`. Scoping the stderr redirect to
 # just these three report writers' prose avoids that regression.
-report_console = Console(stderr=True)
+report_console = Console(stderr=True, emoji=False)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -59,59 +80,6 @@ report_console = Console(stderr=True)
 
 MIGRATIONS_DIR = Path.home() / ".wxcli" / "migrations"
 CURRENT_PROJECT_FILE = Path.home() / ".wxcli" / "current_project"
-
-# Pipeline stages in execution order.
-PIPELINE_STAGES = ["init", "discover", "normalize", "map", "analyze", "plan", "preflight"]
-
-# Map each stage to its prerequisite stage.
-STAGE_PREREQUISITES: dict[str, str] = {
-    "discover": "init",
-    "normalize": "discover",
-    "map": "normalize",
-    "analyze": "map",
-    "plan": "analyze",
-    "preflight": "plan",
-    # `execute` is the only stage that writes to a live customer org, and until
-    # 2026-08-05 it was the only stage with no prerequisite at all — every read
-    # stage above was gated, and so is `report`, which merely writes an HTML file.
-    # The cucm-migrate skill calls preflight "MANDATORY. No override or bypass";
-    # that sentence lived in a prompt file and nothing in code enforced it.
-    #
-    # Safe against the documented recovery loop, traced before enabling: the
-    # `execute → retry-failed → execute` cycle touches `completed_stages` at no
-    # point, so preflight stays satisfied across every retry pass. The only thing
-    # that clears it is `_invalidate_downstream`, i.e. re-running an earlier
-    # stage — and a re-plan *should* require a fresh preflight.
-    "execute": "preflight",
-}
-
-# Pipeline stages in execution order. `completed_stages` is a subset of this.
-STAGE_ORDER: list[str] = [
-    "init", "discover", "normalize", "map", "analyze", "plan", "preflight",
-]
-
-# The stage each ProjectState claims has completed. Re-running an earlier
-# stage rolls `completed_stages` back but cannot roll `ProjectState` back —
-# `VALID_TRANSITIONS` has no backwards edges — so the two diverge permanently
-# and `status` printed the stale one first. Used to flag that on read; nothing
-# here rewrites state.json (finding F13, following the F07 precedent).
-STATE_IMPLIES_STAGE: dict[str, str] = {
-    "initialized": "init",
-    "connected": "init",  # discover began, did not complete
-    "discovered": "discover",
-    "analyzed": "analyze",
-    "ready": "analyze",
-    "blocked": "analyze",
-    "planned": "plan",
-    "preflight_failed": "plan",
-    "preflight": "preflight",
-    "snapshotted": "preflight",
-    "executing": "preflight",
-    "failed": "preflight",
-    "validating": "preflight",
-    "completed": "preflight",
-    "rolled_back": "preflight",
-}
 
 # Severity → Rich color for decision tables.
 SEVERITY_COLORS: dict[str, str] = {
@@ -217,11 +185,9 @@ def _mark_stage_complete(project_dir: Path, stage: str) -> None:
 
 def _invalidate_downstream(project_dir: Path, current_stage: str) -> None:
     """Remove downstream stages from completed_stages when re-running an earlier stage."""
-    try:
-        idx = STAGE_ORDER.index(current_stage)
-    except ValueError:
+    downstream = set(_downstream_of(current_stage))
+    if not downstream:
         return
-    downstream = set(STAGE_ORDER[idx + 1:])
     data = _load_state_data(project_dir)
     stages = data.get("completed_stages", [])
     original = list(stages)
@@ -281,19 +247,33 @@ def _advance_to_planned(project_dir: Path, has_pending_decisions: bool) -> None:
         pass
 
 
-def _check_prerequisite(project_dir: Path, stage: str) -> None:
-    """Abort if the prerequisite stage hasn't been completed."""
-    required = STAGE_PREREQUISITES.get(stage)
+def _check_prerequisite(
+    project_dir: Path, stage: str, out: Console | None = None
+) -> None:
+    """Abort if the command's prerequisite stage hasn't been completed.
+
+    The one gate for every gated command (stages, `execute`, and the three
+    post-analyze deliverables). The refusal names the literal next command,
+    so an operator — or an agent — does not have to work out the order.
+
+    ``out`` is the console to write to: the report writers pass
+    ``report_console`` (stderr) so a refusal never lands on a JSON stdout.
+    """
+    completed = _completed_stages(project_dir)
+    required = _missing_prerequisite(stage, completed)
     if required is None:
         return
-    completed = _completed_stages(project_dir)
-    if required not in completed:
-        console.print(
-            f"[red]Cannot run '{stage}' — prerequisite '{required}' "
-            f"has not been completed.[/red]\n"
-            f"Completed stages: {', '.join(completed) if completed else '(none)'}",
-        )
-        raise typer.Exit(1)
+    from rich.markup import escape
+
+    out = out or console
+    nxt = _next_stage(completed) or required
+    out.print(
+        f"[red]Cannot run '{stage}' — prerequisite '{required}' "
+        f"has not been completed.[/red]\n"
+        f"Completed stages: {' → '.join(completed) if completed else '(none)'}\n"
+        f"Run next: [bold]{escape(_stage_command(nxt))}[/bold]",
+    )
+    raise typer.Exit(1)
 
 
 # ---------------------------------------------------------------------------
@@ -835,6 +815,19 @@ def status(
     console.print(f"[bold]Stages:[/bold]  {' → '.join(completed) if completed else '(none)'}")
     if diverged:
         _print_stage_divergence(project_state, completed, diverged)
+    else:
+        # The one line a reader needs to act on: derived from `completed_stages`
+        # (authoritative), never from the forward-only State line.
+        from rich.markup import escape
+
+        nxt = _next_stage(completed)
+        if nxt:
+            console.print(f"[bold]Next:[/bold]    {escape(_stage_command(nxt))}")
+        else:
+            console.print(
+                "[bold]Next:[/bold]    wxcli cucm export, then /cucm-migrate "
+                "(every pipeline stage is complete)"
+            )
 
     # Object counts
     store = _open_store(project_dir)
@@ -1910,12 +1903,10 @@ def _stage_divergence(project_state: str, completed: list[str]) -> str | None:
     `ProjectState` first — a reader gating on the State line proceeds from an
     invalidated stage.
 
-    Returns None when they agree.
+    Returns None when they agree. The rule itself is
+    `wxcli.migration.stages.stage_divergence`; this name is kept for callers.
     """
-    implied = STATE_IMPLIES_STAGE.get(project_state)
-    if implied is None or implied in completed:
-        return None
-    return implied
+    return _stage_divergence_impl(project_state, completed)
 
 
 def _print_stage_divergence(
@@ -1929,8 +1920,7 @@ def _print_stage_divergence(
     matches the precedent that a state file recording something that is no
     longer true gets disclosed rather than edited underneath the operator.
     """
-    remaining = [s for s in STAGE_ORDER if s not in completed]
-    next_stage = remaining[0] if remaining else None
+    next_stage = _next_stage(completed)
 
     console.print(
         f"\n[yellow]⚠ State and stages disagree.[/yellow] `state` is "
@@ -2965,12 +2955,24 @@ def mark_complete(
     try:
         # Verify the node exists
         row = store.conn.execute(
-            "SELECT status FROM plan_operations WHERE node_id = ?",
+            "SELECT status, webex_id FROM plan_operations WHERE node_id = ?",
             (node_id,),
         ).fetchone()
         if not row:
             console.print(f"[red]Operation not found:[/red] {node_id}")
             raise typer.Exit(1)
+
+        # Idempotent re-mark. `update_op_status(..., "completed")` writes
+        # `webex_id = ?` unconditionally, so re-marking an already-completed op
+        # without --webex-id used to overwrite its recorded id with NULL — and
+        # every dependent op resolves its deps (and rollback-ops its targets)
+        # from that column. An agent retrying a step is exactly who does this.
+        if row["status"] == "completed" and not webex_id:
+            recorded = f" (webex_id: {row['webex_id']})" if row["webex_id"] else ""
+            console.print(
+                f"[dim]Already completed:[/dim] {node_id}{recorded} — nothing changed."
+            )
+            return
 
         update_op_status(store, node_id, "completed", webex_id=webex_id)
         msg = f"[green]Marked completed:[/green] {node_id}"
@@ -2990,8 +2992,13 @@ def mark_failed(
 ):
     """Mark a migration operation as failed or skipped.
 
-    With --skip: marks as skipped and cascades to all dependent operations.
-    Without --skip: marks as failed, does not cascade (can be retried).
+    Both forms skip every operation that depends on this one (hard
+    dependencies only), so nothing waits forever on it.
+
+    Without --skip: marks as failed. Run 'wxcli cucm retry-failed' to reset it
+    to pending; when it later completes, the dependents it skipped return to
+    pending automatically.
+    With --skip: marks as skipped. Permanent — its dependents stay skipped.
     """
     from wxcli.migration.execute.runtime import update_op_status
 
@@ -3010,19 +3017,24 @@ def mark_failed(
 
         if skip:
             update_op_status(store, node_id, "skipped", error_message=error)
-            # Count all transitively cascaded ops (direct + indirect).
-            # Wave 3B uses a root-referencing error_message format —
-            # "Cascade skip: dependency <root> FAILED|SKIPPED".
-            skipped_count = store.conn.execute(
-                "SELECT COUNT(*) as cnt FROM plan_operations "
-                "WHERE status = 'skipped' AND error_message LIKE 'Cascade skip: dependency %'",
-            ).fetchone()["cnt"]
             console.print(f"[yellow]Skipped:[/yellow] {node_id} ({error})")
-            if skipped_count:
-                console.print(f"  Cascaded to {skipped_count} dependent operation(s)")
         else:
             update_op_status(store, node_id, "failed", error_message=error)
             console.print(f"[red]Marked failed:[/red] {node_id} ({error})")
+        # Count THIS op's cascade only. Every descendant at every depth carries
+        # the root-naming marker (runtime._cascade_skip), so an exact match is
+        # the whole subtree. The old `LIKE 'Cascade skip: dependency %'` counted
+        # every cascade in the plan, from any root, and reported it as this one's.
+        marker = (
+            f"Cascade skip: dependency {node_id} {'SKIPPED' if skip else 'FAILED'}"
+        )
+        cascaded = store.conn.execute(
+            "SELECT COUNT(*) AS cnt FROM plan_operations "
+            "WHERE status = 'skipped' AND error_message = ?",
+            (marker,),
+        ).fetchone()["cnt"]
+        if cascaded:
+            console.print(f"  Cascaded to {cascaded} dependent operation(s)")
     finally:
         store.close()
 
@@ -3389,14 +3401,7 @@ def report(
     """Generate a migration assessment report (HTML + optional PDF)."""
     project_dir = _resolve_project_dir(project)
 
-    # Check that analyze stage is complete (report is not in STAGE_PREREQUISITES)
-    completed = _completed_stages(project_dir)
-    if "analyze" not in completed:
-        report_console.print(
-            "[red]Cannot generate report — 'analyze' stage has not been completed.[/red]\n"
-            f"Completed stages: {', '.join(completed) if completed else '(none)'}",
-        )
-        raise typer.Exit(1)
+    _check_prerequisite(project_dir, "report", out=report_console)
 
     store = _open_store(project_dir)
     try:
@@ -3518,13 +3523,7 @@ def user_diff(
     """Generate a per-user CUCM-vs-Webex migration diff."""
     project_dir = _resolve_project_dir(project)
 
-    completed = _completed_stages(project_dir)
-    if "analyze" not in completed:
-        report_console.print(
-            "[red]Cannot generate user diff — 'analyze' stage has not been completed.[/red]\n"
-            f"Completed stages: {', '.join(completed) if completed else '(none)'}",
-        )
-        raise typer.Exit(1)
+    _check_prerequisite(project_dir, "user-diff", out=report_console)
 
     store = _open_store(project_dir)
     try:
@@ -3586,13 +3585,7 @@ def user_notice(
     """Generate user-facing migration communication notice (HTML or text)."""
     project_dir = _resolve_project_dir(project)
 
-    completed = _completed_stages(project_dir)
-    if "analyze" not in completed:
-        report_console.print(
-            "[red]Cannot generate notice — 'analyze' stage has not been completed.[/red]\n"
-            f"Completed stages: {', '.join(completed) if completed else '(none)'}",
-        )
-        raise typer.Exit(1)
+    _check_prerequisite(project_dir, "user-notice", out=report_console)
 
     store = _open_store(project_dir)
     try:

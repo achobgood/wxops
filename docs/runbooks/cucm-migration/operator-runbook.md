@@ -803,7 +803,7 @@ Use these commands to observe state and intervene manually when the skill prompt
 | `wxcli cucm execution-status -p <project> -o json` | Full JSON output — use this for failure triage; shows per-operation error messages |
 | `wxcli cucm next-batch -p <project>` | Show the next batch of operations whose dependencies are all completed/skipped — ready to run |
 | `wxcli cucm mark-complete <node-id> -p <project>` | Manually mark an operation as completed; optionally pass `--webex-id <id>` to record the created resource ID for downstream dependency resolution |
-| `wxcli cucm mark-failed <node-id> --error "<message>" -p <project>` | Manually mark an operation as failed (does NOT cascade). Required before retry. Add `--skip` to cascade the failure to all dependent operations (use only when the resource is genuinely not needed) |
+| `wxcli cucm mark-failed <node-id> --error "<message>" -p <project>` | Manually mark an operation as failed. Required before retry. Its dependent operations are set to skipped, and go back to pending on their own once this operation later completes. Add `--skip` to mark it skipped instead: permanent, and its dependents stay skipped (use only when the resource is genuinely not needed) |
 | `wxcli cucm retry-failed -p <project>` | Reset all failed operations to `pending` so they can be retried on the next `execute` run |
 | `wxcli cucm rollback-ops -p <project>` | List all completed CREATE operations in reverse dependency order — the sequence you'd need to delete to roll back. Use `--batch <name>` to scope to a single batch |
 
