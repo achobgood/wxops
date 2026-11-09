@@ -1750,6 +1750,43 @@ run on a spec contradiction.
 refresh that drops a key the live API still accepts fails the gate, and the only way out is
 a human doc edit. The widening rules above soften this; they do not remove it.
 
+### State the hand-written commands carry, made explicit (2026-11-09)
+
+An audit for implicit state machines outside `wxcli cucm` (the CUCM ones are in
+`src/wxcli/migration/CLAUDE.md` § State machines) found two that lost information:
+
+**`wxcli init` — per-file state of the installed playbook.** The manifest has recorded a
+sha256 per file since it was written, but nothing read the hashes back, so a file the user
+edited after install looked exactly like an untouched one: refresh overwrote it (under
+`--yes` too), a file retired upstream was deleted, and `--uninstall` deleted it. Each owned
+file is now `pristine`, `edited` or `missing` (`init_playbook.owned_file_state`). Refresh
+refuses while an edited file would be overwritten or removed and lists it; `--uninstall`
+keeps edited files and lists them; `--force` overrides both. **`--yes` deliberately does
+not**: it answers a question, it does not authorize data loss, and an agent runs `wxcli init
+--yes` after `wxcli update`. **Rejected: skipping edited files and refreshing the rest.** It
+leaves a skill one version behind the CLI it describes, silently. A missing file is restored
+by refresh, as before (refresh is also the repair path).
+
+**`wxcli whoami` — session state.** Three states were invisible: (1) a token from
+`WEBEX_ACCESS_TOKEN` / `WEBEX_TOKEN` reported the expiry of the *saved* token, a different
+token; (2) a saved token past its recorded 12h printed nothing, the same as "no record";
+(3) the agent definition, `wxcli-behavior.md` and `authentication.md` all said to look for a
+`Target:` line, which the emit()-based output has never printed, so an agent following them
+concluded "single-org" and skipped confirming the target org. Now `tokenSource`
+(`auth.token_source`, kept in the same order as `resolve_token`) and `partnerTarget` (saved
+org ≠ the token's own org, compared on the decoded UUID) are always present, and
+`tokenExpiresIn` states every case. `partnerTarget` exists because `configure` saves an org
+for single-org tokens too, so `targetOrgId` alone cannot answer "is this a customer org?".
+
+**Looked at and left alone, with the reason:** org-health's collect → analyze → report run
+(file-based; `manifest.json` is written last and is the completion marker; a partial page is
+announced on stderr and the skill tells the agent to re-run with `--all`); the spec-sync run
+record's `outcome` (written by the routine, read by `spec-sync-liveness.yml` with an
+allow-list, so a misspelled outcome fails loud as stale rather than passing); `cleanup`'s
+location lifecycle (disable calling → wait → delete with 409 retries → CCP backend gate,
+already explicit and tuned live); the update-check cache (explicit TTL with negative
+caching); the pagination walkers in `auth.py` (every stop condition is named and tested).
+
 ## Flow Store spec
 
 *(Plan 2 Task 21, 2026-10-19. Merged from `wxcc/tools/generator/README.md`, which was removed with `wxcc/` in Plan 6;

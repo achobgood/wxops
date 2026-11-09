@@ -2,10 +2,12 @@ import typer
 from datetime import datetime, timezone
 
 from wxcli import __version__
-from wxcli.auth import get_api, resolve_token, WebexApi, WebexSession
+from wxcli.auth import get_api, resolve_token, token_source, WebexApi, WebexSession
 from wxcli.commands._lazy import LazyTyper
 from wxcli.common import emit, FIELDS_HELP
-from wxcli.config import get_expires_at, get_org_id, get_org_name, save_org
+from wxcli.config import (
+    decode_webex_id, get_expires_at, get_org_id, get_org_name, save_org,
+)
 from wxcli.errors import WebexError, handle_rest_error, handle_network_error
 from wxcli.output import plain_mode
 
@@ -74,28 +76,62 @@ def whoami(
         result["targetOrgId"] = target_org_id
         if target_org_name:
             result["targetOrgName"] = target_org_name
+    # `wxcli configure` saves an org for single-org tokens too, so the mere
+    # presence of targetOrgId does not mean "partner token aimed at a customer".
+    # This field is the one answer an agent needs before touching the org: are
+    # commands going to a different org from the token's own?
+    result["partnerTarget"] = _is_partner_target(org_id, target_org_id)
 
     roles = me.get("roles")
     if roles:
         result["roles"] = ", ".join(roles)
 
-    expires = get_expires_at()
-    if expires:
-        try:
-            exp_dt = datetime.fromisoformat(expires)
-            now = datetime.now(timezone.utc)
-            remaining = exp_dt - now
-            if remaining.total_seconds() > 0:
-                hours = int(remaining.total_seconds() // 3600)
-                minutes = int((remaining.total_seconds() % 3600) // 60)
-                token_str = f"{hours}h {minutes}m"
-                if hours < 2:
-                    token_str += " — consider refreshing soon"
-                result["tokenExpiresIn"] = token_str
-        except ValueError:
-            pass
+    source = token_source()
+    result["tokenSource"] = source
+    expires_in = _token_expires_in(source, get_expires_at())
+    if expires_in:
+        result["tokenExpiresIn"] = expires_in
 
     emit(result, output=output, fields=fields)
+
+
+def _is_partner_target(token_org_id: str, target_org_id: str | None) -> bool:
+    """True when commands are aimed at an org other than the token's own.
+
+    Compared on the decoded UUID: the same org can arrive base64-encoded from
+    /people/me and from /organizations with different region prefixes.
+    """
+    if not target_org_id or not token_org_id:
+        return False
+    return decode_webex_id(target_org_id) != decode_webex_id(token_org_id)
+
+
+def _token_expires_in(source: str | None, expires_at: str | None,
+                      now: datetime | None = None) -> str | None:
+    """The token's remaining life, stated for every state it can be in.
+
+    Before, an env-var token reported the *saved* token's expiry, and a saved
+    token past its recorded expiry printed nothing — the same as "no record".
+    """
+    if source != "config":
+        return f"unknown — token from {source}" if source else None
+    if not expires_at:
+        return None
+    try:
+        exp_dt = datetime.fromisoformat(expires_at)
+    except ValueError:
+        return None
+    remaining = (exp_dt - (now or datetime.now(timezone.utc))).total_seconds()
+    if remaining <= 0:
+        # whoami only gets here after /people/me succeeded, so the token works:
+        # the 12h figure `wxcli configure` records is an estimate, not a fact.
+        return "past the recorded 12h, still accepted — re-run `wxcli configure` on a 401"
+    hours = int(remaining // 3600)
+    minutes = int((remaining % 3600) // 60)
+    text = f"{hours}h {minutes}m"
+    if hours < 2:
+        text += " — consider refreshing soon"
+    return text
 
 
 @app.command("switch-org")

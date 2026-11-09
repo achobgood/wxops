@@ -679,8 +679,26 @@ class WebexApi:
         self.session = session
 
 
+def token_source() -> str | None:
+    """Where `resolve_token` would take the token from, in the same order.
+
+    ``"WEBEX_ACCESS_TOKEN"`` / ``"WEBEX_TOKEN"`` for an environment variable,
+    ``"config"`` for ~/.wxcli/config.json, None when there is none. Only a
+    ``"config"`` token has a recorded expiry: an env-var token is a different
+    token from the one `wxcli configure` saved, so the saved expiry says
+    nothing about it.
+    """
+    for name in ("WEBEX_ACCESS_TOKEN", "WEBEX_TOKEN"):
+        if os.environ.get(name):
+            return name
+    return "config" if get_token() else None
+
+
 def resolve_token(config_path: Path | None = DEFAULT_CONFIG_PATH) -> str | None:
-    """Resolve token: WEBEX_ACCESS_TOKEN env → WEBEX_TOKEN env → config file."""
+    """Resolve token: WEBEX_ACCESS_TOKEN env → WEBEX_TOKEN env → config file.
+
+    Keep this order in step with `token_source`.
+    """
     token = os.environ.get("WEBEX_ACCESS_TOKEN")
     if token:
         return token

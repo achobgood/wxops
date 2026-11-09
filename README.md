@@ -298,7 +298,7 @@ wxcli update           # check PyPI and upgrade in place
 wxcli update --check   # report the latest version without upgrading
 ```
 
-`wxcli update` detects how it was installed and upgrades accordingly — `pipx upgrade wxcli` for pipx installs, `pip install --upgrade wxcli` for pip installs — then deep-links the release notes for the new version. Then run `wxcli init` in the playbook folder again: it refreshes only the files it wrote, for the assistants already installed there, and never touches files you added.
+`wxcli update` detects how it was installed and upgrades accordingly — `pipx upgrade wxcli` for pipx installs, `pip install --upgrade wxcli` for pip installs — then deep-links the release notes for the new version. Then run `wxcli init` in the playbook folder again: it refreshes only the files it wrote, for the assistants already installed there, and never touches files you added. If you edited one of the files it wrote, it stops and lists them rather than overwrite your changes (`--yes` does not override this; `--force` does), and `wxcli init --uninstall` leaves edited files in place.
 
 Behind a firewall that blocks PyPI? Point `WXCLI_UPDATE_INDEX_URL` at an internal mirror, or install fresh with `pipx install wxcli`.
 

@@ -494,3 +494,87 @@ def test_webex_error_carries_response_headers_for_the_tracking_id(monkeypatch):
         WebexSession("tok").rest_get("https://x/p")
     assert exc_info.value.status_code == 400
     assert exc_info.value.headers["trackingid"] == "ROUTERGW_test-1"
+
+
+# ---------------------------------------------------------------------------
+# Session state reported by `whoami`: where the token came from, how long it
+# has, and whether commands go to an org other than the token's own. No
+# network: WebexSession.rest_get is patched before the command runs.
+# ---------------------------------------------------------------------------
+
+import base64  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+from typer.testing import CliRunner  # noqa: E402
+
+import wxcli.main as wxmain  # noqa: E402
+from wxcli.auth import token_source  # noqa: E402
+
+
+def _org(uuid, region="us"):
+    return base64.b64encode(
+        f"ciscospark://{region}/ORGANIZATION/{uuid}".encode()).decode().rstrip("=")
+
+
+@pytest.fixture
+def whoami(monkeypatch):
+    """Invoke `whoami -o json` against a saved config, with HTTP mocked."""
+    for name in ("WEBEX_ACCESS_TOKEN", "WEBEX_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+
+    def run(*, token_org, target_org=None, expires_in_h=5.0, env=None, saved=True):
+        monkeypatch.setattr("wxcli.auth.get_token", lambda *a, **k: "CFG" if saved else None)
+        exp = (datetime.now(timezone.utc) + timedelta(hours=expires_in_h)).isoformat()
+        monkeypatch.setattr(wxmain, "get_expires_at", lambda: exp)
+        monkeypatch.setattr(wxmain, "get_org_id", lambda: target_org)
+        monkeypatch.setattr(wxmain, "get_org_name", lambda: "Cust" if target_org else None)
+        if env:
+            monkeypatch.setenv(env, "ENVTOKEN")
+        monkeypatch.setattr(WebexSession, "rest_get", lambda self, url, **k: {
+            "displayName": "Ada", "emails": ["ada@x.com"], "orgId": token_org})
+        r = CliRunner().invoke(wxmain.app, ["whoami", "-o", "json"])
+        assert r.exit_code == 0, r.output
+        return json.loads(r.stdout)
+
+    return run
+
+
+def test_token_source_follows_resolve_token_order(monkeypatch):
+    monkeypatch.setattr("wxcli.auth.get_token", lambda *a, **k: "CFG")
+    monkeypatch.delenv("WEBEX_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("WEBEX_TOKEN", raising=False)
+    assert token_source() == "config"
+    monkeypatch.setenv("WEBEX_TOKEN", "b")
+    assert token_source() == "WEBEX_TOKEN"
+    monkeypatch.setenv("WEBEX_ACCESS_TOKEN", "a")
+    assert token_source() == "WEBEX_ACCESS_TOKEN"
+    assert resolve_token() == "a"
+
+
+def test_whoami_flags_a_partner_target(whoami):
+    out = whoami(token_org=_org("partner"), target_org=_org("customer"))
+    assert out["partnerTarget"] is True
+
+
+def test_whoami_own_org_saved_is_not_a_partner_target(whoami):
+    """configure saves the org for single-org tokens too: presence alone is not partner."""
+    out = whoami(token_org=_org("same", "us"), target_org=_org("same", "eu"))
+    assert out["partnerTarget"] is False
+    assert whoami(token_org=_org("same"))["partnerTarget"] is False
+
+
+def test_whoami_env_token_does_not_borrow_the_saved_expiry(whoami):
+    out = whoami(token_org=_org("o"), env="WEBEX_ACCESS_TOKEN")
+    assert out["tokenSource"] == "WEBEX_ACCESS_TOKEN"
+    assert out["tokenExpiresIn"].startswith("unknown")
+
+
+def test_whoami_past_recorded_expiry_is_stated_not_silent(whoami):
+    out = whoami(token_org=_org("o"), expires_in_h=-1)
+    assert out["tokenSource"] == "config"
+    assert "past the recorded 12h" in out["tokenExpiresIn"]
+
+
+def test_whoami_live_expiry_and_soon_warning(whoami):
+    assert whoami(token_org=_org("o"), expires_in_h=5)["tokenExpiresIn"].startswith("4h")
+    assert "refreshing soon" in whoami(token_org=_org("o"), expires_in_h=1)["tokenExpiresIn"]

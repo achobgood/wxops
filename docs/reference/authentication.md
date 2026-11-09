@@ -312,7 +312,7 @@ wxcli detects multi-org tokens automatically and manages `orgId` injection trans
 | `wxcli configure` | Detects whether the token has multi-org access. If so, lists available customer orgs and prompts you to select one. The chosen `orgId` is saved to the config file. |
 | `wxcli switch-org` | Change the active target org at any time without re-running `configure`. |
 | `wxcli clear-org` | Remove the saved `orgId` to revert to single-org (partner-org) behavior. |
-| `wxcli whoami` | Shows a "Target: <org name>" line when a target org is set. |
+| `wxcli whoami` | Shows `targetOrgId` / `targetOrgName` when an org is saved, and `partnerTarget` (`true` only when that org differs from the token's own `orgId`). |
 
 Once a target org is configured, 668 of 804 generated commands automatically inject `orgId` from config on every API call that accepts the parameter — no `--org-id` flag required. The four hand-coded command files (users, licenses, locations, numbers) also inject `orgId` the same way.
 
@@ -332,7 +332,7 @@ Every other endpoint treats `orgId` as optional and defaults to the token's own 
 
 **Recovery for a config created before this change:** run `wxcli switch-org`, which now resolves and saves the single org. Previously, on a single-org token, it printed `Single-org token — no org switching needed.` and saved nothing — there was no recovery path at all.
 
-`wxcli whoami` shows a `Target:` line only when an org is saved, and no longer renders a literal `(None)` when an org was saved without a name (e.g. because `/v1/organizations` was unavailable and the fallback came from `/people/me`, which has no org display name).
+`wxcli whoami` shows `targetOrgId` only when an org is saved — which, after this change, includes single-org tokens, so read `partnerTarget` to tell whether commands go to another org. It no longer renders a literal `(None)` when an org was saved without a name (e.g. because `/v1/organizations` was unavailable and the fallback came from `/people/me`, which has no org display name).
 
 ### Builder agent behavior
 

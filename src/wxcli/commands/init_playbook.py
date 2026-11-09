@@ -2,8 +2,10 @@
 
 The folder layout mirrors the repo (CLAUDE.md, .claude/, docs/reference/), so
 Claude Code loads everything natively and no path is rewritten (spec §4.3).
-A manifest records every written file; refresh and --uninstall touch ONLY
-manifest-owned paths — user files are never clobbered.
+A manifest records every written file and its hash; refresh and --uninstall
+touch ONLY manifest-owned paths — user files are never clobbered — and an owned
+file the user edited after install is refused (refresh) or kept (uninstall)
+unless --force is passed.
 """
 from __future__ import annotations
 
@@ -73,6 +75,55 @@ def save_manifest(folder: Path, profile: str, hashes: dict[str, str]) -> None:
     ))
 
 
+# Per-file state of a manifest-owned path. The manifest has always recorded the
+# sha256 of every file it wrote, but nothing read those hashes back, so a file
+# the user edited after install was indistinguishable from one they never
+# touched: refresh overwrote it, a retired file was deleted, and --uninstall
+# deleted it — all silently, under `--yes` too. Comparing the bytes on disk
+# with the recorded hash is what makes "edited by you" a state the code sees.
+PRISTINE = "pristine"   # on disk exactly as wxcli wrote it
+EDITED = "edited"       # on disk, but differs from what wxcli wrote
+MISSING = "missing"     # the user deleted it; a refresh restores it
+
+
+def recorded_hashes(folder: Path) -> dict[str, set[str]]:
+    """rel -> every hash any installed manifest recorded for it."""
+    out: dict[str, set[str]] = {}
+    for p in PROFILES:
+        m = load_manifest(folder, p)
+        for rel, h in ((m or {}).get("files") or {}).items():
+            out.setdefault(rel, set()).add(h)
+    return out
+
+
+def owned_file_state(folder: Path, rel: str, recorded: set[str]) -> str:
+    """PRISTINE, EDITED or MISSING for one manifest-owned path."""
+    path = folder / rel
+    if not path.exists():
+        return MISSING
+    return PRISTINE if sha256_hex(path.read_bytes()) in recorded else EDITED
+
+
+def edited_files_at_risk(
+    folder: Path, new_files: dict[str, bytes], owned: set[str]
+) -> list[str]:
+    """Owned files the user edited that a refresh would overwrite or remove.
+
+    ``new_files`` is what the refresh will write; ``owned`` is every path the
+    refreshing profiles own (a path absent from ``new_files`` gets removed). An
+    edited file that already equals the new content loses nothing.
+    """
+    recorded = recorded_hashes(folder)
+    at_risk = []
+    for rel in sorted(owned):
+        if owned_file_state(folder, rel, recorded.get(rel, set())) != EDITED:
+            continue
+        if rel in new_files and (folder / rel).read_bytes() == new_files[rel]:
+            continue
+        at_risk.append(rel)
+    return at_risk
+
+
 def _prune_empty_dirs(start: Path, stop: Path) -> None:
     d = start
     while d != stop and d.is_dir():
@@ -112,9 +163,12 @@ def apply_bundle(
     return written, deleted, hashes
 
 
-def do_uninstall(folder: Path, profiles: list[str]) -> None:
+def do_uninstall(folder: Path, profiles: list[str], force: bool = False) -> None:
     """Remove files owned by the targeted profiles, keeping shared files still
-    owned by a profile that stays installed."""
+    owned by a profile that stays installed, and — unless ``force`` — any
+    owned file the user edited after install."""
+    recorded = recorded_hashes(folder)
+    kept_edited: list[str] = []
     manifests = {p: load_manifest(folder, p) for p in PROFILES}
     present = {p for p, m in manifests.items() if m is not None}
     targets = [p for p in profiles if p in present]
@@ -129,6 +183,10 @@ def do_uninstall(folder: Path, profiles: list[str]) -> None:
             if rel in keep_owned:
                 continue                          # shared file still owned by a kept profile
             target = folder / rel
+            if (not force and rel not in kept_edited
+                    and owned_file_state(folder, rel, recorded.get(rel, set())) == EDITED):
+                kept_edited.append(rel)           # the user's work now — never delete it
+                continue
             if target.exists():
                 target.unlink()
             _prune_empty_dirs(target.parent, folder)
@@ -137,6 +195,11 @@ def do_uninstall(folder: Path, profiles: list[str]) -> None:
         _prune_empty_dirs(mpath.parent, folder)
     typer.echo(f"Removed the wxops playbook ({', '.join(targets)}) from {folder}. "
                "Files you added were left in place.")
+    if kept_edited:
+        typer.echo(f"Kept {len(kept_edited)} playbook file(s) you edited after install:")
+        for rel in kept_edited:
+            typer.echo(f"  {rel}")
+        typer.echo("Delete them yourself, or re-run with --uninstall --force to remove them.")
 
 
 # A single @app.command() with no callback: Typer collapses the app into this
@@ -155,7 +218,7 @@ def init(
     folder: Path = typer.Argument(Path("wxcli-playbook"), help="Target playbook folder."),
     claude_only: bool = typer.Option(False, "--claude-only", help="Materialize only the Claude Code playbook."),
     codex_only: bool = typer.Option(False, "--codex-only", help="Materialize only the Codex playbook."),
-    force: bool = typer.Option(False, "--force", help="Overwrite collisions / refresh without prompting."),
+    force: bool = typer.Option(False, "--force", help="Overwrite collisions and playbook files you edited; refresh without prompting."),
     yes: bool = typer.Option(False, "--yes", help="Skip the confirmation prompt."),
     uninstall: bool = typer.Option(False, "--uninstall", help="Remove manifest-owned files, then the manifest(s)."),
 ):
@@ -177,7 +240,7 @@ def init(
             selected = installed
 
     if uninstall:
-        do_uninstall(folder, selected)
+        do_uninstall(folder, selected, force=force)
         return
 
     bundle = bundle_root()
@@ -213,6 +276,24 @@ def init(
         for rel in collisions:
             typer.echo(f"  {rel}", err=True)
         typer.echo("Re-run with --force to overwrite them, or choose an empty folder.", err=True)
+        raise typer.Exit(1)
+
+    # Same guard for playbook files the user EDITED after install: a refresh
+    # would overwrite them (or remove them, if this version retired the file).
+    # --force overrides; --yes does NOT — it skips a question, not a data loss.
+    refreshing_owned: set[str] = set()
+    for p in existing:
+        refreshing_owned |= set((manifests[p] or {}).get("files", {}))
+    edited = edited_files_at_risk(folder, sel_files, refreshing_owned)
+    if edited and not force:
+        typer.echo(
+            f"You edited {len(edited)} playbook file(s) in {folder} after wxcli "
+            "wrote them; refreshing would overwrite or remove your changes:", err=True)
+        for rel in edited:
+            typer.echo(f"  {rel}", err=True)
+        typer.echo(
+            "Copy your changes somewhere safe (or move them into a file of your own), "
+            "then re-run with --force to refresh.", err=True)
         raise typer.Exit(1)
 
     if existing and not (force or yes):
