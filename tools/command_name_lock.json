@@ -108,6 +108,9 @@
    "show": [
     "GET /telephony/config/locations/{}/aiReceptionists/{}"
    ],
+   "show-call-recordings": [
+    "GET /telephony/config/locations/{}/aiReceptionists/{}/callRecordings"
+   ],
    "show-documents": [
     "GET /telephony/config/knowledgeBases/{}/documents/{}"
    ],
@@ -122,6 +125,9 @@
    ],
    "update": [
     "PUT /telephony/config/locations/{}/aiReceptionists/{}"
+   ],
+   "update-call-recordings": [
+    "PUT /telephony/config/locations/{}/aiReceptionists/{}/callRecordings"
    ],
    "update-documents": [
     "PUT /telephony/config/knowledgeBases/{}/documents/{}"
@@ -315,6 +321,9 @@
    "list-announcements": [
     "GET /telephony/config/locations/{}/autoAttendants/{}/announcements"
    ],
+   "list-available-members": [
+    "GET /telephony/config/autoAttendants/{}/voicemail/availableMembers"
+   ],
    "list-available-numbers-alternate": [
     "GET /telephony/config/locations/{}/autoAttendants/alternate/availableNumbers"
    ],
@@ -323,6 +332,12 @@
    ],
    "list-available-numbers-call-forwarding": [
     "GET /telephony/config/locations/{}/autoAttendants/callForwarding/availableNumbers"
+   ],
+   "list-available-numbers-fax-message": [
+    "GET /telephony/config/locations/{}/autoAttendants/faxMessage/availableNumbers"
+   ],
+   "list-members": [
+    "GET /telephony/config/locations/{}/autoAttendants/{}/voicemail/members"
    ],
    "show": [
     "GET /telephony/config/locations/{}/autoAttendants/{}"
@@ -333,6 +348,9 @@
    "show-selective-rules": [
     "GET /telephony/config/locations/{}/autoAttendants/{}/callForwarding/selectiveRules/{}"
    ],
+   "show-voicemail": [
+    "GET /telephony/config/locations/{}/autoAttendants/{}/voicemail"
+   ],
    "switch-mode-for": [
     "POST /telephony/config/locations/{}/autoAttendants/{}/callForwarding/actions/switchMode/invoke"
    ],
@@ -342,8 +360,17 @@
    "update-call-forwarding": [
     "PUT /telephony/config/locations/{}/autoAttendants/{}/callForwarding"
    ],
+   "update-members": [
+    "PUT /telephony/config/locations/{}/autoAttendants/{}/voicemail/members"
+   ],
+   "update-passcode": [
+    "PUT /telephony/config/locations/{}/autoAttendants/{}/voicemail/passcode"
+   ],
    "update-selective-rules": [
     "PUT /telephony/config/locations/{}/autoAttendants/{}/callForwarding/selectiveRules/{}"
+   ],
+   "update-voicemail": [
+    "PUT /telephony/config/locations/{}/autoAttendants/{}/voicemail"
    ]
   },
   "broadworks_billing_reports": {
@@ -755,6 +782,9 @@
    "list-available-agents-supervisors": [
     "GET /telephony/config/supervisors/availableAgents"
    ],
+   "list-available-members": [
+    "GET /telephony/config/queues/{}/voicemail/availableMembers"
+   ],
    "list-available-numbers-alternate": [
     "GET /telephony/config/locations/{}/queues/alternate/availableNumbers"
    ],
@@ -763,6 +793,9 @@
    ],
    "list-available-numbers-dnis": [
     "GET /telephony/config/locations/{}/queues/dnis/availableNumbers"
+   ],
+   "list-available-numbers-fax-message": [
+    "GET /telephony/config/locations/{}/queues/faxMessage/availableNumbers"
    ],
    "list-available-numbers-queues": [
     "GET /telephony/config/locations/{}/queues/availableNumbers"
@@ -778,6 +811,9 @@
    ],
    "list-holiday-service": [
     "GET /telephony/config/locations/{}/queues/{}/holidayService"
+   ],
+   "list-members": [
+    "GET /telephony/config/locations/{}/queues/{}/voicemail/members"
    ],
    "list-night-service": [
     "GET /telephony/config/locations/{}/queues/{}/nightService"
@@ -815,6 +851,9 @@
    "show-supervisors": [
     "GET /telephony/config/supervisors/{}"
    ],
+   "show-voicemail": [
+    "GET /telephony/config/locations/{}/queues/{}/voicemail"
+   ],
    "switch-mode-for": [
     "POST /telephony/config/locations/{}/queues/{}/callForwarding/actions/switchMode/invoke"
    ],
@@ -836,11 +875,17 @@
    "update-holiday-service": [
     "PUT /telephony/config/locations/{}/queues/{}/holidayService"
    ],
+   "update-members": [
+    "PUT /telephony/config/locations/{}/queues/{}/voicemail/members"
+   ],
    "update-night-service": [
     "PUT /telephony/config/locations/{}/queues/{}/nightService"
    ],
    "update-org-settings": [
     "PUT /telephony/config/queues/settings"
+   ],
+   "update-passcode": [
+    "PUT /telephony/config/locations/{}/queues/{}/voicemail/passcode"
    ],
    "update-selective-rules": [
     "PUT /telephony/config/locations/{}/queues/{}/callForwarding/selectiveRules/{}"
@@ -856,6 +901,9 @@
    ],
    "update-supervisors": [
     "PUT /telephony/config/supervisors/{}"
+   ],
+   "update-voicemail": [
+    "PUT /telephony/config/locations/{}/queues/{}/voicemail"
    ]
   },
   "call_recording": {
@@ -3562,14 +3610,23 @@
    "list": [
     "GET /telephony/config/huntGroups"
    ],
+   "list-available-members": [
+    "GET /telephony/config/huntGroups/{}/voicemail/availableMembers"
+   ],
    "list-available-numbers-alternate": [
     "GET /telephony/config/locations/{}/huntGroups/alternate/availableNumbers"
    ],
    "list-available-numbers-call-forwarding": [
     "GET /telephony/config/locations/{}/huntGroups/callForwarding/availableNumbers"
    ],
+   "list-available-numbers-fax-message": [
+    "GET /telephony/config/locations/{}/huntGroups/faxMessage/availableNumbers"
+   ],
    "list-available-numbers-hunt-groups": [
     "GET /telephony/config/locations/{}/huntGroups/availableNumbers"
+   ],
+   "list-members": [
+    "GET /telephony/config/locations/{}/huntGroups/{}/voicemail/members"
    ],
    "show": [
     "GET /telephony/config/locations/{}/huntGroups/{}"
@@ -3580,6 +3637,9 @@
    "show-selective-rules": [
     "GET /telephony/config/locations/{}/huntGroups/{}/callForwarding/selectiveRules/{}"
    ],
+   "show-voicemail": [
+    "GET /telephony/config/locations/{}/huntGroups/{}/voicemail"
+   ],
    "switch-mode-for": [
     "POST /telephony/config/locations/{}/huntGroups/{}/callForwarding/actions/switchMode/invoke"
    ],
@@ -3589,8 +3649,17 @@
    "update-call-forwarding": [
     "PUT /telephony/config/locations/{}/huntGroups/{}/callForwarding"
    ],
+   "update-members": [
+    "PUT /telephony/config/locations/{}/huntGroups/{}/voicemail/members"
+   ],
+   "update-passcode": [
+    "PUT /telephony/config/locations/{}/huntGroups/{}/voicemail/passcode"
+   ],
    "update-selective-rules": [
     "PUT /telephony/config/locations/{}/huntGroups/{}/callForwarding/selectiveRules/{}"
+   ],
+   "update-voicemail": [
+    "PUT /telephony/config/locations/{}/huntGroups/{}/voicemail"
    ]
   },
   "hybrid_clusters": {

@@ -1080,3 +1080,75 @@ def download_documents(
     emit(result, output=output, fields=fields)
 
 
+
+@app.command("show-call-recordings", short_help="Get Call Recording Settings for an AI Receptionist.")
+def show_call_recordings(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    ai_receptionist_id: str = typer.Argument(help="Webex AI_RECEPTIONIST id, from: wxcli ai-receptionist list"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get Call Recording Settings for an AI Receptionist.\n\n\b\nExample: wxcli ai-receptionist show-call-recordings LOCATION_ID AI_RECEPTIONIST_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/aiReceptionists/{ai_receptionist_id}/callRecordings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        result = api.session.rest_get(url, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_UPDATE_CALL_RECORDINGS = '{"enabled":true,"startAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true},"repeat":{"enabled":true,"interval":0},"postCallRecordingSettings":{"transcriptEnabled":true,"summaryAndActionItemsEnabled":true}}'
+
+@app.command("update-call-recordings", short_help="Update Call Recording Settings for an AI Receptionist.")
+def update_call_recordings(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    ai_receptionist_id: str = typer.Argument(help="Webex AI_RECEPTIONIST id, from: wxcli ai-receptionist list"),
+    enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="`true` if call recording is enabled for the AI Receptionist."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Update Call Recording Settings for an AI Receptionist.\n\n\b\nExample: wxcli ai-receptionist update-call-recordings LOCATION_ID AI_RECEPTIONIST_ID\n\n\b\nExample --json-body: '{"enabled":true,"startAnnouncement":{"internalCallsEnabled":true,"pstnCallsEnabled":true},"repeat":{"enabled":true,"interval":0},"postCallRecordingSettings":{"transcriptEnabled":true,"summaryAndActionItemsEnabled":true}}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALL_RECORDINGS), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/aiReceptionists/{ai_receptionist_id}/callRecordings"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if enabled is not None:
+            body["enabled"] = enabled
+    try:
+        result = api.session.rest_put(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    if verify:
+        verify_write(api, url, params, body)
+    if result:
+        emit(result, output=output, fields=fields)
+    elif output in ("table", "id") and not fields:
+        typer.echo(f"Updated.")
+    else:
+        emit({"status": "updated", "id": ai_receptionist_id}, output=output, fields=fields)
+
+

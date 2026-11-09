@@ -1,6 +1,6 @@
 {
  "_about": "Drift gate check 19. Regenerate with `python -m tools.drift_check --refresh-spec-snapshot`; never hand-edit. Field encoding: ! required, ~name/~id the kind its description states, #hash of the description, %hash of the rules stated in it, =enum values.",
- "captured": "2026-11-02",
+ "captured": "2026-11-09",
  "specs": {
   "webex-admin.json": {
    "DELETE /admin/recordings/{}": {
@@ -4331,6 +4331,21 @@
     "summary": "Read the List of Auto Attendants",
     "tag": "Features:  Auto Attendant"
    },
+   "GET /telephony/config/autoAttendants/{}/voicemail/availableMembers": {
+    "fields": {
+     "(operation)": "#1835c8",
+     "path:autoAttendantId": "!#979f58",
+     "query:extension": "#68416c",
+     "query:locationId": "#e90dd3",
+     "query:max": "#2c9448",
+     "query:name": "#d0e1db",
+     "query:orgId": "#af5719",
+     "query:phoneNumber": "#05e751",
+     "query:start": "#63e70f"
+    },
+    "summary": "Read Available Members for an Auto Attendant Voicemail",
+    "tag": "Features:  Auto Attendant"
+   },
    "GET /telephony/config/callCaptions": {
     "fields": {
      "(operation)": "#272feb",
@@ -4709,6 +4724,22 @@
     "summary": "Get Dependencies for a Hunt Group Emergency Callback Number",
     "tag": "Emergency Services Settings"
    },
+   "GET /telephony/config/huntGroups/{}/voicemail/availableMembers": {
+    "fields": {
+     "(operation)": "#d6fccd",
+     "path:huntGroupId": "!#4390d2",
+     "query:extension": "#68416c",
+     "query:includeAgentsOnly": "#68f6bb",
+     "query:locationId": "#e90dd3",
+     "query:max": "#2c9448",
+     "query:name": "#d0e1db",
+     "query:orgId": "#af5719",
+     "query:phoneNumber": "#05e751",
+     "query:start": "#63e70f"
+    },
+    "summary": "Read Available Members for a Hunt Group Voicemail",
+    "tag": "Features:  Hunt Group"
+   },
    "GET /telephony/config/jobs/callRecording": {
     "fields": {
      "(operation)": "#5e8382",
@@ -5063,6 +5094,16 @@
     "summary": "Get AI Receptionist Details",
     "tag": "AI Receptionist for Webex Calling"
    },
+   "GET /telephony/config/locations/{}/aiReceptionists/{}/callRecordings": {
+    "fields": {
+     "(operation)": "#72eacb",
+     "path:aiReceptionistId": "!#2aca56",
+     "path:locationId": "!#26a36f",
+     "query:orgId": "#31112e"
+    },
+    "summary": "Get Call Recording Settings for an AI Receptionist",
+    "tag": "AI Receptionist for Webex Calling"
+   },
    "GET /telephony/config/locations/{}/aiReceptionists/{}/intents": {
     "fields": {
      "(operation)": "#12b37a",
@@ -5151,6 +5192,18 @@
     "summary": "Get Auto Attendant Call Forward Available Phone Numbers",
     "tag": "Features:  Auto Attendant"
    },
+   "GET /telephony/config/locations/{}/autoAttendants/faxMessage/availableNumbers": {
+    "fields": {
+     "(operation)": "#0986ae",
+     "path:locationId": "!#e90dd3",
+     "query:max": "#2c9448",
+     "query:orgId": "#af5719",
+     "query:phoneNumber": "#05e751",
+     "query:start": "#63e70f"
+    },
+    "summary": "Read Auto Attendant Fax Message Available Phone Numbers",
+    "tag": "Features:  Auto Attendant"
+   },
    "GET /telephony/config/locations/{}/autoAttendants/{}": {
     "fields": {
      "(operation)": "#88ad80",
@@ -5190,6 +5243,26 @@
      "query:orgId": "#da4509"
     },
     "summary": "Get Selective Call Forwarding Rule for an Auto Attendant",
+    "tag": "Features:  Auto Attendant"
+   },
+   "GET /telephony/config/locations/{}/autoAttendants/{}/voicemail": {
+    "fields": {
+     "(operation)": "#acc204",
+     "path:autoAttendantId": "!~id#e1026f",
+     "path:locationId": "!~id#816c0a",
+     "query:orgId": "#28722f"
+    },
+    "summary": "Read Voicemail Settings for an Auto Attendant",
+    "tag": "Features:  Auto Attendant"
+   },
+   "GET /telephony/config/locations/{}/autoAttendants/{}/voicemail/members": {
+    "fields": {
+     "(operation)": "#5afeab",
+     "path:autoAttendantId": "!#979f58",
+     "path:locationId": "!#e90dd3",
+     "query:orgId": "#661e69"
+    },
+    "summary": "Retrieve Members for an Auto Attendant Voicemail",
     "tag": "Features:  Auto Attendant"
    },
    "GET /telephony/config/locations/{}/availableNumbers": {
@@ -5582,6 +5655,18 @@
     "summary": "Get Hunt Group Call Forward Available Phone Numbers",
     "tag": "Features:  Hunt Group"
    },
+   "GET /telephony/config/locations/{}/huntGroups/faxMessage/availableNumbers": {
+    "fields": {
+     "(operation)": "#2f568b",
+     "path:locationId": "!#e90dd3",
+     "query:max": "#2c9448",
+     "query:orgId": "#af5719",
+     "query:phoneNumber": "#05e751",
+     "query:start": "#63e70f"
+    },
+    "summary": "Read Hunt Group Fax Message Available Phone Numbers",
+    "tag": "Features:  Hunt Group"
+   },
    "GET /telephony/config/locations/{}/huntGroups/{}": {
     "fields": {
      "(operation)": "#20e50a",
@@ -5611,6 +5696,26 @@
      "query:orgId": "#f34e55"
     },
     "summary": "Get Selective Call Forwarding Rule for a Hunt Group",
+    "tag": "Features:  Hunt Group"
+   },
+   "GET /telephony/config/locations/{}/huntGroups/{}/voicemail": {
+    "fields": {
+     "(operation)": "#b58dd4",
+     "path:huntGroupId": "!~id#b53a6f",
+     "path:locationId": "!~id#816c0a",
+     "query:orgId": "#28722f"
+    },
+    "summary": "Read Voicemail Settings for a Hunt Group",
+    "tag": "Features:  Hunt Group"
+   },
+   "GET /telephony/config/locations/{}/huntGroups/{}/voicemail/members": {
+    "fields": {
+     "(operation)": "#7eeadc",
+     "path:huntGroupId": "!#4390d2",
+     "path:locationId": "!#e90dd3",
+     "query:orgId": "#661e69"
+    },
+    "summary": "Retrieve Members for a Hunt Group Voicemail",
     "tag": "Features:  Hunt Group"
    },
    "GET /telephony/config/locations/{}/intercept": {
@@ -5790,6 +5895,18 @@
     "summary": "Get Available Phone Numbers for DNIS",
     "tag": "Features:  Call Queue"
    },
+   "GET /telephony/config/locations/{}/queues/faxMessage/availableNumbers": {
+    "fields": {
+     "(operation)": "#3df908",
+     "path:locationId": "!#e90dd3",
+     "query:max": "#2c9448",
+     "query:orgId": "#af5719",
+     "query:phoneNumber": "#05e751",
+     "query:start": "#63e70f"
+    },
+    "summary": "Read Call Queue Fax Message Available Phone Numbers",
+    "tag": "Features:  Call Queue"
+   },
    "GET /telephony/config/locations/{}/queues/{}": {
     "fields": {
      "(operation)": "#e50619",
@@ -5932,6 +6049,26 @@
      "query:orgId": "#572aeb"
     },
     "summary": "Get Details for a Call Queue Stranded Calls",
+    "tag": "Features:  Call Queue"
+   },
+   "GET /telephony/config/locations/{}/queues/{}/voicemail": {
+    "fields": {
+     "(operation)": "#a14e0e",
+     "path:locationId": "!~id#816c0a",
+     "path:queueId": "!~id#504103",
+     "query:orgId": "#28722f"
+    },
+    "summary": "Read Voicemail Settings for a Call Queue",
+    "tag": "Features:  Call Queue"
+   },
+   "GET /telephony/config/locations/{}/queues/{}/voicemail/members": {
+    "fields": {
+     "(operation)": "#9086a7",
+     "path:locationId": "!#e90dd3",
+     "path:queueId": "!#fcfd5a",
+     "query:orgId": "#661e69"
+    },
+    "summary": "Retrieve Members for a Call Queue Voicemail",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/locations/{}/receptionistContacts/directories": {
@@ -7655,6 +7792,22 @@
      "query:orgId": "#68b4fd"
     },
     "summary": "Get Call Queue Settings",
+    "tag": "Features:  Call Queue"
+   },
+   "GET /telephony/config/queues/{}/voicemail/availableMembers": {
+    "fields": {
+     "(operation)": "#1584de",
+     "path:queueId": "!#fcfd5a",
+     "query:extension": "#68416c",
+     "query:includeAgentsOnly": "#3da7c7",
+     "query:locationId": "#e90dd3",
+     "query:max": "#2c9448",
+     "query:name": "#d0e1db",
+     "query:orgId": "#af5719",
+     "query:phoneNumber": "#05e751",
+     "query:start": "#63e70f"
+    },
+    "summary": "Read Available Members for a Call Queue Voicemail",
     "tag": "Features:  Call Queue"
    },
    "GET /telephony/config/redSky": {
@@ -13436,6 +13589,26 @@
     "summary": "Update an AI Receptionist",
     "tag": "AI Receptionist for Webex Calling"
    },
+   "PUT /telephony/config/locations/{}/aiReceptionists/{}/callRecordings": {
+    "fields": {
+     "(operation)": "#f6d804",
+     "body:enabled": "#bf291a",
+     "body:postCallRecordingSettings": "#76e7ea",
+     "body:postCallRecordingSettings.summaryAndActionItemsEnabled": "#9cb7ea",
+     "body:postCallRecordingSettings.transcriptEnabled": "#a5aa3a",
+     "body:repeat": "#6fdf3f",
+     "body:repeat.enabled": "#5de930",
+     "body:repeat.interval": "#cac0ab",
+     "body:startAnnouncement": "#51f903",
+     "body:startAnnouncement.internalCallsEnabled": "#d9d582",
+     "body:startAnnouncement.pstnCallsEnabled": "#7e0964",
+     "path:aiReceptionistId": "!#00bf3b",
+     "path:locationId": "!#26a36f",
+     "query:orgId": "#7b66f4"
+    },
+    "summary": "Update Call Recording Settings for an AI Receptionist",
+    "tag": "AI Receptionist for Webex Calling"
+   },
    "PUT /telephony/config/locations/{}/aiReceptionists/{}/intents/{}": {
     "fields": {
      "(operation)": "#1ba3ba",
@@ -13616,6 +13789,59 @@
      "query:orgId": "#7b216b"
     },
     "summary": "Update Selective Call Forwarding Rule for an Auto Attendant",
+    "tag": "Features:  Auto Attendant"
+   },
+   "PUT /telephony/config/locations/{}/autoAttendants/{}/voicemail": {
+    "fields": {
+     "(operation)": "#6a3575",
+     "body:emailCopyOfMessage": "#34260e",
+     "body:emailCopyOfMessage.emailId": "!#4d9680",
+     "body:emailCopyOfMessage.enabled": "!#729d44",
+     "body:enabled": "#4da44b",
+     "body:faxMessage": "#448700",
+     "body:faxMessage.enabled": "!#57b833",
+     "body:faxMessage.extension": "#194eab",
+     "body:faxMessage.phoneNumber": "#33f7f1%8996e9",
+     "body:greeting": "#10710e",
+     "body:greeting.type": "#bfe9e0=CUSTOM|DEFAULT",
+     "body:messageStorage": "#bf619a",
+     "body:messageStorage.externalEmail": "#c0e242%bd9489",
+     "body:messageStorage.mwiEnabled": "!#d24fbb",
+     "body:messageStorage.storageType": "!#4f37c1=EXTERNAL|INTERNAL",
+     "body:notifications": "#e16639",
+     "body:notifications.destination": "!#f334cb",
+     "body:notifications.enabled": "!#bd8490",
+     "body:transferToNumber": "#c9fa0a",
+     "body:transferToNumber.destination": "!#41c9a0",
+     "body:transferToNumber.enabled": "!#2b2ca1",
+     "path:autoAttendantId": "!~id#e1026f",
+     "path:locationId": "!~id#816c0a",
+     "query:orgId": "#d536a6"
+    },
+    "summary": "Configure Voicemail Settings for an Auto Attendant",
+    "tag": "Features:  Auto Attendant"
+   },
+   "PUT /telephony/config/locations/{}/autoAttendants/{}/voicemail/members": {
+    "fields": {
+     "(operation)": "#6c9545",
+     "body:members": "#a84955",
+     "body:members[].id": "!#103e2f",
+     "path:autoAttendantId": "!#979f58",
+     "path:locationId": "!#e90dd3",
+     "query:orgId": "#25e973"
+    },
+    "summary": "Configure Members for an Auto Attendant Voicemail",
+    "tag": "Features:  Auto Attendant"
+   },
+   "PUT /telephony/config/locations/{}/autoAttendants/{}/voicemail/passcode": {
+    "fields": {
+     "(operation)": "#cd1272",
+     "body:passcode": "!#595ff5",
+     "path:autoAttendantId": "!#979f58",
+     "path:locationId": "!#e90dd3",
+     "query:orgId": "#cd605d"
+    },
+    "summary": "Reset Voicemail Passcode for an Auto Attendant",
     "tag": "Features:  Auto Attendant"
    },
    "PUT /telephony/config/locations/{}/callCaptions": {
@@ -13965,6 +14191,59 @@
      "query:orgId": "#b5079c"
     },
     "summary": "Update a Selective Call Forwarding Rule for a Hunt Group",
+    "tag": "Features:  Hunt Group"
+   },
+   "PUT /telephony/config/locations/{}/huntGroups/{}/voicemail": {
+    "fields": {
+     "(operation)": "#b7982f",
+     "body:emailCopyOfMessage": "#34260e",
+     "body:emailCopyOfMessage.emailId": "!#4d9680",
+     "body:emailCopyOfMessage.enabled": "!#729d44",
+     "body:enabled": "#4da44b",
+     "body:faxMessage": "#448700",
+     "body:faxMessage.enabled": "!#57b833",
+     "body:faxMessage.extension": "#194eab",
+     "body:faxMessage.phoneNumber": "#33f7f1%8996e9",
+     "body:greeting": "#10710e",
+     "body:greeting.type": "#bfe9e0=CUSTOM|DEFAULT",
+     "body:messageStorage": "#bf619a",
+     "body:messageStorage.externalEmail": "#c0e242%bd9489",
+     "body:messageStorage.mwiEnabled": "!#d24fbb",
+     "body:messageStorage.storageType": "!#4f37c1=EXTERNAL|INTERNAL",
+     "body:notifications": "#e16639",
+     "body:notifications.destination": "!#f334cb",
+     "body:notifications.enabled": "!#bd8490",
+     "body:transferToNumber": "#c9fa0a",
+     "body:transferToNumber.destination": "!#41c9a0",
+     "body:transferToNumber.enabled": "!#2b2ca1",
+     "path:huntGroupId": "!~id#b53a6f",
+     "path:locationId": "!~id#816c0a",
+     "query:orgId": "#d536a6"
+    },
+    "summary": "Configure Voicemail Settings for a Hunt Group",
+    "tag": "Features:  Hunt Group"
+   },
+   "PUT /telephony/config/locations/{}/huntGroups/{}/voicemail/members": {
+    "fields": {
+     "(operation)": "#06be0a",
+     "body:members": "#257274",
+     "body:members[].id": "!#103e2f",
+     "path:huntGroupId": "!#4390d2",
+     "path:locationId": "!#e90dd3",
+     "query:orgId": "#25e973"
+    },
+    "summary": "Configure Members for a Hunt Group Voicemail",
+    "tag": "Features:  Hunt Group"
+   },
+   "PUT /telephony/config/locations/{}/huntGroups/{}/voicemail/passcode": {
+    "fields": {
+     "(operation)": "#9ea477",
+     "body:passcode": "!#595ff5",
+     "path:huntGroupId": "!#4390d2",
+     "path:locationId": "!#e90dd3",
+     "query:orgId": "#cd605d"
+    },
+    "summary": "Reset Voicemail Passcode for a Hunt Group",
     "tag": "Features:  Hunt Group"
    },
    "PUT /telephony/config/locations/{}/intercept": {
@@ -14549,6 +14828,59 @@
      "query:orgId": "#6e17f7"
     },
     "summary": "Update a Call Queue Stranded Calls Service",
+    "tag": "Features:  Call Queue"
+   },
+   "PUT /telephony/config/locations/{}/queues/{}/voicemail": {
+    "fields": {
+     "(operation)": "#9694c7",
+     "body:emailCopyOfMessage": "#34260e",
+     "body:emailCopyOfMessage.emailId": "!#4d9680",
+     "body:emailCopyOfMessage.enabled": "!#729d44",
+     "body:enabled": "#4da44b",
+     "body:faxMessage": "#448700",
+     "body:faxMessage.enabled": "!#57b833",
+     "body:faxMessage.extension": "#194eab",
+     "body:faxMessage.phoneNumber": "#33f7f1%8996e9",
+     "body:greeting": "#10710e",
+     "body:greeting.type": "#bfe9e0=CUSTOM|DEFAULT",
+     "body:messageStorage": "#bf619a",
+     "body:messageStorage.externalEmail": "#c0e242%bd9489",
+     "body:messageStorage.mwiEnabled": "!#d24fbb",
+     "body:messageStorage.storageType": "!#4f37c1=EXTERNAL|INTERNAL",
+     "body:notifications": "#e16639",
+     "body:notifications.destination": "!#f334cb",
+     "body:notifications.enabled": "!#bd8490",
+     "body:transferToNumber": "#c9fa0a",
+     "body:transferToNumber.destination": "!#41c9a0",
+     "body:transferToNumber.enabled": "!#2b2ca1",
+     "path:locationId": "!~id#816c0a",
+     "path:queueId": "!~id#504103",
+     "query:orgId": "#d536a6"
+    },
+    "summary": "Configure Voicemail Settings for a Call Queue",
+    "tag": "Features:  Call Queue"
+   },
+   "PUT /telephony/config/locations/{}/queues/{}/voicemail/members": {
+    "fields": {
+     "(operation)": "#04a3a2",
+     "body:members": "#6e2d01",
+     "body:members[].id": "!#103e2f",
+     "path:locationId": "!#e90dd3",
+     "path:queueId": "!#fcfd5a",
+     "query:orgId": "#25e973"
+    },
+    "summary": "Configure Members for a Call Queue Voicemail",
+    "tag": "Features:  Call Queue"
+   },
+   "PUT /telephony/config/locations/{}/queues/{}/voicemail/passcode": {
+    "fields": {
+     "(operation)": "#9dfc03",
+     "body:passcode": "!#595ff5",
+     "path:locationId": "!#e90dd3",
+     "path:queueId": "!#fcfd5a",
+     "query:orgId": "#cd605d"
+    },
+    "summary": "Reset Voicemail Passcode for a Call Queue",
     "tag": "Features:  Call Queue"
    },
    "PUT /telephony/config/locations/{}/receptionistContacts/directories/{}": {
@@ -16047,7 +16379,7 @@
    },
    "PUT /telephony/config/queues/agents/{}/settings": {
     "fields": {
-     "(operation)": "#e8401f",
+     "(operation)": "#e24653",
      "body:agentACDState": "#e14294=AVAILABLE|SIGN_IN|SIGN_OUT|UNAVAILABLE|WRAP_UP",
      "body:settings": "!",
      "body:settings[].joinEnabled": "!#b28583",
@@ -25106,7 +25438,7 @@
    },
    "GET /workspaces": {
     "fields": {
-     "(operation)": "#f6ea46",
+     "(operation)": "#c7b19b",
      "query:calendar": "#8d19d4=google|microsoft|none",
      "query:calling": "#032922=freeCalling|hybridCalling|none|thirdPartySipCalling|webexCalling|webexEdgeForDevices",
      "query:capacity": "#9c49d7%9899fd",
@@ -25132,7 +25464,7 @@
    },
    "GET /workspaces/{}": {
     "fields": {
-     "(operation)": "#d3ec2c",
+     "(operation)": "#1ad593",
      "path:workspaceId": "!#9bc41e",
      "query:includeCapabilities": "#295606",
      "query:includeDevices": "#7fdad8"
@@ -25279,7 +25611,7 @@
    },
    "POST /workspaces": {
     "fields": {
-     "(operation)": "#b8c7fe%c92630",
+     "(operation)": "#7b55eb%277757",
      "body:calendar": "#55bdb0",
      "body:calendar.emailAddress": "#ec0430",
      "body:calendar.resourceGroupId": "#5794ae",
@@ -25296,6 +25628,9 @@
      "body:deviceHostedMeetings.enabled": "#df0341",
      "body:deviceHostedMeetings.siteUrl": "#a1b8c1",
      "body:displayName": "!#6a09ae",
+     "body:enhancedAI": "#939116%fe83c2",
+     "body:enhancedAI.enabled": "!#0397a8",
+     "body:enhancedAI.license": "#2f1fa6",
      "body:floorId": "#4e44bb",
      "body:hotdeskingStatus": "#38f28e=off|on",
      "body:indoorNavigation": "#e9b90e",
@@ -25401,7 +25736,7 @@
    },
    "PUT /workspaces/{}": {
     "fields": {
-     "(operation)": "#3035c5%8ef8c7",
+     "(operation)": "#68106a%8ef8c7",
      "body:calendar": "#ceaf91",
      "body:calendar.emailAddress": "#ec0430",
      "body:calendar.resourceGroupId": "#5794ae",
@@ -25418,6 +25753,9 @@
      "body:deviceHostedMeetings.enabled": "#df0341",
      "body:deviceHostedMeetings.siteUrl": "#a1b8c1",
      "body:displayName": "#6a09ae",
+     "body:enhancedAI": "#438b12",
+     "body:enhancedAI.enabled": "!#0397a8",
+     "body:enhancedAI.license": "#018d06",
      "body:floorId": "#4e44bb",
      "body:hotdeskingStatus": "#38f28e=off|on",
      "body:indoorNavigation": "#e9b90e",
