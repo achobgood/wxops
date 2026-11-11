@@ -893,10 +893,13 @@ class TestOperationOverridesRender:
             r = self._invoke(app, ["P", "W1", "--json-body", '["a", "b"]', "--force"])
             assert r.exit_code == 0, r.output
             assert calls[0][0] == "rest_delete" and calls[0][2]["json"] == ["a", "b"]
-            # No --json-body, no body on the wire.
+            # No --json-body: the body is a JSON array no flag can build, so
+            # the command stops before the wire (audit F1; it used to send
+            # nothing and let the server answer 400).
             r = self._invoke(app, ["P", "W1", "--force"])
-            assert r.exit_code == 0, r.output
-            assert calls[1][2].get("json") is None
+            assert r.exit_code == 1, r.output
+            assert "body is a JSON array; pass it with --json-body" in r.output
+            assert len(calls) == 1
 
 # =============================================================================
 # Plan 2 Task 14 generator settings

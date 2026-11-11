@@ -2170,3 +2170,113 @@ class TestEnumHelpChoices:
         help_text = _enum_help(self._field(["email", "chat"], is_array=True))
         assert help_text == "Choices (comma-separated): email, chat"
         assert help_text.startswith("Choices (comma-separated):")
+
+
+# ── request body shape follows the schema (audit F1) ─────────────────────────
+
+_ARRAY_MSG = "This command's body is a JSON array; pass it with --json-body '[…]'"
+_PATCH_CT = "application/json-patch+json"
+_THING_ID = {"name": "thingId", "in": "path", "required": True, "schema": {"type": "string"}}
+_PATCH_DOC_SCHEMA = {"type": "object", "required": ["op", "path"], "properties": {
+    "op": {"type": "string", "enum": ["add", "remove", "replace"]},
+    "path": {"type": "string", "description": "A JSON pointer."},
+    "value": {"type": "string"},
+}}
+
+
+def _shape_code(schema, *, method="PATCH", content_type=_PATCH_CT, name="update",
+                renderer=None, spec=None):
+    from tools.openapi_parser import parse_operation
+    op = {"operationId": "probe", "responses": {"200": {"description": "ok"}},
+          "parameters": [_THING_ID],
+          "requestBody": {"content": {content_type: {"schema": schema}}}}
+    ep = parse_operation(method, "/things/{thingId}", op, spec or {})
+    ep.command_name = name
+    renderer = renderer or {
+        "update": _render_update_command, "create": _render_create_command,
+        "delete": _render_delete_command, "action": _render_action_command,
+    }[ep.command_type]
+    code = renderer(ep)
+    ast.parse(code)
+    return ep, code
+
+
+class TestRequestBodyShapeRendering:
+    def test_patch_object_schema_sends_object(self):
+        """A PATCH whose body is a plain object is sent as that object, not
+        wrapped in a patch array; the content type stays json-patch (an object
+        with that content type measured 200 live)."""
+        ep, code = _shape_code({"type": "object", "properties": {
+            "title": {"type": "string"}, "agenda": {"type": "string"}}})
+        assert ep.body_shape == "object"
+        assert "        body = {}" in code
+        assert 'body["title"] = title' in code
+        assert "[patch_op]" not in code and "patch_op" not in code
+        assert '"--value"' not in code
+        assert 'content_type="application/json-patch+json"' in code
+
+    def test_patch_op_schema_unchanged(self):
+        ep, code = _shape_code({"type": "object", "properties": {
+            "op": {"type": "string"}, "path": {"type": "string"},
+            "value": {"type": "string"}}})
+        assert ep.body_shape == "op"
+        assert "        body = [patch_op]" in code
+        assert 'patch_op["op"] = op' in code and 'patch_op["path"] = path' in code
+        assert code.count('"--value"') == 1
+        assert 'content_type="application/json-patch+json"' in code
+
+    def test_op_array_flags_from_items(self):
+        ep, code = _shape_code({"type": "array", "items": _PATCH_DOC_SCHEMA})
+        assert ep.body_shape == "op_array"
+        assert "        body = [patch_op]" in code
+        for key in ("op", "path", "value"):
+            assert f'patch_op["{key}"]' in code, key
+        assert code.count('"--op"') == 1 and code.count('"--path"') == 1
+        assert code.count('"--value"') == 1
+        assert 'content_type="application/json-patch+json"' in code
+
+    def test_array_body_requires_json_body(self):
+        ep, code = _shape_code({"type": "array", "items": {"type": "string"}})
+        assert ep.body_shape == "array"
+        assert '"--value"' not in code and "patch_op" not in code
+        assert _ARRAY_MSG in code
+        assert "raise typer.Exit(1)" in code
+        assert "        body = {}" not in code and "body = [" not in code
+        assert ep.json_body_example == '["..."]'      # the skeleton constant's value
+        assert "_BODY_SKELETON_UPDATE" in code and "--generate-json-body" in code
+        assert "--json-body '[\"...\"]'" in code.split('"""')[1]   # the Example line
+        assert 'content_type="application/json-patch+json"' in code
+
+    def test_array_body_on_create_delete_and_action_paths(self):
+        arr = {"type": "array", "items": {"type": "string"}}
+        for method, name, renderer in (
+                ("POST", "create", _render_create_command),
+                ("DELETE", "delete", _render_delete_command),
+                ("PUT", "update", _render_update_command)):
+            ep, code = _shape_code(arr, method=method, content_type="application/json",
+                                   name=name, renderer=renderer)
+            assert _ARRAY_MSG in code, name
+            assert "        body = {}" not in code, name
+        from tools.openapi_parser import parse_operation
+        op = {"operationId": "probe", "responses": {"200": {"description": "ok"}},
+              "parameters": [_THING_ID],
+              "requestBody": {"content": {"application/json": {"schema": arr}}}}
+        ep = parse_operation("POST", "/things/{thingId}/actions", op, {})
+        ep.command_name = "run"
+        code = _render_action_command(ep)
+        ast.parse(code)
+        assert _ARRAY_MSG in code and "        body = {}" not in code
+
+    def test_array_body_with_json_body_still_passes_through(self):
+        _, code = _shape_code({"type": "array", "items": {"type": "string"}})
+        assert "body = load_json_body(json_body)" in code
+
+    def test_string_and_untyped_unchanged(self):
+        ep, code = _shape_code({"type": "string"}, method="POST",
+                               content_type="application/json", name="create")
+        assert ep.body_shape == "string"
+        assert "        body = {}" in code and _ARRAY_MSG not in code
+        ep, code = _shape_code({})              # untyped json-patch body
+        assert ep.body_shape == "untyped"
+        assert "        body = [patch_op]" in code and _ARRAY_MSG not in code
+        assert code.count('"--value"') == 1

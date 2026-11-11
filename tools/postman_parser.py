@@ -105,6 +105,12 @@ class Endpoint:
     # that is a bare array has no body_fields, and a DELETE renders
     # --json-body only for a body it knows exists.
     declares_json_body: bool = False
+    # What the spec says the request body IS, whatever its content type (audit
+    # F1): "op" (one JSON Patch operation), "op_array" (an array of them),
+    # "object", "array", "string", "untyped" (no type at all), or None for no
+    # body. The renderer's flag path builds the body from this, not from the
+    # media type: only "op" and "op_array" are wrapped as `[patch_op]`.
+    body_shape: str | None = None
 
 
 # Known issue #20: command_type comes from the HTTP method, but Cisco models

@@ -140,31 +140,30 @@ def update_group_meetings(
     end: str = typer.Option(None, "--end", help="Date and time for the end of meeting in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `end` cannot be before current date and time or before `start`. Duration between `start` and `end` cannot be shorter than 10 minutes or longer than 23 hours 59 minutes. Refer to the..."),
     timezone: str = typer.Option(None, "--timezone", help="[Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in which the meeting was originally scheduled (conforming with the [IANA time zone database](https://www.iana.org/time-zones))."),
     recurrence: str = typer.Option(None, "--recurrence", help="Meeting series recurrence rule (conforming with [RFC 2445](https://www.ietf.org/rfc/rfc2445.txt)). Applies only to a recurring meeting series, not to a meeting series with only one scheduled meeting. Multiple days or dates for monthly or yearly `recurrence` rule are not supported, only the first..."),
-    enabled_auto_record_meeting: str = typer.Option(None, "--enabled-auto-record-meeting", help="Whether or not meeting is recorded automatically."),
-    allow_any_user_to_be_co_host: str = typer.Option(None, "--allow-any-user-to-be-co-host", help="Whether or not to allow any attendee with a host account on the target site to become a cohost when joining the meeting. The target site is specified by `siteUrl` parameter when creating the meeting; if not specified, it's user's preferred site."),
-    enabled_join_before_host: str = typer.Option(None, "--enabled-join-before-host", help="Whether or not to allow any attendee to join the meeting before the host joins the meeting."),
-    enable_connect_audio_before_host: str = typer.Option(None, "--enable-connect-audio-before-host", help="Whether or not to allow any attendee to connect audio in the meeting before the host joins the meeting. This attribute is only applicable if the `enabledJoinBeforeHost` attribute is set to true."),
+    enabled_auto_record_meeting: bool = typer.Option(None, "--enabled-auto-record-meeting/--no-enabled-auto-record-meeting", help="Whether or not meeting is recorded automatically."),
+    allow_any_user_to_be_co_host: bool = typer.Option(None, "--allow-any-user-to-be-co-host/--no-allow-any-user-to-be-co-host", help="Whether or not to allow any attendee with a host account on the target site to become a cohost when joining the meeting. The target site is specified by `siteUrl` parameter when creating the meeting; if not specified, it's user's preferred site."),
+    enabled_join_before_host: bool = typer.Option(None, "--enabled-join-before-host/--no-enabled-join-before-host", help="Whether or not to allow any attendee to join the meeting before the host joins the meeting."),
+    enable_connect_audio_before_host: bool = typer.Option(None, "--enable-connect-audio-before-host/--no-enable-connect-audio-before-host", help="Whether or not to allow any attendee to connect audio in the meeting before the host joins the meeting. This attribute is only applicable if the `enabledJoinBeforeHost` attribute is set to true."),
     join_before_host_minutes: str = typer.Option(None, "--join-before-host-minutes", help="Number of minutes an attendee can join the meeting before the meeting start time and the host joins. Only applicable if the `enabledJoinBeforeHost` attribute is set to true. Valid options for a meeting are `0`, `5`, `10`, and `15`, and valid options for a webinar are `0`, `15`, `30`, `45`, and..."),
-    exclude_password: str = typer.Option(None, "--exclude-password", help="Whether or not to exclude the meeting password from the email invitation."),
-    public_meeting: str = typer.Option(None, "--public-meeting", help="Whether or not to allow the meeting to be listed on the public calendar."),
+    exclude_password: bool = typer.Option(None, "--exclude-password/--no-exclude-password", help="Whether or not to exclude the meeting password from the email invitation."),
+    public_meeting: bool = typer.Option(None, "--public-meeting/--no-public-meeting", help="Whether or not to allow the meeting to be listed on the public calendar."),
     reminder_time: str = typer.Option(None, "--reminder-time", help="The number of minutes before the meeting begins, that an email reminder is sent to the host."),
     unlocked_meeting_join_security: str = typer.Option(None, "--unlocked-meeting-join-security", help="Choices: allowJoin, allowJoinWithLobby, blockFromJoin"),
     session_type_id: str = typer.Option(None, "--session-type-id", help="Unique identifier for a meeting session type for the user. This attribute is required while scheduling webinar meeting. All available meeting session types enabled for the user can be retrieved by [List Meeting Session Types](/docs/api/v1/meetings/list-meeting-session-types) API."),
-    enabled_webcast_view: str = typer.Option(None, "--enabled-webcast-view", help="Whether or not webcast view is enabled."),
+    enabled_webcast_view: bool = typer.Option(None, "--enabled-webcast-view/--no-enabled-webcast-view", help="Whether or not webcast view is enabled."),
     panelist_password: str = typer.Option(None, "--panelist-password", help="Password for panelists of a webinar meeting. Must conform to the site's password complexity settings. Read [password management](https://help.webex.com/en-us/zrupm6/Manage-Security-Options-for-Your-Site-in-Webex-Site-Administration) for details. If not specified, a random password conforming to the..."),
-    enable_automatic_lock: str = typer.Option(None, "--enable-automatic-lock", help="Whether or not to automatically lock the meeting after it starts."),
+    enable_automatic_lock: bool = typer.Option(None, "--enable-automatic-lock/--no-enable-automatic-lock", help="Whether or not to automatically lock the meeting after it starts."),
     automatic_lock_minutes: str = typer.Option(None, "--automatic-lock-minutes", help="The number of minutes after the meeting begins, for automatically locking it."),
-    allow_first_user_to_be_co_host: str = typer.Option(None, "--allow-first-user-to-be-co-host", help="Whether or not to allow the first attendee of the meeting with a host account on the target site to become a cohost. The target site is specified by `siteUrl` parameter when creating the meeting; if not specified, it's user's preferred site."),
-    allow_authenticated_devices: str = typer.Option(None, "--allow-authenticated-devices", help="Whether or not to allow authenticated video devices in the meeting's organization to start or join the meeting without a prompt."),
-    send_email: str = typer.Option(None, "--send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
-    enabled_breakout_sessions: str = typer.Option(None, "--enabled-breakout-sessions", help="Whether or not breakout sessions are enabled. If the value of `enabledBreakoutSessions` is false, users can not set breakout sessions. If the value of `enabledBreakoutSessions` is true, users can update breakout sessions using the [Update Breakout..."),
-    enabled_audio_watermark: str = typer.Option(None, "--enabled-audio-watermark", help="Whether or not the audio watermark is enabled. If it's `true`, `scheduledType` equals or defaults to `meeting`, and `audioConnectionOptions.audioConnectionType` equals `VoIP`, the audio for this meeting will have a watermark. In this case, a unique identifier is embedded into the audio that plays..."),
-    enabled_visual_watermark: str = typer.Option(None, "--enabled-visual-watermark", help="Whether or not the visual watermark is enabled. If it's `true`, the video for this meeting will have a watermark. In this case, Webex superimposes a watermark image pattern on top of the meeting video and shared content to deter participants from leaking meeting information. Each participant..."),
+    allow_first_user_to_be_co_host: bool = typer.Option(None, "--allow-first-user-to-be-co-host/--no-allow-first-user-to-be-co-host", help="Whether or not to allow the first attendee of the meeting with a host account on the target site to become a cohost. The target site is specified by `siteUrl` parameter when creating the meeting; if not specified, it's user's preferred site."),
+    allow_authenticated_devices: bool = typer.Option(None, "--allow-authenticated-devices/--no-allow-authenticated-devices", help="Whether or not to allow authenticated video devices in the meeting's organization to start or join the meeting without a prompt."),
+    send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
+    enabled_breakout_sessions: bool = typer.Option(None, "--enabled-breakout-sessions/--no-enabled-breakout-sessions", help="Whether or not breakout sessions are enabled. If the value of `enabledBreakoutSessions` is false, users can not set breakout sessions. If the value of `enabledBreakoutSessions` is true, users can update breakout sessions using the [Update Breakout..."),
+    enabled_audio_watermark: bool = typer.Option(None, "--enabled-audio-watermark/--no-enabled-audio-watermark", help="Whether or not the audio watermark is enabled. If it's `true`, `scheduledType` equals or defaults to `meeting`, and `audioConnectionOptions.audioConnectionType` equals `VoIP`, the audio for this meeting will have a watermark. In this case, a unique identifier is embedded into the audio that plays..."),
+    enabled_visual_watermark: bool = typer.Option(None, "--enabled-visual-watermark/--no-enabled-visual-watermark", help="Whether or not the visual watermark is enabled. If it's `true`, the video for this meeting will have a watermark. In this case, Webex superimposes a watermark image pattern on top of the meeting video and shared content to deter participants from leaking meeting information. Each participant..."),
     visual_watermark_opacity: str = typer.Option(None, "--visual-watermark-opacity", help="Opacity level for the visual watermark. The value must be between 5 and 80, inclusive. A smaller value means less distraction for meeting participants, while a larger value shows a clearer watermark. It's supported when `enabledVisualWatermark` is `true`."),
-    require_attendee_login: str = typer.Option(None, "--require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
-    restrict_to_invitees: str = typer.Option(None, "--restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
-    enabled_live_stream: str = typer.Option(None, "--enabled-live-stream", help="When `true`, live streaming is enabled."),
-    value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
+    require_attendee_login: bool = typer.Option(None, "--require-attendee-login/--no-require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
+    restrict_to_invitees: bool = typer.Option(None, "--restrict-to-invitees/--no-restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
+    enabled_live_stream: bool = typer.Option(None, "--enabled-live-stream/--no-enabled-live-stream", help="When `true`, live streaming is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -183,75 +182,69 @@ def update_group_meetings(
     if json_body:
         body = load_json_body(json_body)
     else:
-        patch_op = {}
+        body = {}
         if title is not None:
-            patch_op["title"] = title
+            body["title"] = title
         if agenda is not None:
-            patch_op["agenda"] = agenda
+            body["agenda"] = agenda
         if password is not None:
-            patch_op["password"] = password
+            body["password"] = password
         if start is not None:
-            patch_op["start"] = start
+            body["start"] = start
         if end is not None:
-            patch_op["end"] = end
+            body["end"] = end
         if timezone is not None:
-            patch_op["timezone"] = timezone
+            body["timezone"] = timezone
         if recurrence is not None:
-            patch_op["recurrence"] = recurrence
+            body["recurrence"] = recurrence
         if enabled_auto_record_meeting is not None:
-            patch_op["enabledAutoRecordMeeting"] = enabled_auto_record_meeting
+            body["enabledAutoRecordMeeting"] = enabled_auto_record_meeting
         if allow_any_user_to_be_co_host is not None:
-            patch_op["allowAnyUserToBeCoHost"] = allow_any_user_to_be_co_host
+            body["allowAnyUserToBeCoHost"] = allow_any_user_to_be_co_host
         if enabled_join_before_host is not None:
-            patch_op["enabledJoinBeforeHost"] = enabled_join_before_host
+            body["enabledJoinBeforeHost"] = enabled_join_before_host
         if enable_connect_audio_before_host is not None:
-            patch_op["enableConnectAudioBeforeHost"] = enable_connect_audio_before_host
+            body["enableConnectAudioBeforeHost"] = enable_connect_audio_before_host
         if join_before_host_minutes is not None:
-            patch_op["joinBeforeHostMinutes"] = join_before_host_minutes
+            body["joinBeforeHostMinutes"] = join_before_host_minutes
         if exclude_password is not None:
-            patch_op["excludePassword"] = exclude_password
+            body["excludePassword"] = exclude_password
         if public_meeting is not None:
-            patch_op["publicMeeting"] = public_meeting
+            body["publicMeeting"] = public_meeting
         if reminder_time is not None:
-            patch_op["reminderTime"] = reminder_time
+            body["reminderTime"] = reminder_time
         if unlocked_meeting_join_security is not None:
-            patch_op["unlockedMeetingJoinSecurity"] = unlocked_meeting_join_security
+            body["unlockedMeetingJoinSecurity"] = unlocked_meeting_join_security
         if session_type_id is not None:
-            patch_op["sessionTypeId"] = session_type_id
+            body["sessionTypeId"] = session_type_id
         if enabled_webcast_view is not None:
-            patch_op["enabledWebcastView"] = enabled_webcast_view
+            body["enabledWebcastView"] = enabled_webcast_view
         if panelist_password is not None:
-            patch_op["panelistPassword"] = panelist_password
+            body["panelistPassword"] = panelist_password
         if enable_automatic_lock is not None:
-            patch_op["enableAutomaticLock"] = enable_automatic_lock
+            body["enableAutomaticLock"] = enable_automatic_lock
         if automatic_lock_minutes is not None:
-            patch_op["automaticLockMinutes"] = automatic_lock_minutes
+            body["automaticLockMinutes"] = automatic_lock_minutes
         if allow_first_user_to_be_co_host is not None:
-            patch_op["allowFirstUserToBeCoHost"] = allow_first_user_to_be_co_host
+            body["allowFirstUserToBeCoHost"] = allow_first_user_to_be_co_host
         if allow_authenticated_devices is not None:
-            patch_op["allowAuthenticatedDevices"] = allow_authenticated_devices
+            body["allowAuthenticatedDevices"] = allow_authenticated_devices
         if send_email is not None:
-            patch_op["sendEmail"] = send_email
+            body["sendEmail"] = send_email
         if enabled_breakout_sessions is not None:
-            patch_op["enabledBreakoutSessions"] = enabled_breakout_sessions
+            body["enabledBreakoutSessions"] = enabled_breakout_sessions
         if enabled_audio_watermark is not None:
-            patch_op["enabledAudioWatermark"] = enabled_audio_watermark
+            body["enabledAudioWatermark"] = enabled_audio_watermark
         if enabled_visual_watermark is not None:
-            patch_op["enabledVisualWatermark"] = enabled_visual_watermark
+            body["enabledVisualWatermark"] = enabled_visual_watermark
         if visual_watermark_opacity is not None:
-            patch_op["visualWatermarkOpacity"] = visual_watermark_opacity
+            body["visualWatermarkOpacity"] = visual_watermark_opacity
         if require_attendee_login is not None:
-            patch_op["requireAttendeeLogin"] = require_attendee_login
+            body["requireAttendeeLogin"] = require_attendee_login
         if restrict_to_invitees is not None:
-            patch_op["restrictToInvitees"] = restrict_to_invitees
+            body["restrictToInvitees"] = restrict_to_invitees
         if enabled_live_stream is not None:
-            patch_op["enabledLiveStream"] = enabled_live_stream
-        if value is not None:
-            try:
-                patch_op["value"] = json.loads(value)
-            except json.JSONDecodeError:
-                patch_op["value"] = value
-        body = [patch_op]
+            body["enabledLiveStream"] = enabled_live_stream
     try:
         result = api.session.rest_patch(url, json=body, params=params, content_type="application/json-patch+json")
     except WebexError as e:
@@ -747,32 +740,31 @@ def update_meetings(
     end: str = typer.Option(None, "--end", help="Date and time for the end of meeting in any [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) compliant format. `end` cannot be before current date and time or before `start`. Duration between `start` and `end` cannot be shorter than 10 minutes or longer than 23 hours 59 minutes. Refer to the..."),
     timezone: str = typer.Option(None, "--timezone", help="[Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in which the meeting was originally scheduled (conforming with the [IANA time zone database](https://www.iana.org/time-zones))."),
     recurrence: str = typer.Option(None, "--recurrence", help="Meeting series recurrence rule (conforming with [RFC 2445](https://www.ietf.org/rfc/rfc2445.txt)). Applies only to a recurring meeting series, not to a meeting series with only one scheduled meeting. Multiple days or dates for monthly or yearly `recurrence` rule are not supported, only the first..."),
-    enabled_auto_record_meeting: str = typer.Option(None, "--enabled-auto-record-meeting", help="Whether or not meeting is recorded automatically."),
-    allow_any_user_to_be_co_host: str = typer.Option(None, "--allow-any-user-to-be-co-host", help="Whether or not to allow any attendee with a host account on the target site to become a cohost when joining the meeting. The target site is specified by `siteUrl` parameter when creating the meeting; if not specified, it's user's preferred site."),
-    enabled_join_before_host: str = typer.Option(None, "--enabled-join-before-host", help="Whether or not to allow any attendee to join the meeting before the host joins the meeting."),
-    enable_connect_audio_before_host: str = typer.Option(None, "--enable-connect-audio-before-host", help="Whether or not to allow any attendee to connect audio in the meeting before the host joins the meeting. This attribute is only applicable if the `enabledJoinBeforeHost` attribute is set to true."),
+    enabled_auto_record_meeting: bool = typer.Option(None, "--enabled-auto-record-meeting/--no-enabled-auto-record-meeting", help="Whether or not meeting is recorded automatically."),
+    allow_any_user_to_be_co_host: bool = typer.Option(None, "--allow-any-user-to-be-co-host/--no-allow-any-user-to-be-co-host", help="Whether or not to allow any attendee with a host account on the target site to become a cohost when joining the meeting. The target site is specified by `siteUrl` parameter when creating the meeting; if not specified, it's user's preferred site."),
+    enabled_join_before_host: bool = typer.Option(None, "--enabled-join-before-host/--no-enabled-join-before-host", help="Whether or not to allow any attendee to join the meeting before the host joins the meeting."),
+    enable_connect_audio_before_host: bool = typer.Option(None, "--enable-connect-audio-before-host/--no-enable-connect-audio-before-host", help="Whether or not to allow any attendee to connect audio in the meeting before the host joins the meeting. This attribute is only applicable if the `enabledJoinBeforeHost` attribute is set to true."),
     join_before_host_minutes: str = typer.Option(None, "--join-before-host-minutes", help="Number of minutes an attendee can join the meeting before the meeting start time and the host joins. Only applicable if the `enabledJoinBeforeHost` attribute is set to true. Valid options for a meeting are `0`, `5`, `10`, and `15`, and valid options for a webinar are `0`, `15`, `30`, `45`, and..."),
-    exclude_password: str = typer.Option(None, "--exclude-password", help="Whether or not to exclude the meeting password from the email invitation."),
-    public_meeting: str = typer.Option(None, "--public-meeting", help="Whether or not to allow the meeting to be listed on the public calendar."),
+    exclude_password: bool = typer.Option(None, "--exclude-password/--no-exclude-password", help="Whether or not to exclude the meeting password from the email invitation."),
+    public_meeting: bool = typer.Option(None, "--public-meeting/--no-public-meeting", help="Whether or not to allow the meeting to be listed on the public calendar."),
     reminder_time: str = typer.Option(None, "--reminder-time", help="The number of minutes before the meeting begins, that an email reminder is sent to the host."),
     unlocked_meeting_join_security: str = typer.Option(None, "--unlocked-meeting-join-security", help="Choices: allowJoin, allowJoinWithLobby, blockFromJoin"),
     session_type_id: str = typer.Option(None, "--session-type-id", help="Unique identifier for a meeting session type for the user. This attribute is required while scheduling webinar meeting. All available meeting session types enabled for the user can be retrieved by [List Meeting Session Types](/docs/api/v1/meetings/list-meeting-session-types) API."),
-    enabled_webcast_view: str = typer.Option(None, "--enabled-webcast-view", help="Whether or not webcast view is enabled."),
+    enabled_webcast_view: bool = typer.Option(None, "--enabled-webcast-view/--no-enabled-webcast-view", help="Whether or not webcast view is enabled."),
     panelist_password: str = typer.Option(None, "--panelist-password", help="Password for panelists of a webinar meeting. Must conform to the site's password complexity settings. Read [password management](https://help.webex.com/en-us/zrupm6/Manage-Security-Options-for-Your-Site-in-Webex-Site-Administration) for details. If not specified, a random password conforming to the..."),
-    enable_automatic_lock: str = typer.Option(None, "--enable-automatic-lock", help="Whether or not to automatically lock the meeting after it starts."),
+    enable_automatic_lock: bool = typer.Option(None, "--enable-automatic-lock/--no-enable-automatic-lock", help="Whether or not to automatically lock the meeting after it starts."),
     automatic_lock_minutes: str = typer.Option(None, "--automatic-lock-minutes", help="The number of minutes after the meeting begins, for automatically locking it."),
-    allow_first_user_to_be_co_host: str = typer.Option(None, "--allow-first-user-to-be-co-host", help="Whether or not to allow the first attendee of the meeting with a host account on the target site to become a cohost. The target site is specified by `siteUrl` parameter when creating the meeting; if not specified, it's user's preferred site."),
-    allow_authenticated_devices: str = typer.Option(None, "--allow-authenticated-devices", help="Whether or not to allow authenticated video devices in the meeting's organization to start or join the meeting without a prompt."),
-    send_email: str = typer.Option(None, "--send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
+    allow_first_user_to_be_co_host: bool = typer.Option(None, "--allow-first-user-to-be-co-host/--no-allow-first-user-to-be-co-host", help="Whether or not to allow the first attendee of the meeting with a host account on the target site to become a cohost. The target site is specified by `siteUrl` parameter when creating the meeting; if not specified, it's user's preferred site."),
+    allow_authenticated_devices: bool = typer.Option(None, "--allow-authenticated-devices/--no-allow-authenticated-devices", help="Whether or not to allow authenticated video devices in the meeting's organization to start or join the meeting without a prompt."),
+    send_email: bool = typer.Option(None, "--send-email/--no-send-email", help="Whether or not to send emails to host and invitees. It is an optional field and default value is true."),
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This attribute should only be set if the user or application calling the API has the admin-level scopes. When used, the admin may specify the email of a user in a site they manage to be the meeting host. The field is not editable and is only used to patch a..."),
-    enabled_breakout_sessions: str = typer.Option(None, "--enabled-breakout-sessions", help="Whether or not breakout sessions are enabled. If the value of `enabledBreakoutSessions` is false, users can not set breakout sessions. If the value of `enabledBreakoutSessions` is true, users can update breakout sessions using the [Update Breakout..."),
-    enabled_audio_watermark: str = typer.Option(None, "--enabled-audio-watermark", help="Whether or not the audio watermark is enabled. If it's `true`, `scheduledType` equals or defaults to `meeting`, and `audioConnectionOptions.audioConnectionType` equals `VoIP`, the audio for this meeting will have a watermark. In this case, a unique identifier is embedded into the audio that plays..."),
-    enabled_visual_watermark: str = typer.Option(None, "--enabled-visual-watermark", help="Whether or not the visual watermark is enabled. If it's `true`, the video for this meeting will have a watermark. In this case, Webex superimposes a watermark image pattern on top of the meeting video and shared content to deter participants from leaking meeting information. Each participant..."),
+    enabled_breakout_sessions: bool = typer.Option(None, "--enabled-breakout-sessions/--no-enabled-breakout-sessions", help="Whether or not breakout sessions are enabled. If the value of `enabledBreakoutSessions` is false, users can not set breakout sessions. If the value of `enabledBreakoutSessions` is true, users can update breakout sessions using the [Update Breakout..."),
+    enabled_audio_watermark: bool = typer.Option(None, "--enabled-audio-watermark/--no-enabled-audio-watermark", help="Whether or not the audio watermark is enabled. If it's `true`, `scheduledType` equals or defaults to `meeting`, and `audioConnectionOptions.audioConnectionType` equals `VoIP`, the audio for this meeting will have a watermark. In this case, a unique identifier is embedded into the audio that plays..."),
+    enabled_visual_watermark: bool = typer.Option(None, "--enabled-visual-watermark/--no-enabled-visual-watermark", help="Whether or not the visual watermark is enabled. If it's `true`, the video for this meeting will have a watermark. In this case, Webex superimposes a watermark image pattern on top of the meeting video and shared content to deter participants from leaking meeting information. Each participant..."),
     visual_watermark_opacity: str = typer.Option(None, "--visual-watermark-opacity", help="Opacity level for the visual watermark. The value must be between 5 and 80, inclusive. A smaller value means less distraction for meeting participants, while a larger value shows a clearer watermark. It's supported when `enabledVisualWatermark` is `true`."),
-    require_attendee_login: str = typer.Option(None, "--require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
-    restrict_to_invitees: str = typer.Option(None, "--restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
-    enabled_live_stream: str = typer.Option(None, "--enabled-live-stream", help="Whether or not live streaming is enabled."),
-    value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
+    require_attendee_login: bool = typer.Option(None, "--require-attendee-login/--no-require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
+    restrict_to_invitees: bool = typer.Option(None, "--restrict-to-invitees/--no-restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
+    enabled_live_stream: bool = typer.Option(None, "--enabled-live-stream/--no-enabled-live-stream", help="Whether or not live streaming is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -789,77 +781,71 @@ def update_meetings(
     if json_body:
         body = load_json_body(json_body)
     else:
-        patch_op = {}
+        body = {}
         if title is not None:
-            patch_op["title"] = title
+            body["title"] = title
         if agenda is not None:
-            patch_op["agenda"] = agenda
+            body["agenda"] = agenda
         if password is not None:
-            patch_op["password"] = password
+            body["password"] = password
         if start is not None:
-            patch_op["start"] = start
+            body["start"] = start
         if end is not None:
-            patch_op["end"] = end
+            body["end"] = end
         if timezone is not None:
-            patch_op["timezone"] = timezone
+            body["timezone"] = timezone
         if recurrence is not None:
-            patch_op["recurrence"] = recurrence
+            body["recurrence"] = recurrence
         if enabled_auto_record_meeting is not None:
-            patch_op["enabledAutoRecordMeeting"] = enabled_auto_record_meeting
+            body["enabledAutoRecordMeeting"] = enabled_auto_record_meeting
         if allow_any_user_to_be_co_host is not None:
-            patch_op["allowAnyUserToBeCoHost"] = allow_any_user_to_be_co_host
+            body["allowAnyUserToBeCoHost"] = allow_any_user_to_be_co_host
         if enabled_join_before_host is not None:
-            patch_op["enabledJoinBeforeHost"] = enabled_join_before_host
+            body["enabledJoinBeforeHost"] = enabled_join_before_host
         if enable_connect_audio_before_host is not None:
-            patch_op["enableConnectAudioBeforeHost"] = enable_connect_audio_before_host
+            body["enableConnectAudioBeforeHost"] = enable_connect_audio_before_host
         if join_before_host_minutes is not None:
-            patch_op["joinBeforeHostMinutes"] = join_before_host_minutes
+            body["joinBeforeHostMinutes"] = join_before_host_minutes
         if exclude_password is not None:
-            patch_op["excludePassword"] = exclude_password
+            body["excludePassword"] = exclude_password
         if public_meeting is not None:
-            patch_op["publicMeeting"] = public_meeting
+            body["publicMeeting"] = public_meeting
         if reminder_time is not None:
-            patch_op["reminderTime"] = reminder_time
+            body["reminderTime"] = reminder_time
         if unlocked_meeting_join_security is not None:
-            patch_op["unlockedMeetingJoinSecurity"] = unlocked_meeting_join_security
+            body["unlockedMeetingJoinSecurity"] = unlocked_meeting_join_security
         if session_type_id is not None:
-            patch_op["sessionTypeId"] = session_type_id
+            body["sessionTypeId"] = session_type_id
         if enabled_webcast_view is not None:
-            patch_op["enabledWebcastView"] = enabled_webcast_view
+            body["enabledWebcastView"] = enabled_webcast_view
         if panelist_password is not None:
-            patch_op["panelistPassword"] = panelist_password
+            body["panelistPassword"] = panelist_password
         if enable_automatic_lock is not None:
-            patch_op["enableAutomaticLock"] = enable_automatic_lock
+            body["enableAutomaticLock"] = enable_automatic_lock
         if automatic_lock_minutes is not None:
-            patch_op["automaticLockMinutes"] = automatic_lock_minutes
+            body["automaticLockMinutes"] = automatic_lock_minutes
         if allow_first_user_to_be_co_host is not None:
-            patch_op["allowFirstUserToBeCoHost"] = allow_first_user_to_be_co_host
+            body["allowFirstUserToBeCoHost"] = allow_first_user_to_be_co_host
         if allow_authenticated_devices is not None:
-            patch_op["allowAuthenticatedDevices"] = allow_authenticated_devices
+            body["allowAuthenticatedDevices"] = allow_authenticated_devices
         if send_email is not None:
-            patch_op["sendEmail"] = send_email
+            body["sendEmail"] = send_email
         if host_email is not None:
-            patch_op["hostEmail"] = host_email
+            body["hostEmail"] = host_email
         if enabled_breakout_sessions is not None:
-            patch_op["enabledBreakoutSessions"] = enabled_breakout_sessions
+            body["enabledBreakoutSessions"] = enabled_breakout_sessions
         if enabled_audio_watermark is not None:
-            patch_op["enabledAudioWatermark"] = enabled_audio_watermark
+            body["enabledAudioWatermark"] = enabled_audio_watermark
         if enabled_visual_watermark is not None:
-            patch_op["enabledVisualWatermark"] = enabled_visual_watermark
+            body["enabledVisualWatermark"] = enabled_visual_watermark
         if visual_watermark_opacity is not None:
-            patch_op["visualWatermarkOpacity"] = visual_watermark_opacity
+            body["visualWatermarkOpacity"] = visual_watermark_opacity
         if require_attendee_login is not None:
-            patch_op["requireAttendeeLogin"] = require_attendee_login
+            body["requireAttendeeLogin"] = require_attendee_login
         if restrict_to_invitees is not None:
-            patch_op["restrictToInvitees"] = restrict_to_invitees
+            body["restrictToInvitees"] = restrict_to_invitees
         if enabled_live_stream is not None:
-            patch_op["enabledLiveStream"] = enabled_live_stream
-        if value is not None:
-            try:
-                patch_op["value"] = json.loads(value)
-            except json.JSONDecodeError:
-                patch_op["value"] = value
-        body = [patch_op]
+            body["enabledLiveStream"] = enabled_live_stream
     try:
         result = api.session.rest_patch(url, json=body, content_type="application/json-patch+json")
     except WebexError as e:

@@ -374,6 +374,16 @@ Checks (docs/arch/target-architecture.md §A6):
       Example equal `_schema_to_example` of the FIRST branch. `cc-agent-summaries
       create` required `--interaction-id` AND `--agent-ci-user-id` together and
       offered only `AGENT` (audit F3). Examined = oneOf/anyOf write commands.
+  39. Request body shape: for a POST/PUT/PATCH/DELETE whose spec body is an
+      object or an array, the top-level JSON type the flag path builds
+      (`body = {}`, `body = [patch_op]`, or the "JSON array" refusal) equals
+      the type of the parser's RESOLVED schema; an array of JSON Patch
+      operations also needs a flag for each required item key, and any other
+      array must not wrap `patch_op` elements. One patch operation, string and
+      untyped bodies are skipped and counted. `meetings update-meetings --title
+      X` sent `[{"title": "X"}]` for an object body (HTTP 400 live) and
+      `cc-journey delete-person-id-workspace-id` sent `[{"value": ...}]` for an
+      array of strings (audit F1). Examined = write commands with such a body.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -6122,6 +6132,124 @@ CHECK_PRINT["38"] = (
                f"{', '.join(f['fields'])}  {f['op']}  ({f['spec']})"))
 
 
+# ----------------------------------------------------------------- check 39
+
+_BODY_WRITE_METHODS = ("POST", "PUT", "PATCH", "DELETE")
+# What a rendered block's flag path (the `else:` of `if json_body:`) builds.
+# `body = {}` is an object; `body = [patch_op]` an array whose elements are
+# patch operations; the "JSON array" refusal is a command that sends an array
+# only when --json-body supplies it.
+_FLAG_BODY_OBJECT = re.compile(r"^\s+body = \{\}\s*$", re.M)
+_FLAG_BODY_PATCH = re.compile(r"^\s+body = \[patch_op\]\s*$", re.M)
+_FLAG_BODY_ARRAY_REFUSAL = re.compile(r"body is a JSON array; pass it with --json-body")
+
+
+def check_body_shape(commands_dir: Path = COMMANDS_DIR,
+                     specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """The top-level JSON type a command's flag path sends must be the type the
+    spec's request body declares (audit F1).
+
+    `parse_operation` chose the patch-array renderer from the media type alone,
+    so a PATCH whose body is a plain object (`meetings update-meetings`, HTTP
+    400 live 2026-11-10) or an array of strings (`cc-journey
+    delete-person-id-workspace-id`) was built as `[patch_op]`. Check 13 judges
+    the `Example:`, 14 the skeleton, 30 documented keys, 32 where the body is
+    declared; none reads the SHAPE the flags build.
+
+    For a POST/PUT/PATCH/DELETE block whose spec op declares a JSON body:
+
+      kind `type` — what the flag path builds (object, or array) differs from
+          the type of the parser's RESOLVED schema (`openapi_parser
+          .request_body_shape`: `$ref` followed, and an `allOf` composed;
+          the gate's raw `body_schema` would see the springfox placeholder);
+      kind `item` — an `op_array` body (an array of JSON Patch operations)
+          whose block has no `patch_op["<key>"]` for a required item key, or
+          an `array` body (any other array) whose flags wrap `patch_op`
+          elements the spec does not declare.
+
+    Exempt, counted as skipped: `op` (one patch operation, which the wire wraps
+    in an array), `string` and `untyped` bodies, and a block whose flag path is
+    not one of the three recognised builds. Every declaring spec must agree (a
+    finding needs every reading to fail). No ack key (ADR-13 rules). Examined =
+    blocks whose spec op declares an object, array or op_array body.
+    """
+    from tools.openapi_parser import _classify_body, _request_body_schema
+
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        if block.method not in _BODY_WRITE_METHODS:
+            continue
+        sops = index.get((block.method, block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        readings = []
+        for sop in sops:
+            try:
+                schema = _request_body_schema(sop.op, sop.spec)
+                if schema is None:
+                    continue
+                readings.append((sop, *_classify_body(sop.spec, schema)))
+            except (KeyError, TypeError, AttributeError):
+                continue
+        if not readings:
+            continue
+        built: set[str] = set()
+        if _FLAG_BODY_OBJECT.search(block.text):
+            built.add("object")
+        if _FLAG_BODY_PATCH.search(block.text) or _FLAG_BODY_ARRAY_REFUSAL.search(block.text):
+            built.add("array")
+        judged = [r for r in readings if r[1] in ("object", "array", "op_array")]
+        if not judged or len(built) != 1:
+            skipped += 1
+            continue
+        examined += 1
+        sent = next(iter(built))
+        patch_elements = bool(_FLAG_BODY_PATCH.search(block.text))
+        per_kind: dict[str, list[dict | None]] = {"type": [], "item": []}
+        for sop, shape, resolved in judged:
+            declared = "object" if shape == "object" else "array"
+            per_kind["type"].append(
+                {"declared": declared, "sent": sent, "fields": [],
+                 "spec": sop.spec_file} if declared != sent else None)
+            missing: list[str] = []
+            if sent != "array":
+                pass   # the type rule has already fired; no elements are built
+            elif shape == "op_array":
+                missing = [k for k in (resolved.get("required") or [])
+                           if f'patch_op["{k}"]' not in block.text]
+            elif shape == "array" and patch_elements:
+                missing = ["patch_op"]
+            per_kind["item"].append(
+                {"declared": declared, "sent": sent, "fields": missing,
+                 "spec": sop.spec_file} if missing else None)
+        for kind, per_spec in per_kind.items():
+            if per_spec and all(per_spec):
+                first = per_spec[0]
+                findings.append({
+                    "group": block.group, "command": block.command,
+                    "op": f"{block.method} {judged[0][0].path}", "kind": kind,
+                    "declared": first["declared"], "sent": first["sent"],
+                    "fields": first["fields"],
+                    "spec": ", ".join(sorted({p["spec"] for p in per_spec}))})
+    return record_examined(
+        "39", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "request bodies")
+
+
+CHECK_PRINT["39"] = (
+    "request body shape",
+    "request bodies",
+    lambda f: (f"wxcli {f['group']} {f['command']}  {f['kind']}: spec declares "
+               f"{f['declared']}, flags send {f['sent']}"
+               + (f" (missing: {', '.join(f['fields'])})" if f['fields'] else "")
+               + f"  {f['op']}  ({f['spec']})"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -7105,6 +7233,7 @@ def main() -> int:
     readonly_flags = check_readonly_flags()
     composed_flags = check_composed_property_flags()
     oneof_bodies = check_oneof_bodies()
+    body_shape = check_body_shape()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -7168,6 +7297,7 @@ def main() -> int:
         "37_composed_property_flags": composed_flags,
         "37_composed_enum_advisory": CHECK_ADVISORIES.get("37", []),
         "38_oneof_bodies": oneof_bodies,
+        "39_body_shape": body_shape,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -7191,7 +7321,7 @@ def main() -> int:
                   or paging_advice
                   or legacy_cli_tokens or command_map_unresolved
                   or query_enum_help or readonly_flags
-                  or composed_flags or oneof_bodies)
+                  or composed_flags or oneof_bodies or body_shape)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -7456,6 +7586,7 @@ def main() -> int:
             if len(advisory_37) > 10:
                 print(f"      ... and {len(advisory_37) - 10} more (--json for all)")
         print_check_findings("38", oneof_bodies)
+        print_check_findings("39", body_shape)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

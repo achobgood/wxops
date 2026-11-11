@@ -177,7 +177,9 @@ Same options as `create`. All fields must be provided; omitted fields revert to 
 
 #### `meetings update-meetings` (PATCH — partial update)
 
-Same options as `create`. Only provided fields are updated; omitted fields remain unchanged.
+Same options as `create`. Only provided fields are updated; omitted fields remain unchanged. The body goes out as one JSON object (`{"title": "…"}`) with the `application/json-patch+json` content type. Verified live, 2026-11-10: `--json-body '{"title":"…"}'` returned HTTP 200 and changed the title; the old flag form sent `[{"title":"…"}]` and returned 400.
+
+> **Unverified:** the flag form (`--title`) after the fix is derived from the spec, not yet run live.
 
 #### `meetings list` / `meetings show` (admin)
 

@@ -1021,7 +1021,7 @@ Custom Functions API is in `custom-functions.md`.
 - `cc-flow-store` — flow metadata, copy, revert, consume from JSON or a template, name check (exit 1 when taken), variable mapping, where-used (`list-usages`), expression test, service health, build info and current user. Flow Store host.
 - `cc-flow-versions` — a flow's published versions, one version, latest, draft, and every flow's versions (`list-all`; `list-all-latest` can 500 org-wide). Flow Store host.
 - `cc-flow-tracing` — a flow's interactions, one interaction, its traces (`list-traces-decrypted` needs `--process-id`) and per-version analytics. Flow Store host.
-- `cc-flow-prefs` — per-flow preferences (list, create, update, delete), tags and tag history. Flow Store host.
+- `cc-flow-prefs` — per-flow preferences (list, create, update, delete), tags and tag history. Flow Store host. `create`, `update` and `delete` take a JSON array body (`--json-body '[…]'`; `delete` takes an array of names); without `--json-body` they exit 1.
 - `cc-flow-projects` — user preferences (the `projectId` source), projects, one project and resource collections. `list` and `show` see user-created projects only: the system project answers 404. Flow Store host.
 - `cc-flow-connectors` — connectors of a user-created project; the system project answers 404. Flow Store host.
 - `cc-flow-templates` — the flow/subflow template catalog (`list` walks with `--all`, `show ID`). CC API host (`GET /templates` routes on the gateway).

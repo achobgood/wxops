@@ -116,7 +116,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-38 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-39 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -383,7 +383,7 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   name the new command.
 - The two halves print as two `[34]` lines (`CHECK_EXAMINED` keys `34i`/`34ii`;
   `print_check_findings(..., heading="[34]")`), each with its own examined count. CI's
-  completion assertion greps the highest-numbered check (`^\[38\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
+  completion assertion greps the highest-numbered check (`^\[39\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
   (`TestLegacyCliCheck`: a planted fixture fires and a clean control does not, for each half).
   Proven on the live tree too: a planted `` `wxcc-flow list --type SUBFLOW` `` in
   `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
@@ -427,6 +427,20 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   `cc-tasks create-tasks`, `create-messages`). Run against the pre-fix modules it fires 10.
   **To clear:** fix `openapi_parser._merge_alternatives` / `_request_body_schema`, regen. No
   ack key. Tests: `tests/test_drift_check_oneof.py`.
+- **[39] A flag path that builds a different top-level JSON type than the spec's body**
+  (audit F1, 2026-11-10). For a POST/PUT/PATCH/DELETE block with a spec op whose body is an
+  object or an array: what the flag path builds (`body = {}` an object; `body = [patch_op]`
+  an array; the "JSON array" refusal an array that only `--json-body` supplies) must equal
+  the type of the PARSER's resolved schema (`openapi_parser.request_body_shape`, not the
+  gate's raw `body_schema`, which sees the springfox placeholder). Kind `item`: an array of
+  patch operations (`op_array`) needs a flag for each required item key, and any other array
+  must not wrap `patch_op` elements. Exempt and counted as skipped: `op` (one patch
+  operation, which the wire wraps in an array), `string`, `untyped`, and a block with no
+  recognised flag path. Every declaring spec must agree. Examined = write commands with an
+  object, array or `op_array` body. Run against the pre-fix modules it fires on the five
+  audit commands plus `cc-flow-prefs create/update/delete`. **To clear:**
+  `openapi_parser._classify_body` / the renderer's `wrap_patch` and `_array_body_build`,
+  regen. No ack key. Tests: `tests/test_drift_check_body_shape.py`.
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
@@ -1828,6 +1842,39 @@ cannot work. F3 (`docs/audit/claude-fable-5-2/live_f5_f3.md`, read-only): the se
 `ORGANIZATION` shape of `cc-agent-summaries create` (200, empty `summaries`), so the old local refusal
 blocked a request it accepts. **Spec only:** the new `--json-body` create succeeding, F2's enum
 choices, and F3's `cc-tasks create-tasks` and `create-messages` (not probed).
+
+### Request body shape follows the schema, not the media type (2026-11-10, audit F1, check 39)
+
+`parse_operation` took `content_type = "application/json-patch+json"` from the media type
+alone and `_render_update_command` then built `body = [patch_op]` plus a `--value` flag for
+every such operation, whatever the body's schema was. New `Endpoint.body_shape`
+(`openapi_parser._classify_body`, from the resolved top-level schema, every content type):
+
+| `body_shape` | Schema | Flags build |
+|---|---|---|
+| `op` | one object, properties within {op, path, value, from}, including `op` | `[patch_op]` (unchanged: `devices update`, `device-configurations update`, byte-identical) |
+| `op_array` | array whose items are that shape | the ITEM's properties as flags, `[patch_op]`; `--value` stays the one JSON-parsing flag |
+| `object` | any other object | the ordinary object body `{…}`, never wrapped |
+| `array` | any other array (`cc-journey delete-person-id-workspace-id`; the Flow Store `Seq` bodies of `cc-flow-prefs create/update/delete`) | no flags; no `--json-body` exits 1 with `This command's body is a JSON array; pass it with --json-body '[…]'`; the skeleton and the Example are arrays |
+| `string`, `untyped` | `type: string` (`flows:consume`); no type (22 Flow Store `JsonPatch` bodies) | unchanged |
+
+The json-patch content type is kept on an object body: an object body sent with it returned
+200 live. Modules changed: `meetings` (`update-meetings`, `update-group-meetings`),
+`cc_journey` (`update`, `update-person-id-workspace-id`, `delete-person-id-workspace-id`),
+`cc_flow_prefs` (`create`, `update`, `delete`: they built `{}` where the Flow Store takes a
+JSON array, so a bare call was refused by the server and now stops locally).
+**Live-verified (sandbox, `docs/audit/claude-fable-5-2/live_f1_meetings_patch.md`):** an
+object body to `PATCH /meetings/{id}` with the json-patch content type returns 200 and the
+flag form's `[{"title": …}]` returns 400. That covers the `meetings update-meetings` object
+body only. **Spec only, not run live:** the `--title` flag form after the fix,
+`meetings update-group-meetings`, all three `cc-journey` shapes, and `cc-flow-prefs`.
+Rejected: wrapping an object as `[object]` for every json-patch operation (the measured 400);
+dropping the json-patch content type for objects (the object form with that type is the one
+measured to work, and changing a header nobody measured is a second variable); making the
+array command build a one-element array from flags (an array of strings has no field to
+name). Known leftover, not in scope: a top-level `allOf` body that composes an array is read
+by `_resolve_schema_node` as an object with no properties, so it classifies `untyped`;
+no tracked spec has one.
 
 ## Flow Store spec
 

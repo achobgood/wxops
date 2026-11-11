@@ -1099,6 +1099,25 @@ def _flagless_required_body_fields(ep: Endpoint) -> list[EndpointField]:
     ]
 
 
+# The message a command prints, and the exit code it ends with, when its body is
+# a JSON array and --json-body was not given (audit F1). The generated flags
+# can only build an object, so building `{}` here would send the wrong shape.
+_ARRAY_BODY_MSG = "This command's body is a JSON array; pass it with --json-body '[…]'"
+
+
+def _array_body_build() -> list[str]:
+    """The body-building lines of a command whose request body is a JSON array
+    that no flag can express (`body_shape == "array"`): --json-body is the only
+    way to supply it."""
+    return [
+        "    if json_body:",
+        "        body = load_json_body(json_body)",
+        "    else:",
+        f'        typer.echo("{_ARRAY_BODY_MSG}", err=True)',
+        "        raise typer.Exit(1)",
+    ]
+
+
 def _example_json_body(ep: Endpoint) -> str | None:
     """The body the runnable example must carry, or None if flags suffice.
 
@@ -1107,7 +1126,8 @@ def _example_json_body(ep: Endpoint) -> str | None:
     and on a create it includes server-assigned fields (`id`, `version`,
     `createdTime`) that an agent pasting the example would send back.
     """
-    if not _flagless_required_body_fields(ep):
+    if (ep.body_shape != "array"
+            and not _flagless_required_body_fields(ep)):
         return None
     return (getattr(ep, "json_body_minimal_example", None)
             or ep.json_body_example)
@@ -1857,6 +1877,8 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         ]
 
     body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
+    if ep.body_shape == "array":
+        body_build = _array_body_build()
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
@@ -1919,6 +1941,11 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     is_json_patch = ep.content_type == "application/json-patch+json"
+    # The content type says how the body is labelled, not what it is (audit F1):
+    # only a body whose schema is one patch operation, or an array of them,
+    # is built as `[patch_op]`. An object or any other array is built as its
+    # schema says, and still goes out with the json-patch content type.
+    wrap_patch = is_json_patch and ep.body_shape not in ("object", "array")
     params = []
     params.extend(_render_path_arguments(ep))
 
@@ -1926,12 +1953,14 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(qp_defs)
     used_names = _used_param_names(ep)
 
-    if is_json_patch:
+    if wrap_patch:
         # JSON Patch endpoints: --op, --path, --value flags that build a patch array
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
                 continue
+            if bf.name == "value":
+                continue   # the explicit, JSON-parsing --value below
             help_text = _enum_help(bf)
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
         params.append('    value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),')
@@ -1971,7 +2000,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
             "        raise typer.Exit(0)",
         ]
 
-    if is_json_patch:
+    if wrap_patch:
         # JSON Patch: --json-body passes through as-is; flags build [{op, path, value}]
         body_build = [
             "    if json_body:",
@@ -1982,6 +2011,8 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
+                continue
+            if bf.name == "value":
                 continue
             body_build.append(f'        if {param} is not None:\n            patch_op["{bf.name}"] = {param}')
         body_build.extend([
@@ -1994,6 +2025,8 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         ])
     else:
         body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
+        if ep.body_shape == "array":
+            body_build = _array_body_build()
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
@@ -2267,6 +2300,8 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     if has_body:
         body_build = ["    if json_body:", "        body = load_json_body(json_body)",
                       "    else:", "        body = {}"]
+        if ep.body_shape == "array":
+            body_build = _array_body_build()
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
@@ -2361,6 +2396,8 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         ]
 
     body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
+    if ep.body_shape == "array":
+        body_build = _array_body_build()
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array") or param in used_names:

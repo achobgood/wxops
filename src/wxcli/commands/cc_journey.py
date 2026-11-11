@@ -12,17 +12,25 @@ from wxcli.common import verify_write
 app = typer.Typer(help="Manage Webex Contact Center: cc-journey.")
 
 
+_BODY_SKELETON_UPDATE = '[{"op":"add","path":"...","value":"..."}]'
+
 @app.command("update", short_help="Add/Remove/Replace details of a Person.")
 def update(
     workspace_id: str = typer.Argument(help="workspaceId"),
     person_id: str = typer.Argument(help="24-char hex id"),
+    op: str = typer.Option(None, "--op", help="Choices: add, remove, replace"),
+    path: str = typer.Option(None, "--path", help="A JSON-Pointer. Allowed paths depend on the operation: `add` supports `/phone/-`, `/email/-`, `/customerId/-`, `/temporaryId/-`, and `/socialId/-`; `remove` supports `/phone/{index}`, `/email/{index}`, `/customerId/{index}`, `/temporaryId/{index}`, and `/socialId/{index}`; `replace` supports..."),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add/Remove/Replace details of a Person.\n\n\b\nExample: wxcli cc-journey update WORKSPACE_ID PERSON_ID"""
+    """Add/Remove/Replace details of a Person.\n\n\b\nExample: wxcli cc-journey update WORKSPACE_ID PERSON_ID --op add --path PATH\n\n\b\nExample --json-body: '[{"op":"add","path":"...","value":"..."}]'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/admin/v1/api/person/workspace-id/{workspace_id}/person-id/{person_id}"
@@ -30,6 +38,10 @@ def update(
         body = load_json_body(json_body)
     else:
         patch_op = {}
+        if op is not None:
+            patch_op["op"] = op
+        if path is not None:
+            patch_op["path"] = path
         if value is not None:
             try:
                 patch_op["value"] = json.loads(value)
@@ -88,7 +100,6 @@ _BODY_SKELETON_UPDATE_PERSON_ID_WORKSPACE_ID = '{"phone":["..."],"email":["..."]
 def update_person_id_workspace_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
     person_id: str = typer.Argument(help="24-char hex id"),
-    value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -105,13 +116,7 @@ def update_person_id_workspace_id(
     if json_body:
         body = load_json_body(json_body)
     else:
-        patch_op = {}
-        if value is not None:
-            try:
-                patch_op["value"] = json.loads(value)
-            except json.JSONDecodeError:
-                patch_op["value"] = value
-        body = [patch_op]
+        body = {}
     try:
         result = api.session.rest_patch(url, json=body, content_type="application/json-patch+json")
     except WebexError as e:
@@ -127,19 +132,24 @@ def update_person_id_workspace_id(
 
 
 
+_BODY_SKELETON_DELETE_PERSON_ID_WORKSPACE_ID = '["..."]'
+
 @app.command("update-person-id-workspace-id-1", hidden=True)
 @app.command("delete-person-id-workspace-id", short_help="Remove one/more Identities from a person.")
 def delete_person_id_workspace_id(
     workspace_id: str = typer.Argument(help="workspaceId"),
     person_id: str = typer.Argument(help="24-char hex id"),
-    value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Remove one/more Identities from a person.\n\n\b\nExample: wxcli cc-journey delete-person-id-workspace-id WORKSPACE_ID PERSON_ID"""
+    """Remove one/more Identities from a person.\n\n\b\nExample: wxcli cc-journey delete-person-id-workspace-id WORKSPACE_ID PERSON_ID --json-body '["..."]'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE_PERSON_ID_WORKSPACE_ID), indent=2))
+        raise typer.Exit(0)
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     if not force:
@@ -148,13 +158,8 @@ def delete_person_id_workspace_id(
     if json_body:
         body = load_json_body(json_body)
     else:
-        patch_op = {}
-        if value is not None:
-            try:
-                patch_op["value"] = json.loads(value)
-            except json.JSONDecodeError:
-                patch_op["value"] = value
-        body = [patch_op]
+        typer.echo("This command's body is a JSON array; pass it with --json-body '[…]'", err=True)
+        raise typer.Exit(1)
     try:
         result = api.session.rest_patch(url, json=body, content_type="application/json-patch+json")
     except WebexError as e:

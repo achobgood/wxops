@@ -546,6 +546,46 @@ def _without_readonly_properties(schema: dict, spec: dict) -> dict:
     return {**schema, "properties": kept}
 
 
+_PATCH_OP_KEYS = frozenset({"op", "path", "value", "from"})
+
+
+def _is_patch_op_schema(schema: dict) -> bool:
+    """One RFC 6902 operation: an object whose properties are a non-empty subset
+    of {op, path, value, from} and include `op`."""
+    props = schema.get("properties")
+    return (isinstance(props, dict) and "op" in props
+            and set(props) <= _PATCH_OP_KEYS)
+
+
+def _classify_body(spec: dict, schema: dict) -> tuple[str, dict]:
+    """(body_shape, the schema its flags are read from) for a resolved request
+    body schema (audit F1). The shape is read from the schema alone, never from
+    the media type: `application/json-patch+json` carries a plain object on
+    `meetings update-meetings` (measured live, 2026-11-10)."""
+    resolved = _resolve_property_schema(spec, schema)
+    kind = resolved.get("type")
+    if kind == "array":
+        items = resolved.get("items")
+        items = _resolve_property_schema(spec, items) if isinstance(items, dict) else {}
+        if _is_patch_op_schema(items):
+            return "op_array", _without_readonly_properties(items, spec)
+        return "array", resolved
+    if kind == "string":
+        return "string", resolved
+    if kind == "object" or (kind is None and resolved.get("properties")):
+        return ("op" if _is_patch_op_schema(resolved) else "object"), resolved
+    return "untyped", resolved
+
+
+def request_body_shape(op: dict, spec: dict) -> str | None:
+    """One of "op", "op_array", "object", "array", "string", "untyped", or None
+    when the operation declares no JSON body (audit F1)."""
+    schema = _request_body_schema(op, spec)
+    if schema is None:
+        return None
+    return _classify_body(spec, schema)[0]
+
+
 def generate_body_example(
     op: dict, spec: dict, nested_only: bool = False,
     notes: list[str] | None = None, required_only: bool = False,
@@ -578,6 +618,12 @@ def generate_body_example(
     )
     if nested_only and not has_nested:
         return None
+    if schema.get("type") == "array":
+        # A top-level array body (audit F1): the skeleton is an array, and a
+        # JSON Patch document reads `[{"op": ..., "path": ...}]`.
+        example = _schema_to_example(schema, spec, notes=notes,
+                                     required_only=required_only)
+        return json.dumps(example, separators=(",", ":"))
     if not props:
         return None
 
@@ -597,6 +643,9 @@ def parse_request_body(
     schema = _request_body_schema(op, spec)
     if schema is None:
         return []
+    # An array of JSON Patch operations is flagged from its ITEMS (audit F1);
+    # any other array has no flags (`properties` is empty): --json-body only.
+    schema = _classify_body(spec, schema)[1]
 
     properties = schema.get("properties", {})
     required_fields = set(schema.get("required", []))
@@ -1253,6 +1302,7 @@ def parse_operation(
         path_var_meta=path_var_meta,
         lifted_query_params=lifted_query_params,
         declares_json_body=_request_body_schema(op, spec) is not None,
+        body_shape=request_body_shape(op, spec),
     )
 
 

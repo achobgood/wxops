@@ -50,7 +50,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """createFlowPreference.\n\nNOTE: the body is a JSON array of preferences, e.g. --json-body '[{"name":"...","value":"...","type":"..."}]' (shape carried from wxcc, not re-measured in Plan 2).\n\n\b\nExample: wxcli cc-flow-prefs create PROJECT_ID FLOW_ID\n\n\b\nExample --json-body: '[{}]'"""
+    """createFlowPreference.\n\nNOTE: the body is a JSON array of preferences, e.g. --json-body '[{"name":"...","value":"...","type":"..."}]' (shape carried from wxcc, not re-measured in Plan 2).\n\n\b\nExample: wxcli cc-flow-prefs create PROJECT_ID FLOW_ID --json-body '[{}]'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -61,7 +61,8 @@ def create(
     if json_body:
         body = load_json_body(json_body)
     else:
-        body = {}
+        typer.echo("This command's body is a JSON array; pass it with --json-body '[…]'", err=True)
+        raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
@@ -93,7 +94,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """updateFlowPreferences.\n\nNOTE: the body is a JSON array of preferences, e.g. --json-body '[{"name":"...","value":"...","type":"..."}]' (shape carried from wxcc, not re-measured in Plan 2).\n\n\b\nExample: wxcli cc-flow-prefs update PROJECT_ID FLOW_ID\n\n\b\nExample --json-body: '[{}]'"""
+    """updateFlowPreferences.\n\nNOTE: the body is a JSON array of preferences, e.g. --json-body '[{"name":"...","value":"...","type":"..."}]' (shape carried from wxcc, not re-measured in Plan 2).\n\n\b\nExample: wxcli cc-flow-prefs update PROJECT_ID FLOW_ID --json-body '[{}]'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -104,7 +105,8 @@ def update(
     if json_body:
         body = load_json_body(json_body)
     else:
-        body = {}
+        typer.echo("This command's body is a JSON array; pass it with --json-body '[…]'", err=True)
+        raise typer.Exit(1)
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
@@ -135,7 +137,7 @@ def delete(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """removeFlowPreferencesByPreferenceNames.\n\nNOTE: the body is a JSON array of preference names, e.g. --json-body '["name"]' (shape carried from wxcc, not re-measured in Plan 2).\n\n\b\nExample: wxcli cc-flow-prefs delete PROJECT_ID FLOW_ID\n\n\b\nExample --json-body: '["..."]'"""
+    """removeFlowPreferencesByPreferenceNames.\n\nNOTE: the body is a JSON array of preference names, e.g. --json-body '["name"]' (shape carried from wxcc, not re-measured in Plan 2).\n\n\b\nExample: wxcli cc-flow-prefs delete PROJECT_ID FLOW_ID --json-body '["..."]'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_DELETE), indent=2))
         raise typer.Exit(0)
@@ -148,7 +150,8 @@ def delete(
     if json_body:
         body = load_json_body(json_body)
     else:
-        body = {}
+        typer.echo("This command's body is a JSON array; pass it with --json-body '[…]'", err=True)
+        raise typer.Exit(1)
     try:
         result = api.session.rest_delete(url, json=body or None)
     except WebexError as e:

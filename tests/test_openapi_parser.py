@@ -1078,3 +1078,116 @@ def test_response_item_schemas_unchanged(key):
     got = extract_response_item_fields(spec["paths"][path]["get"], spec)
     assert {k: [[f.name, f.field_type, f.required] for f in v]
             for k, v in got.items()} == _ITEM_BASELINE[key]
+
+
+# ── request body shape (audit F1) ────────────────────────────────────────────
+
+_PATCH_CT = "application/json-patch+json"
+
+
+def _shape_ep(schema, method="PATCH", content_type=_PATCH_CT, spec=None):
+    spec = spec or {"components": {"schemas": {}}}
+    op = {"operationId": "probe", "responses": {"200": {"description": "ok"}},
+          "parameters": [{"name": "thingId", "in": "path", "required": True,
+                         "schema": {"type": "string"}}],
+          "requestBody": {"content": {content_type: {"schema": schema}}}}
+    return parse_operation(method, "/things/{thingId}", op, spec)
+
+
+_PATCH_DOC = {"type": "object", "required": ["op", "path"], "properties": {
+    "op": {"type": "string", "enum": ["add", "remove", "replace"]},
+    "path": {"type": "string"},
+    "value": {"type": "string"},
+}}
+
+
+class TestBodyShape:
+    def test_no_body_is_none(self):
+        ep = parse_operation("PATCH", "/things",
+                             {"operationId": "p", "responses": {"200": {"description": "ok"}}},
+                             {})
+        assert ep.body_shape is None
+
+    def test_single_patch_op_is_op(self):
+        assert _shape_ep(_PATCH_DOC).body_shape == "op"
+        assert _shape_ep({"type": "object", "properties": {
+            "op": {"type": "string"}, "path": {"type": "string"}}}).body_shape == "op"
+
+    def test_array_of_patch_ops_is_op_array(self):
+        assert _shape_ep({"type": "array", "items": _PATCH_DOC}).body_shape == "op_array"
+
+    def test_array_of_patch_ops_behind_refs_is_op_array(self):
+        spec = {"components": {"schemas": {
+            "PatchDocument": _PATCH_DOC,
+            "Body": {"type": "array", "items": {"$ref": "#/components/schemas/PatchDocument"}}}}}
+        ep = _shape_ep({"$ref": "#/components/schemas/Body"}, spec=spec)
+        assert ep.body_shape == "op_array"
+
+    def test_other_object_is_object_whatever_the_content_type(self):
+        obj = {"type": "object", "properties": {"title": {"type": "string"}}}
+        assert _shape_ep(obj).body_shape == "object"
+        assert _shape_ep(obj, method="POST", content_type="application/json").body_shape == "object"
+
+    def test_object_with_op_among_other_properties_is_object(self):
+        obj = {"type": "object", "properties": {
+            "op": {"type": "string"}, "path": {"type": "string"}, "title": {"type": "string"}}}
+        assert _shape_ep(obj).body_shape == "object"
+
+    def test_other_array_is_array(self):
+        assert _shape_ep({"type": "array", "items": {"type": "string"}}).body_shape == "array"
+
+    def test_scala_seq_placeholder_is_array(self):
+        spec = {"components": {"schemas": {"SeqFlowPreference": {
+            "type": "object", "properties": {
+                "empty": {"type": "boolean"}, "traversableAgain": {"type": "boolean"}}}}}}
+        ep = _shape_ep({"$ref": "#/components/schemas/SeqFlowPreference"},
+                       method="PUT", content_type="application/json", spec=spec)
+        assert ep.body_shape == "array"
+
+    def test_string_and_untyped(self):
+        assert _shape_ep({"type": "string"}, method="POST",
+                         content_type="application/json").body_shape == "string"
+        assert _shape_ep({}).body_shape == "untyped"
+
+    def test_op_array_flags_come_from_the_items(self):
+        op = {"requestBody": {"content": {_PATCH_CT: {"schema": {
+            "type": "array", "items": _PATCH_DOC}}}}}
+        fields = parse_request_body(op, {})
+        assert [(f.name, f.required) for f in fields] == [
+            ("op", True), ("path", True), ("value", False)]
+
+    def test_other_array_has_no_flags(self):
+        op = {"requestBody": {"content": {_PATCH_CT: {"schema": {
+            "type": "array", "items": {"type": "string"}}}}}}
+        assert parse_request_body(op, {}) == []
+
+    def test_array_skeletons(self):
+        strings = {"requestBody": {"content": {_PATCH_CT: {"schema": {
+            "type": "array", "items": {"type": "string"}}}}}}
+        assert json.loads(generate_body_example(strings, {})) == ["..."]
+        ops = {"requestBody": {"content": {_PATCH_CT: {"schema": {
+            "type": "array", "items": _PATCH_DOC}}}}}
+        assert json.loads(generate_body_example(ops, {})) == [
+            {"op": "add", "path": "...", "value": "..."}]
+        assert json.loads(generate_body_example(ops, {}, required_only=True)) == [
+            {"op": "add", "path": "..."}]
+
+    def test_shape_of_the_live_specs(self):
+        """The 8 PATCH operations of the audit, read from the real specs."""
+        want = {
+            ("webex-meetings.json", "/meetings/{meetingId}"): "object",
+            ("webex-meetings.json", "/group/meetings/{meetingId}"): "object",
+            ("webex-device.json", "/devices/{deviceId}"): "op",
+            ("webex-device.json", "/deviceConfigurations"): "op",
+            ("webex-cloud-calling.json", "/devices/{deviceId}"): "op",
+            ("webex-contact-center.json",
+             "/admin/v1/api/person/workspace-id/{workspaceId}/person-id/{personId}"): "op_array",
+            ("webex-contact-center.json",
+             "/admin/v1/api/person/add-identities/workspace-id/{workspaceId}/person-id/{personId}"): "object",
+            ("webex-contact-center.json",
+             "/admin/v1/api/person/remove-identities/workspace-id/{workspaceId}/person-id/{personId}"): "array",
+        }
+        for (spec_file, path), shape in want.items():
+            spec = json.loads((SPECS / spec_file).read_text())
+            ep = parse_operation("PATCH", path, spec["paths"][path]["patch"], spec)
+            assert ep.body_shape == shape, (spec_file, path)
