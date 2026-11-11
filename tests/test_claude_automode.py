@@ -180,11 +180,11 @@ def test_creates_missing_file(tmp_path, tty):
     assert not path.with_name("settings.json.wxcli-backup").exists()
 
 
-PACKET_PATH = {
+OTHER_PROJECT = {
     "permissions": {"allow": ["Bash(git status)"], "deny": ["Bash(rm -rf /)"]},
     "autoMode": {
-        "environment": ["$defaults", "Packet Path: the user's lab network project."],
-        "allow": ["$defaults", "Packet Path: configuring lab routers is allowed."],
+        "environment": ["$defaults", "Example lab project: the user's lab network."],
+        "allow": ["$defaults", "Example lab project: configuring lab routers is allowed."],
         "soft_deny": ["$defaults", "Never push to main."],
     },
     "model": "opus",
@@ -200,28 +200,28 @@ def _seed(path: Path, data) -> bytes:
 
 def test_keeps_others_entries(tmp_path, tty):
     path = _settings(tmp_path)
-    _seed(path, PACKET_PATH)
+    _seed(path, OTHER_PROJECT)
     assert _offer(path) == "written"
     got = json.loads(path.read_text())
     rules = A.automode_rules("Acme Corp", ORG_A)
-    assert got["permissions"] == PACKET_PATH["permissions"]
+    assert got["permissions"] == OTHER_PROJECT["permissions"]
     assert got["model"] == "opus"
-    assert got["autoMode"]["soft_deny"] == PACKET_PATH["autoMode"]["soft_deny"]
-    assert got["autoMode"]["environment"] == PACKET_PATH["autoMode"]["environment"] + rules["environment"]
-    assert got["autoMode"]["allow"] == PACKET_PATH["autoMode"]["allow"] + rules["allow"]
+    assert got["autoMode"]["soft_deny"] == OTHER_PROJECT["autoMode"]["soft_deny"]
+    assert got["autoMode"]["environment"] == OTHER_PROJECT["autoMode"]["environment"] + rules["environment"]
+    assert got["autoMode"]["allow"] == OTHER_PROJECT["autoMode"]["allow"] + rules["allow"]
 
 
 def test_replaces_own_entries_on_rerun_and_switch(tmp_path, tty):
     path = _settings(tmp_path)
-    _seed(path, PACKET_PATH)
+    _seed(path, OTHER_PROJECT)
     assert _offer(path) == "written"
     assert _offer(path, name="Globex", org=ORG_B) == "written"
     got = json.loads(path.read_text())
     rules_b = A.automode_rules("Globex", ORG_B)
-    assert got["autoMode"]["environment"] == PACKET_PATH["autoMode"]["environment"] + rules_b["environment"]
-    assert got["autoMode"]["allow"] == PACKET_PATH["autoMode"]["allow"] + rules_b["allow"]
+    assert got["autoMode"]["environment"] == OTHER_PROJECT["autoMode"]["environment"] + rules_b["environment"]
+    assert got["autoMode"]["allow"] == OTHER_PROJECT["autoMode"]["allow"] + rules_b["allow"]
     assert ORG_A not in path.read_text()
-    assert got["permissions"] == PACKET_PATH["permissions"]
+    assert got["permissions"] == OTHER_PROJECT["permissions"]
 
 
 def test_rerun_same_org_is_already(tmp_path, tty):
@@ -292,7 +292,7 @@ def test_non_ascii_kept(tmp_path, tty):
 
 def test_backup_written_once(tmp_path, tty):
     path = _settings(tmp_path)
-    original = _seed(path, PACKET_PATH)
+    original = _seed(path, OTHER_PROJECT)
     backup = path.with_name("settings.json.wxcli-backup")
     assert _offer(path) == "written"
     assert backup.read_bytes() == original
@@ -361,7 +361,7 @@ def test_declined_writes_nothing(tmp_path, tty):
     path = _settings(tmp_path)
     assert _offer(path, confirm=_no) == "declined"
     assert not path.exists()
-    before = _seed(path, PACKET_PATH)
+    before = _seed(path, OTHER_PROJECT)
     assert _offer(path, confirm=_no) == "declined"
     assert path.read_bytes() == before
     assert not path.with_name("settings.json.wxcli-backup").exists()
@@ -371,7 +371,7 @@ def test_declined_removes_other_org_rules(tmp_path, tty, capsys):
     """An old org's rule left in place would read as permission while commands
     hit the new org (recheck N7)."""
     path = _settings(tmp_path)
-    _seed(path, PACKET_PATH)
+    _seed(path, OTHER_PROJECT)
     assert _offer(path) == "written"
     capsys.readouterr()
     asked = []
@@ -382,8 +382,8 @@ def test_declined_removes_other_org_rules(tmp_path, tty, capsys):
 
     assert _offer(path, name="Globex", org=ORG_B, confirm=no) == "declined"
     got = json.loads(path.read_text())
-    assert got["autoMode"] == PACKET_PATH["autoMode"]
-    assert got["permissions"] == PACKET_PATH["permissions"]
+    assert got["autoMode"] == OTHER_PROJECT["autoMode"]
+    assert got["permissions"] == OTHER_PROJECT["permissions"]
     printed, question = asked[0]
     assert "Answering n also removes the rule for Acme Corp" in printed + question
 
@@ -466,10 +466,10 @@ def test_default_question_eof_raises(monkeypatch, capsys):
 
 def test_clear_removes_all_marked_entries(tmp_path, tty):
     path = _settings(tmp_path)
-    _seed(path, PACKET_PATH)
+    _seed(path, OTHER_PROJECT)
     assert _offer(path) == "written"
     assert A.clear_automode(settings_path=path) == "removed"
-    assert json.loads(path.read_text())["autoMode"] == PACKET_PATH["autoMode"]
+    assert json.loads(path.read_text())["autoMode"] == OTHER_PROJECT["autoMode"]
     assert A.clear_automode(settings_path=path) == "already"
 
 
