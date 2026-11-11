@@ -326,17 +326,23 @@ def offer_automode(org_name: str | None, org_id: str | None, *,
         _say()
         yes = False
 
+    # Read again: the question can wait a long time, and an open Claude Code
+    # session (/permissions) may have changed the file meanwhile. Merging onto
+    # the copy read before the question would drop that change (final review
+    # T6.3). Same validation as the first read.
     try:
+        settings, original = _read(path)
         if yes:
-            merge_automode(settings, rules)
-            _write(path, settings, original)
+            if merge_automode(settings, rules):
+                _write(path, settings, original)
             _say("Added. Change it later in Claude Code with /permissions → Auto mode.")
             return "written"
+        removed = _rule_org_names(settings)
         if remove_automode(settings):
             _write(path, settings, original)
-            _say(f"Removed the rule for {', '.join(others)}.")
+            _say(f"Removed the rule for {', '.join(removed)}.")
         return "declined"
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
         return _not_changed(path, exc)
 
 

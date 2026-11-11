@@ -410,6 +410,46 @@ def test_declined_removes_the_rule_for_the_same_org(tmp_path, tty, capsys):
     assert "Removed the rule for Acme Corp." in capsys.readouterr().err
 
 
+def _edits_while_asking(path, answer):
+    """A confirm that, like an open Claude Code session using /permissions,
+    changes the settings file while the question waits."""
+    def confirm(question):
+        data = json.loads(path.read_text())
+        data.setdefault("permissions", {}).setdefault("allow", []).append("Bash(npm test)")
+        data["model"] = "sonnet"
+        path.write_text(json.dumps(data, indent=2))
+        return answer
+    return confirm
+
+
+@pytest.mark.parametrize("answer,want", [(True, "written"), (False, "declined")])
+def test_edits_made_while_the_prompt_waits_survive(tmp_path, tty, answer, want):
+    """Final review T6.3: the file is read again after the answer, so another
+    writer's change made while the question waited is merged, not dropped."""
+    path = _settings(tmp_path)
+    _seed(path, OTHER_PROJECT)
+    if not answer:   # give n something to remove
+        assert _offer(path, name="Globex", org=ORG_B) == "written"
+    assert _offer(path, confirm=_edits_while_asking(path, answer)) == want
+    got = json.loads(path.read_text())
+    assert got["model"] == "sonnet"
+    assert got["permissions"]["allow"] == ["Bash(git status)", "Bash(npm test)"]
+    assert (ORG_A in path.read_text()) is answer
+    assert ORG_B not in path.read_text()
+
+
+def test_file_broken_while_the_prompt_waits_writes_nothing(tmp_path, tty, capsys):
+    path = _settings(tmp_path)
+    _seed(path, OTHER_PROJECT)
+
+    def breaks(question):
+        path.write_text("{not json")
+        return True
+
+    assert _offer(path, confirm=breaks) == "invalid"
+    assert path.read_text() == "{not json"
+
+
 @pytest.mark.parametrize("exc", [EOFError, KeyboardInterrupt])
 def test_eof_and_ctrl_c_count_as_declined(tmp_path, tty, exc):
     path = _settings(tmp_path)
