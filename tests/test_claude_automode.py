@@ -33,6 +33,10 @@ ORG_A = "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9hY21l"
 ORG_B = "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi9nbG9i"
 # Read before the autouse fixture below deletes it for each test.
 SUITE_OPT_OUT = os.environ.get("WXCLI_NO_AUTOMODE_OFFER")
+# permissions.ask rules: Claude Code asks the user before every switch-org /
+# clear-org Claude runs, even in auto mode. A trailing ` *` also matches the
+# bare command (code.claude.com/docs/en/permissions § Wildcard patterns).
+ASK = ["Bash(wxcli switch-org *)", "Bash(wxcli clear-org *)"]
 
 
 class _Stream(io.StringIO):
@@ -174,7 +178,8 @@ def test_creates_missing_file(tmp_path, tty):
         "autoMode": {
             "environment": ["$defaults", *rules["environment"]],
             "allow": ["$defaults", *rules["allow"]],
-        }
+        },
+        "permissions": {"ask": ASK},
     }
     assert path.read_text().endswith("}\n")
     assert not path.with_name("settings.json.wxcli-backup").exists()
@@ -204,7 +209,7 @@ def test_keeps_others_entries(tmp_path, tty):
     assert _offer(path) == "written"
     got = json.loads(path.read_text())
     rules = A.automode_rules("Acme Corp", ORG_A)
-    assert got["permissions"] == OTHER_PROJECT["permissions"]
+    assert got["permissions"] == {**OTHER_PROJECT["permissions"], "ask": ASK}
     assert got["model"] == "opus"
     assert got["autoMode"]["soft_deny"] == OTHER_PROJECT["autoMode"]["soft_deny"]
     assert got["autoMode"]["environment"] == OTHER_PROJECT["autoMode"]["environment"] + rules["environment"]
@@ -221,7 +226,7 @@ def test_replaces_own_entries_on_rerun_and_switch(tmp_path, tty):
     assert got["autoMode"]["environment"] == OTHER_PROJECT["autoMode"]["environment"] + rules_b["environment"]
     assert got["autoMode"]["allow"] == OTHER_PROJECT["autoMode"]["allow"] + rules_b["allow"]
     assert ORG_A not in path.read_text()
-    assert got["permissions"] == OTHER_PROJECT["permissions"]
+    assert got["permissions"] == {**OTHER_PROJECT["permissions"], "ask": ASK}
 
 
 def test_rerun_same_org_is_already(tmp_path, tty):
@@ -240,6 +245,9 @@ def test_rerun_same_org_is_already(tmp_path, tty):
     '{"autoMode": {"allow": "x"}}',
     '{"autoMode": {"environment": [1]}}',
     '{"autoMode": {"allow": ["$defaults", null]}}',
+    '{"permissions": []}',
+    '{"permissions": {"ask": "Bash(x)"}}',
+    '{"permissions": {"ask": ["Bash(x)", 1]}}',
 ])
 def test_invalid_json_and_wrong_shapes_write_nothing(tmp_path, tty, capsys, content):
     path = _settings(tmp_path)
@@ -522,6 +530,108 @@ def test_default_question_eof_raises(monkeypatch, capsys):
     monkeypatch.setattr(sys, "stdin", _Stream(""))
     with pytest.raises(EOFError):
         A.ask_yes_no("Go? [y/n]")
+
+
+# ── final review I1: a switch Claude runs is warned about and asked for ────
+
+def _rule_for(path, name, org):
+    settings: dict = {}
+    A.merge_automode(settings, A.automode_rules(name, org))
+    return _seed(path, settings)
+
+
+@pytest.mark.parametrize("var", AGENT_VARS)
+def test_in_agent_switch_warns_the_rule_names_another_org(tmp_path, monkeypatch, capsys, var):
+    """The classifier reads commands, never their output or wxcli's config, so
+    the user must be told the rule still names the old org. Nothing written."""
+    path = _settings(tmp_path)
+    before = _rule_for(path, "Acme Corp", ORG_A)
+    monkeypatch.setenv(var, "1")
+    assert _offer(path, name="Globex", org=ORG_B, confirm=_never) == "in-agent"
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err.strip() == (
+        "Claude Code's auto-mode rule still names Acme Corp; wxcli now targets Globex. "
+        'Run "wxcli configure" in your own terminal to update it.'
+    )
+    assert path.read_bytes() == before
+
+
+def test_in_agent_switch_to_an_unconfirmed_id_still_warns(tmp_path, monkeypatch, capsys):
+    path = _settings(tmp_path)
+    _rule_for(path, "Acme Corp", ORG_A)
+    monkeypatch.setenv("CLAUDECODE", "1")
+    assert _offer(path, name=None, org=ORG_B, confirm=_never, confirmed=False) == "in-agent"
+    assert f"still names Acme Corp; wxcli now targets {ORG_B}." in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("var", AGENT_VARS)
+def test_in_agent_clear_warns_while_any_rule_remains(tmp_path, monkeypatch, capsys, var):
+    path = _settings(tmp_path)
+    monkeypatch.setenv(var, "1")
+    assert A.clear_automode(settings_path=path) == "in-agent"
+    assert capsys.readouterr() == ("", "")       # no rule: nothing to say
+    before = _rule_for(path, "Acme Corp", ORG_A)
+    assert A.clear_automode(settings_path=path) == "in-agent"
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err.strip() == (
+        "Claude Code's auto-mode rule still names Acme Corp; wxcli now targets no saved org. "
+        'Run "wxcli configure" in your own terminal to update it.'
+    )
+    assert path.read_bytes() == before
+
+
+def test_ask_rule_strings():
+    assert list(A.ASK_RULES) == ASK
+
+
+def test_ask_rules_shown_before_the_question(tmp_path, tty, capsys):
+    path = _settings(tmp_path)
+    seen = []
+
+    def yes(question):
+        seen.append(capsys.readouterr().err)
+        return True
+
+    assert _offer(path, confirm=yes) == "written"
+    for rule in ASK:
+        assert f"  permissions.ask: {rule}" in seen[0]
+
+
+def test_ask_rules_never_duplicated_and_others_kept(tmp_path, tty):
+    path = _settings(tmp_path)
+    _seed(path, {"permissions": {"ask": ["Bash(git push *)", "Bash(wxcli clear-org *)"]}})
+    assert _offer(path) == "written"
+    assert _offer(path, name="Globex", org=ORG_B) == "written"
+    assert json.loads(path.read_text())["permissions"]["ask"] == [
+        "Bash(git push *)", "Bash(wxcli clear-org *)", "Bash(wxcli switch-org *)"]
+
+
+def test_rule_written_before_ask_rules_existed_is_not_already(tmp_path, tty):
+    """A rule from before this change gets its ask rules on the next configure."""
+    path = _settings(tmp_path)
+    rules = A.automode_rules("Acme Corp", ORG_A)
+    _seed(path, {"autoMode": {k: ["$defaults", *v] for k, v in rules.items()}})
+    assert _offer(path) == "written"
+    assert json.loads(path.read_text())["permissions"]["ask"] == ASK
+
+
+def test_ask_rules_go_with_the_last_allow_rule(tmp_path, tty):
+    """wxcli removes its ask strings only when it removes its last [wxcli]
+    allow rule, and never anyone else's permissions entry."""
+    path = _settings(tmp_path)
+    _seed(path, {**OTHER_PROJECT, "permissions": {**OTHER_PROJECT["permissions"],
+                                                   "ask": ["Bash(git push *)"]}})
+    assert _offer(path) == "written"
+    assert A.clear_automode(settings_path=path) == "removed"
+    got = json.loads(path.read_text())
+    assert got["permissions"] == {**OTHER_PROJECT["permissions"], "ask": ["Bash(git push *)"]}
+    # wxcli created the list and the object, so it removes them when empty.
+    path2 = tmp_path / "two" / "settings.json"
+    assert _offer(path2) == "written"
+    assert A.clear_automode(settings_path=path2) == "removed"
+    assert "permissions" not in json.loads(path2.read_text())
 
 
 # ── clear-org removes every [wxcli] entry ──────────────────────────────────

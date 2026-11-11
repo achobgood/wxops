@@ -16,6 +16,7 @@
 #      agent-team teammate (see is_teammate), which is never exempt.  They are
 #      the reason this gate exists: the rules that make a wxcli call correct
 #      travel with the agent, not with the caller.
+#      `switch-org` / `clear-org` from them get `ask`: the user approves each.
 #   3. Anyone else (main session, other agents) may run READ-ONLY wxcli only.
 #      Reads are `list*` / `show*` / `whoami` / help.  Everything else is denied:
 #      the main session is sent to the builder agent, a subagent is told to stop
@@ -75,6 +76,16 @@ deny() {
 # step.  Refused for every caller, trusted agents included.
 deny_configure() {
   jq -nc '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:"wxcli configure is the user'"'"'s own step: they run it in their own terminal."}}'
+  exit 0
+}
+
+# The builder may switch or clear the target org, but the user is asked each
+# time.  `ask` sends the call to the permission prompt in auto mode; the
+# classifier does not decide it (code.claude.com/docs/en/hooks § PreToolUse
+# `ask` decisions in auto mode).  This catches the forms a settings.json ask
+# rule misses: a full path, `bash -c`, a wrapper.
+ask_org() {
+  jq -nc '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:"wxcli switch-org and clear-org change which Webex org every later wxcli command targets, so the user approves each one."}}'
   exit 0
 }
 
@@ -352,6 +363,7 @@ verdict=$(printf '%s' "$cmd" | awk '
       s = (p+1 <= m) ? clean(tok[p+1]) : ""
       if (g == "" || g == "whoami") continue   # wxcli / --version / whoami
       if (g == "configure") ncfg++             # a step only the user runs (Task 6)
+      if (g == "switch-org" || g == "clear-org") norg++   # asked each time
       if (s == "") { ndeny++; continue }  # bare `wxcli configure` mutates state
       verb = s; sub(/-.*$/,"",verb)            # show-call-forwarding -> show
       if (verb != "list" && verb != "show") ndeny++
@@ -395,7 +407,7 @@ verdict=$(printf '%s' "$cmd" | awk '
       sub(/-.*$/,"",v)
       if (v != "list" && v != "show") qdeny++
     }
-    print nseg+0, nwx+0, ndeny+0, redir+0, qseg+0, qwx+0, qdeny+0, qbad+0, qsep+0, qred+0, qerr+0, ncfg+0
+    print nseg+0, nwx+0, ndeny+0, redir+0, qseg+0, qwx+0, qdeny+0, qbad+0, qsep+0, qred+0, qerr+0, ncfg+0, norg+0
   }
 ')
 
@@ -406,7 +418,7 @@ verdict=$(printf '%s' "$cmd" | awk '
 set -- $verdict
 # nseg nwx redir: the quote-blind scan (only ndeny decides anything now).
 nseg=$1 nwx=$2 ndeny=$3 redir=$4
-qseg=$5 qwx=$6 qdeny=$7 qbad=$8 qsep=$9 qred=${10} qerr=${11} ncfg=${12}
+qseg=$5 qwx=$6 qdeny=$7 qbad=$8 qsep=$9 qred=${10} qerr=${11} ncfg=${12} norg=${13}
 
 # Before the trusted-agent exemption: the builder runs wxcli, but configure is
 # the user's.  Counted by the quote-blind scan, which sees MORE than the shell
@@ -431,6 +443,9 @@ if [ "$qwx" -gt 0 ] && [ "$qred" = 0 ] && [ "$qerr" = 0 ] &&
 fi
 
 if [ "$exempt" = 1 ]; then
+  # Counted by the quote-blind scan (sees more than the shell runs: right for
+  # an ask), and before the allow, so a switch never skips the prompt.
+  [ "$norg" -gt 0 ] && ask_org
   [ "$pure" = 1 ] && allow
   exit 0
 fi

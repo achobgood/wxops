@@ -35,6 +35,17 @@ DISABLE_ENV = "WXCLI_NO_AUTOMODE_OFFER"
 AGENT_ENV = ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "AI_AGENT")
 NAME_MAX = 60
 KEYS = ("environment", "allow")
+# Final review I1 (Adam, 2026-11-11): Claude may still switch or clear the
+# target org, but Claude Code must ask the user each time. The classifier
+# never sees wxcli's target org (it lives in wxcli's config, not the command
+# text), so an ask rule does it: "Content-scoped ask rules ... are evaluated
+# before the classifier and always force a permission prompt, even in auto
+# mode" (code.claude.com/docs/en/auto-mode-config § Add a human checkpoint).
+# A trailing ` *` also matches the bare command, so one rule covers both
+# `wxcli clear-org` and `wxcli switch-org <id>` (docs/en/permissions §
+# Wildcard patterns). wxcli owns exactly these strings in permissions.ask:
+# written with the allow rule, removed with the last [wxcli] allow rule.
+ASK_RULES = ("Bash(wxcli switch-org *)", "Bash(wxcli clear-org *)")
 
 # The org id lands in the rule unquoted, so it must look like an id: Webex ids
 # are base64 (A-Z a-z 0-9 + / =), Contact Center ids are UUIDs.
@@ -92,6 +103,14 @@ def _validate(settings, keys) -> None:
     shapes Claude Code reads. Runs before anything is changed."""
     if not isinstance(settings, dict):
         raise ValueError("the top level is not a JSON object")
+    perms = settings.get("permissions")
+    if perms is not None:
+        if not isinstance(perms, dict):
+            raise ValueError('"permissions" is not a JSON object')
+        ask = perms.get("ask")
+        if ask is not None and (not isinstance(ask, list)
+                                or not all(isinstance(e, str) for e in ask)):
+            raise ValueError('"permissions.ask" is not a list of strings')
     mode = settings.get("autoMode")
     if mode is None:
         return
@@ -121,12 +140,48 @@ def merge_automode(settings: dict, rules: dict[str, list[str]]) -> bool:
             mode[key] = ["$defaults", *new]
         else:
             mode[key] = [e for e in entries if not _ours(e)] + list(new)
-    return settings.get("autoMode") != before
+    changed = settings.get("autoMode") != before
+    if "allow" in rules:
+        changed = _add_ask(settings) or changed
+    return changed
+
+
+def _missing_ask(settings: dict) -> list[str]:
+    perms = settings.get("permissions")
+    ask = perms.get("ask") if isinstance(perms, dict) else None
+    have = ask if isinstance(ask, list) else []
+    return [r for r in ASK_RULES if r not in have]
+
+
+def _add_ask(settings: dict) -> bool:
+    """Append the ASK_RULES not already present. Touches nothing else."""
+    missing = _missing_ask(settings)
+    if missing:
+        settings.setdefault("permissions", {}).setdefault("ask", []).extend(missing)
+    return bool(missing)
+
+
+def _drop_ask(settings: dict) -> bool:
+    """Remove exactly the ASK_RULES strings; drop the list, then the object,
+    only if that removal left them empty."""
+    perms = settings.get("permissions")
+    if not isinstance(perms, dict) or not isinstance(perms.get("ask"), list):
+        return False
+    kept = [e for e in perms["ask"] if e not in ASK_RULES]
+    if kept == perms["ask"]:
+        return False
+    if kept:
+        perms["ask"] = kept
+    else:
+        del perms["ask"]
+        if not perms:
+            del settings["permissions"]
+    return True
 
 
 def remove_automode(settings: dict) -> bool:
-    """Drop every MARK entry. Creates nothing. Returns whether anything
-    changed."""
+    """Drop every MARK entry, and with the last MARK allow entry the
+    ASK_RULES. Creates nothing. Returns whether anything changed."""
     _validate(settings, KEYS)
     mode = settings.get("autoMode")
     if not isinstance(mode, dict):
@@ -140,6 +195,8 @@ def remove_automode(settings: dict) -> bool:
         if kept != entries:
             mode[key] = kept
             changed = True
+            if key == "allow":
+                _drop_ask(settings)
     return changed
 
 
@@ -159,17 +216,21 @@ def _is_already(settings: dict, rules: dict[str, list[str]]) -> bool:
     mode = settings.get("autoMode")
     if not isinstance(mode, dict):
         return False
-    return all([e for e in (mode.get(key) or []) if _ours(e)] == new
-               for key, new in rules.items())
+    return (not _missing_ask(settings)
+            and all([e for e in (mode.get(key) or []) if _ours(e)] == new
+                    for key, new in rules.items()))
 
 
-def _rule_org_names(settings: dict) -> list[str]:
-    """The org names wxcli's existing entries carry, this org's included:
-    answering n removes them all (final review T6.5)."""
+def _rule_org_names(settings: dict, skip_id: str | None = None) -> list[str]:
+    """The org names wxcli's existing entries carry, except those naming
+    `skip_id`. Without it, this org's are included: answering n removes them
+    all (final review T6.5)."""
     names: list[str] = []
     for entry in _marked(settings):
         match = _NAMED.search(entry)
         if match:
+            if skip_id and match.group(2) == skip_id:
+                continue
             name = match.group(1)
             if name not in names:
                 names.append(name)
@@ -257,6 +318,11 @@ def ask_yes_no(question: str) -> bool:
         _say("Please type y or n.")
 
 
+def _say_stale(names: list[str], target: str) -> None:
+    _say(f"Claude Code's auto-mode rule still names {', '.join(names)}; wxcli now "
+         f'targets {target}. Run "wxcli configure" in your own terminal to update it.')
+
+
 def _not_changed(path: Path, why) -> str:
     _say(f"Not changing {path}: {why}. Claude Code auto mode was left as it was.")
     return "invalid"
@@ -285,11 +351,19 @@ def offer_automode(org_name: str | None, org_id: str | None, *,
     path = (settings_path or default_settings_path()).resolve()
 
     if _in_agent():
+        # Never write here. But an agent may switch orgs (CLAUDE.md documents
+        # `switch-org <orgId>` in automation), and auto mode's classifier reads
+        # commands, not their output or wxcli's config, so say on stderr when
+        # the rule still names another org (final review I1).
         try:
-            has_rule = _has_rule_for(_read(path)[0], org_id)
+            current = _read(path)[0]
         except (OSError, ValueError):
-            has_rule = False
-        if not has_rule and confirmed:
+            current = {}
+        has_rule = _has_rule_for(current, org_id)
+        stale = _rule_org_names(current, skip_id=org_id)
+        if stale:
+            _say_stale(stale, name)
+        elif not has_rule and confirmed:
             _say(f'To let Claude Code work in {name} without stopping to ask, run '
                  '"wxcli configure" once in your own terminal, outside Claude Code.')
         return "in-agent"
@@ -316,6 +390,12 @@ def offer_automode(org_name: str | None, org_id: str | None, *,
     for key in KEYS:
         for entry in rules[key]:
             _say(f"  autoMode.{key}: {entry}")
+    asks = _missing_ask(settings)
+    for entry in asks:
+        _say(f"  permissions.ask: {entry}")
+    if asks:
+        _say("  (Claude may still switch or clear the target org; the "
+             "permissions.ask lines make Claude Code ask you each time.)")
     if others:
         _say(f"Answering n also removes the rule for {', '.join(others)}.")
     question = (f"Let Claude Code create, change and delete things in {name} "
@@ -352,11 +432,19 @@ def clear_automode(*, settings_path: Path | None = None) -> str:
     "non-interactive", "invalid", "already" or "removed"."""
     if _disabled():
         return "disabled"
+    path = (settings_path or default_settings_path()).resolve()
     if _in_agent():
+        # Never write here; but say when a rule outlives the org (final
+        # review I1), as the offer does after an agent's switch-org.
+        try:
+            stale = _rule_org_names(_read(path)[0])
+        except (OSError, ValueError):
+            stale = []
+        if stale:
+            _say_stale(stale, "no saved org")
         return "in-agent"
     if not _interactive():
         return "non-interactive"
-    path = (settings_path or default_settings_path()).resolve()
     try:
         settings, original = _read(path)
         if not remove_automode(settings):

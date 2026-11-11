@@ -274,6 +274,40 @@ def test_configure_help_stays_inert(gate):
     assert _decide({"tool_input": {"command": "wxcli configure --help"}}, gate) == "allow"
 
 
+ORG_ASK_REASON = ("wxcli switch-org and clear-org change which Webex org every later "
+                  "wxcli command targets, so the user approves each one.")
+
+
+@BOTH_GATES
+@pytest.mark.parametrize("agent,agent_id", [(BUILDER, ""), (BUILDER, SUBAGENT_ID),
+                                            ("migration-advisor", SUBAGENT_ID)])
+@pytest.mark.parametrize("command", [
+    "wxcli switch-org Y2lz", "wxcli clear-org", "wxcli switch-org",
+    "/opt/homebrew/bin/wxcli --no-update-check switch-org Y2lz",
+    "cd /tmp && wxcli switch-org Y2lz", 'bash -c "wxcli clear-org"',
+    "wxcli people list && wxcli clear-org",
+])
+def test_builder_org_switch_asks_the_user(gate, agent, agent_id, command):
+    """Final review I1 (Adam, 2026-11-11): the builder may switch or clear the
+    target org, but Claude Code asks the user each time. Forms a settings.json
+    ask rule misses (a full path, `cd x &&`, `bash -c`) are caught here."""
+    payload = {"agent_type": agent, "tool_input": {"command": command}}
+    if agent_id:
+        payload["agent_id"] = agent_id
+    out = json.loads(_run_gate(payload, gate))["hookSpecificOutput"]
+    assert out["permissionDecision"] == "ask"
+    assert out["permissionDecisionReason"] == ORG_ASK_REASON
+
+
+@BOTH_GATES
+def test_org_switch_help_and_other_callers_unchanged(gate):
+    assert _decide({"agent_type": BUILDER, "tool_input": {"command": "wxcli switch-org --help"}}, gate) == "allow"
+    assert _decide({"tool_input": {"command": "wxcli switch-org Y2lz"}}, gate) == "deny"
+    assert _decide({"agent_type": "general-purpose", "agent_id": SUBAGENT_ID,
+                    "tool_input": {"command": "wxcli clear-org"}}, gate) == "deny"
+    assert _decide({"agent_type": BUILDER, "tool_input": {"command": "wxcli people delete X"}}, gate) == "allow"
+
+
 @BOTH_GATES
 @pytest.mark.parametrize("agent", ["", "general-purpose", BUILDER, "migration-advisor"])
 @pytest.mark.parametrize("command", [
