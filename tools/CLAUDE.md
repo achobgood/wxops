@@ -2014,6 +2014,31 @@ paths plus multipart, each a chance to miss a call; a post-pass over the rendere
 one, and it raises if a header-bearing command has no URL line or no session call). Extending
 `parse_parameters`' 5-tuple (every caller would change for a field only the renderer reads).
 
+### `configure` offers a Claude Code auto-mode rule; agents may not run `configure` (2026-11-10, D4)
+
+**Why.** Auto mode paused on the work this project exists to do. It reads `autoMode` only from
+`~/.claude/settings.json`, managed settings or `--settings` (never a project `.claude/`), and Claude's
+own edit of it is refused as self-modification, so the rule can only come from a step the user runs.
+Adam decided the scope: everything wxcli does in the configured org, deletes included.
+
+**What changed.** `src/wxcli/claude_automode.py`: at the end of `configure` (the org read back through
+its own `load_config`, so a previously saved org wins over `_resolve_org`) and after each `switch-org`
+save, `offer_automode` prints two `[wxcli]`-prefixed entries (`environment`, `allow`) naming the org's
+sanitised display name and id, then asks `y/n` with no default. It writes only when stdin AND stdout
+are terminals and none of `CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `AI_AGENT` is set; `n` removes
+another org's `[wxcli]` entries; `clear-org` removes them all (same terminal-only guard). Writes are
+atomic (temp file + `os.replace`), keep the mode and symlink, and keep one `.wxcli-backup`. Invalid
+JSON or shape: nothing written, `configure` still exits 0. All three gate copies refuse any
+`wxcli configure` for every caller, BEFORE the trusted-agent exemption. `tests/conftest.py` sets
+`WXCLI_NO_AUTOMODE_OFFER=1`. Nothing here is live-verified against Claude Code's classifier: the
+copy's effect on auto mode is the documented behaviour, not a measurement.
+
+**Not a security boundary.** Anything that can type into a real terminal can answer the prompt. The
+gate and the CLAUDE.md statement close the ordinary agent paths. **Rejected:** a project-level
+`autoMode` (never read); Claude writing the rule (self-modification); a default answer (deletes are in
+scope); passing the raw org name (a partner's customer names its org: `.`, `:` and quotes could end the
+rule's sentence); an org id that is not id-shaped (refused as `no-org`, it lands unquoted).
+
 ## Flow Store spec
 
 *(Plan 2 Task 21, 2026-10-19. Merged from `wxcc/tools/generator/README.md`, which was removed with `wxcc/` in Plan 6;

@@ -9,7 +9,8 @@
 # identical to the development copy — only the guidance text differs.
 #
 # Policy (order matters):
-#   1. Python that imports wxcli is refused, for every caller.
+#   1. Python that imports wxcli is refused, for every caller.  So is
+#      `wxcli configure` (the user's own step, Task 6), trusted agents included.
 #   2. Agents carrying the playbook rules (wxops,
 #      migration-advisor) may run any wxcli command — unless the caller is an
 #      agent-team teammate (see is_teammate), which is never exempt.  They are
@@ -66,6 +67,14 @@ deny() {
     reason="$2 REQUIRED ACTION: Do NOT run it directly again. Spawn the $BUILDER agent (subagent_type \"$BUILDER\") — any name you give it is fine; this gate matches the agent's type, not its name — and pass it this intent: $1 — The agent handles auth, planning, execution, and verification."
   fi
   jq -nc --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+  exit 0
+}
+
+# Task 6 (2026-11-10): `wxcli configure` saves the token and is the one step
+# that may write the user's Claude Code auto-mode rule, so it is the user's own
+# step.  Refused for every caller, trusted agents included.
+deny_configure() {
+  jq -nc '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:"wxcli configure is the user'"'"'s own step: they run it in their own terminal."}}'
   exit 0
 }
 
@@ -342,6 +351,7 @@ verdict=$(printf '%s' "$cmd" | awk '
       g = (p <= m) ? clean(tok[p]) : ""
       s = (p+1 <= m) ? clean(tok[p+1]) : ""
       if (g == "" || g == "whoami") continue   # wxcli / --version / whoami
+      if (g == "configure") ncfg++             # a step only the user runs (Task 6)
       if (s == "") { ndeny++; continue }  # bare `wxcli configure` mutates state
       verb = s; sub(/-.*$/,"",verb)            # show-call-forwarding -> show
       if (verb != "list" && verb != "show") ndeny++
@@ -385,7 +395,7 @@ verdict=$(printf '%s' "$cmd" | awk '
       sub(/-.*$/,"",v)
       if (v != "list" && v != "show") qdeny++
     }
-    print nseg+0, nwx+0, ndeny+0, redir+0, qseg+0, qwx+0, qdeny+0, qbad+0, qsep+0, qred+0, qerr+0
+    print nseg+0, nwx+0, ndeny+0, redir+0, qseg+0, qwx+0, qdeny+0, qbad+0, qsep+0, qred+0, qerr+0, ncfg+0
   }
 ')
 
@@ -396,7 +406,12 @@ verdict=$(printf '%s' "$cmd" | awk '
 set -- $verdict
 # nseg nwx redir: the quote-blind scan (only ndeny decides anything now).
 nseg=$1 nwx=$2 ndeny=$3 redir=$4
-qseg=$5 qwx=$6 qdeny=$7 qbad=$8 qsep=$9 qred=${10} qerr=${11}
+qseg=$5 qwx=$6 qdeny=$7 qbad=$8 qsep=$9 qred=${10} qerr=${11} ncfg=${12}
+
+# Before the trusted-agent exemption: the builder runs wxcli, but configure is
+# the user's.  Counted by the quote-blind scan, which sees MORE than the shell
+# runs: right for a deny.
+[ "$ncfg" -gt 0 ] && deny_configure
 
 # `allow` skips Claude Code's permission prompt, so it is given only when the
 # whole command is wxcli calls this caller may run — or (P5-19, Adam

@@ -147,6 +147,11 @@ tests/*
 # calls). Same contract — an untracked test on a safety gate has no way to
 # tell anyone when it goes red. Stdlib + pytest only, no network.
 !tests/test_codex_gate.py
+# Task 6 (2026-11-10): the opt-in that writes the user's Claude Code auto-mode
+# rule into ~/.claude/settings.json, and the configure/switch-org/clear-org
+# wiring. Every test uses tmp_path; it relies on the tracked tests/conftest.py
+# switch (WXCLI_NO_AUTOMODE_OFFER=1). No network.
+!tests/test_claude_automode.py
 # The shared runtime's retry contract — the only executable proof of it. Every
 # HTTP call from ~1,887 generated commands goes through `WebexSession._request`,
 # and `auth.py`'s policy was deliberately widened on 2026-07-24 (`bcb1330`, no

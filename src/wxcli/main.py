@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from wxcli import __version__
 from wxcli.auth import get_api, resolve_token, WebexApi, WebexSession
+from wxcli.claude_automode import clear_automode, offer_automode
 from wxcli.commands._lazy import LazyTyper
 from wxcli.common import emit, FIELDS_HELP
 from wxcli.config import get_expires_at, get_org_id, get_org_name, save_org
@@ -122,6 +123,9 @@ def switch_org(
             org_name = "Unknown"
         save_org(org_id, org_name)
         emit({"orgId": org_id, "orgName": org_name}, output=output, fields=fields)
+        # Prompts only when stdin and stdout are both terminals and no agent
+        # runs this; its text goes to stderr, so `-o json` stays clean.
+        offer_automode(org_name, org_id)
         return
 
     # Interactive — list orgs
@@ -145,6 +149,7 @@ def switch_org(
                 {"orgId": only.get("id"), "orgName": only.get("displayName"), "singleOrgToken": True},
                 output=output, fields=fields,
             )
+            offer_automode(only.get("displayName"), only.get("id"))
         else:
             typer.echo("No organizations are visible to this token.", err=True)
         return
@@ -164,6 +169,7 @@ def switch_org(
     selected = items[choice - 1]
     save_org(selected.get("id"), selected.get("displayName"))
     emit({"orgId": selected.get("id"), "orgName": selected.get("displayName")}, output=output, fields=fields)
+    offer_automode(selected.get("displayName"), selected.get("id"))
 
 
 @app.command("clear-org")
@@ -177,6 +183,9 @@ def clear_org(
         {"status": "cleared", "message": "Commands will now target your own organization."},
         output=output, fields=fields,
     )
+    # No org rule may outlive the org: remove every [wxcli] auto-mode entry
+    # (in a terminal outside an agent only, like the offer).
+    clear_automode()
 
 
 @app.command("set-cc-region")

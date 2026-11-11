@@ -244,6 +244,36 @@ def test_main_session_deny_names_wxops_type_not_name(gate):
     assert "do not spawn" not in reason.lower()
 
 
+CONFIGURE_REASON = "wxcli configure is the user's own step: they run it in their own terminal."
+
+
+@BOTH_GATES
+@pytest.mark.parametrize("agent,agent_id", [
+    ("", ""), (BUILDER, ""), (BUILDER, SUBAGENT_ID), ("migration-advisor", SUBAGENT_ID),
+    ("general-purpose", SUBAGENT_ID),
+])
+@pytest.mark.parametrize("command", [
+    "wxcli configure",
+    "/opt/homebrew/bin/wxcli --no-update-check configure",
+    "wxcli people list && wxcli configure",
+    'bash -c "wxcli configure"',
+    "wxcli configure && git status",
+])
+def test_configure_refused_for_every_caller(gate, agent, agent_id, command):
+    """Task 6: configure is the user's own step (it is what may write the
+    auto-mode rule), so it is refused before the trusted-agent exemption."""
+    payload = {"agent_type": agent, "tool_input": {"command": command}}
+    if agent_id:
+        payload["agent_id"] = agent_id
+    assert _reason(payload, gate) == CONFIGURE_REASON
+
+
+@BOTH_GATES
+def test_configure_help_stays_inert(gate):
+    assert _decide({"agent_type": BUILDER, "tool_input": {"command": "wxcli configure --help"}}, gate) == "allow"
+    assert _decide({"tool_input": {"command": "wxcli configure --help"}}, gate) == "allow"
+
+
 @BOTH_GATES
 @pytest.mark.parametrize("agent", ["", "general-purpose", BUILDER, "migration-advisor"])
 @pytest.mark.parametrize("command", [

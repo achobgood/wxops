@@ -134,6 +134,11 @@ def test_unparseable_payload_fails_closed_only_for_wxcli():
     ("", "wxcli --version", "allow"),
     # The builder is trusted to run wxcli, not to bypass it.
     ("wxops", 'python -c "import wxcli"', "deny"),
+    # Task 6: configure is the user's own step, refused for every caller.
+    ("wxops", "wxcli configure", "deny"),
+    ("migration-advisor", "wxcli --no-update-check configure", "deny"),
+    ("", "wxcli configure", "deny"),
+    ("wxops", "wxcli configure --help", "allow"),
 ])
 def test_policy(agent, command, expected):
     import io
@@ -170,6 +175,17 @@ def test_main_session_deny_names_type_and_the_spawn_name_rule():
     assert "lowercase letters, digits and underscores" in reason
     assert "do not spawn" not in reason.lower()
     assert "MAIN session only" not in reason
+
+
+@pytest.mark.parametrize("agent,agent_id", [
+    ("", ""), ("wxops", ""), ("wxops", SUB_ID), ("default", SUB_ID),
+])
+@pytest.mark.parametrize("command", [
+    "wxcli configure", "wxcli people list && wxcli configure", 'sh -c "wxcli configure"',
+])
+def test_configure_refused_before_the_trusted_agent_bypass(agent, agent_id, command):
+    reason = G.decide(_payload(command, agent, agent_id))
+    assert reason == "wxcli configure is the user's own step: they run it in their own terminal."
 
 
 def test_agent_id_without_agent_type_is_not_trusted():
