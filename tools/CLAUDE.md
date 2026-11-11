@@ -116,7 +116,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-36 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-38 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -383,7 +383,7 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   name the new command.
 - The two halves print as two `[34]` lines (`CHECK_EXAMINED` keys `34i`/`34ii`;
   `print_check_findings(..., heading="[34]")`), each with its own examined count. CI's
-  completion assertion greps the highest-numbered check (`^\[36\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
+  completion assertion greps the highest-numbered check (`^\[38\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
   (`TestLegacyCliCheck`: a planted fixture fires and a clean control does not, for each half).
   Proven on the live tree too: a planted `` `wxcc-flow list --type SUBFLOW` `` in
   `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
@@ -405,6 +405,28 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   `_BODY_SKELETON_<FUNCTION>`. Top level only. Examined = write commands with a spec op and a
   body (790 at landing). **To clear:** fix `openapi_parser._without_readonly_properties`,
   regen. No ack key. Tests: `tests/test_drift_check_readonly.py`.
+- **[37] A composed object/array body property rendered as a text flag** (audit F2,
+  2026-11-10). For every `body["<name>"] = <param>` write whose `<param>` is a scalar
+  `typer.Option` (POST/PUT/PATCH blocks with a spec op), the spec property is resolved through
+  `$ref`, `allOf`, `oneOf` and `anyOf` (`_composed_shape`; a `oneOf`/`anyOf` body is read
+  across its branches); one that resolves to an object or an array fires. Every declaring spec
+  must agree. **ADVISORY, never gated:** a property that resolves to an enum through
+  composition whose option help omits a value (`CHECK_ADVISORIES["37"]`, printed as
+  `[37] ADVISORY`). `field_shape` (checks 13/14) now resolves composition too. Examined =
+  scalar body flags (3,275 at landing). Run against the pre-fix modules it fires 6 (the six
+  object fields of `ai-receptionist create`/`update`) and lists 5 advisories (the five scalar
+  enums). **To clear:** fix `openapi_parser._resolve_property_schema` / `parse_request_body`,
+  regen. No ack key. Tests: `tests/test_drift_check_composed.py`.
+- **[38] A `oneOf`/`anyOf` request body read as `allOf`** (audit F3, 2026-11-10). For a write
+  whose spec body is a top-level `oneOf`/`anyOf`: (a) `kind: required` — the rendered
+  `_missing = [...]` is a subset of the branches' required intersection (plus the body's own);
+  (b) `kind: enum` — every enum that varies by branch is fully listed in that option's help
+  (case-insensitive); (c) `kind: example` / `skeleton` — the minimal `Example: ... --json-body`
+  and the `_BODY_SKELETON_<FUNCTION>` constant equal `_schema_to_example` of the FIRST branch.
+  Examined = write commands with such a body (3 at landing: `cc-agent-summaries create`,
+  `cc-tasks create-tasks`, `create-messages`). Run against the pre-fix modules it fires 10.
+  **To clear:** fix `openapi_parser._merge_alternatives` / `_request_body_schema`, regen. No
+  ack key. Tests: `tests/test_drift_check_oneof.py`.
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
@@ -1766,6 +1788,46 @@ so the flags did nothing. **Spec only** for the other 21.
 
 **Compile guard.** `generate_tag` now `compile()`s each rendered module before writing it and raises
 `RuntimeError` naming the module, so an uncompilable module (a duplicate argument, say) never reaches disk.
+
+### Composed body properties and `oneOf` request bodies (2026-11-10, audit F2 and F3, checks 37-38)
+
+**F2.** A body property written `allOf: [{$ref: X}]` (Cisco's way to hang a `description` on a
+`$ref`) had no `type` key, so `parse_request_body` typed it "string": `ai-receptionist create`
+offered `--default-action` and `--ai-agent` text flags (the generated `Example:` was that call) and
+`call-recording update-vendor-call-recording` lost its `--failure-behavior` choices. New
+`openapi_parser._resolve_property_schema` follows `$ref` and a single-branch `allOf: [X]`; an
+object resolves to a flagless `object` field (`--json-body`, and the `Example:` switches to the
+minimal skeleton), a scalar keeps its own description and gains the enum. Eleven properties, all
+single-branch, so there is no `oneOf` branch. Modules changed: `ai_receptionist`, `call_recording`,
+`call_controls` (`create-reject*`: `--action` now lists `busy, temporarilyUnavailable, ignore`).
+Rejected: extending `_resolve_schema_node` (list-response item schemas use it; B5).
+Known leftover, not in scope: `_schema_to_example` still reads a scalar `allOf` through
+`_resolve_schema_node`, which merges only `properties`, so a skeleton shows `{}` for such a property
+(`"action":{}`, `"failureBehavior":{}`).
+
+**F3.** A top-level `oneOf` request body is a choice between shapes, but `_resolve_schema_node`
+read it as `allOf`. `_request_body_schema` now sends a top-level `oneOf`/`anyOf` to the new
+`_merge_alternatives`, which returns `(merged_for_flags, first_branch)`: `required` is the
+INTERSECTION of the branches' required lists; an enum is the ordered UNION (a branch with no enum
+means none); a property whose type differs between branches (a fixture-only case) becomes a flagless
+object; when only the description differs the distinct descriptions are joined with " | ", and when
+the enum varies by branch they are dropped (the first branch's text names only its own value).
+`_request_body_schema(op, spec, *, for_example=False)`: `generate_body_example` passes
+`for_example=True` and gets the FIRST branch alone, so an example is one valid body, never a mix;
+`parse_request_body` and `declares_json_body` get the merged shape. `allOf` bodies (`cc-callbacks
+update`) are unchanged. Modules changed: `cc_agent_summaries` (`--interaction-id` and
+`--agent-ci-user-id` no longer required, `--search-type` lists three choices), `cc_tasks`
+(`create-tasks`: `--channel` no longer required, `--channel-type` lists three; `create-messages`:
+`--media-type` lists both; examples now `workItem`). Rejected: reading the union as required (the bug);
+picking the last branch (what `dict.update` did); changing `_resolve_schema_node` (B5: four list
+operations read through it, pinned by `test_response_item_schemas_unchanged`).
+**Live-verified (sandbox, `docs/audit/claude-fable-5-2/live_f2_ai_receptionist.md`):** the old
+`ai-receptionist create --default-action DEFAULT_ACTION --ai-agent AI_AGENT` is rejected with HTTP 400
+(a string where the `DefaultAction` object is expected), so removing those flags removes a call that
+cannot work. F3 (`docs/audit/claude-fable-5-2/live_f5_f3.md`, read-only): the server accepts the
+`ORGANIZATION` shape of `cc-agent-summaries create` (200, empty `summaries`), so the old local refusal
+blocked a request it accepts. **Spec only:** the new `--json-body` create succeeding, F2's enum
+choices, and F3's `cc-tasks create-tasks` and `create-messages` (not probed).
 
 ## Flow Store spec
 

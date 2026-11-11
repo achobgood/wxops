@@ -397,7 +397,7 @@ def update_vendor_call_recording(
     location_id: str = typer.Argument(help="Webex RECORDING_VENDOR id, from: wxcli location-settings list-calling-details"),
     id_param: str = typer.Option(None, "--id", help="Unique identifier of the call recording vendor."),
     org_default_enabled: bool = typer.Option(None, "--org-default-enabled/--no-org-default-enabled", help="Vendor is enabled by default."),
-    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Type of failure behavior."),
+    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Choices: PROCEED_WITH_CALL_NO_ANNOUNCEMENT, PROCEED_CALL_WITH_ANNOUNCEMENT, END_CALL_WITH_ANNOUNCEMENT"),
     org_failure_behavior_enabled: bool = typer.Option(None, "--org-failure-behavior-enabled/--no-org-failure-behavior-enabled", help="Failure behavior is enabled."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -635,7 +635,7 @@ _BODY_SKELETON_UPDATE_VENDOR_CALL_RECORDING_1 = '{"vendorId":"...","failureBehav
 @app.command("update-vendor-call-recording-1", short_help="Set Organization Call Recording Vendor.")
 def update_vendor_call_recording_1(
     vendor_id: str = typer.Option(None, "--vendor-id", help="Unique identifier of the vendor."),
-    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Call recording failure behavior."),
+    failure_behavior: str = typer.Option(None, "--failure-behavior", help="Choices: PROCEED_WITH_CALL_NO_ANNOUNCEMENT, PROCEED_CALL_WITH_ANNOUNCEMENT, END_CALL_WITH_ANNOUNCEMENT"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),

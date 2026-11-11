@@ -1055,19 +1055,19 @@ def delete_preview_task(
 
 
 
-_BODY_SKELETON_CREATE_TASKS = '{"origin":{"id":"...","name":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"telephony","channel":"...","channelParams":{"type":"telephony","entryPointId":"...","outboundType":"CALLBACK","callback":{"type":"immediate","origin":"web","number":"..."},"sipHeaders":{}},"flowSettings":{},"globalVariables":{}}'
+_BODY_SKELETON_CREATE_TASKS = '{"origin":{"id":"...","name":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"workItem","channel":"...","channelParams":{"type":"work-item-form","message":{"aliasId":"...","workItemData":{},"timestamp":0}},"flowSettings":{},"globalVariables":{}}'
 
 @app.command("create-tasks", short_help="Create Task.")
 def create_tasks(
-    channel_type: str = typer.Option(None, "--channel-type", help="(required) Choices: telephony"),
-    channel: str = typer.Option(None, "--channel", help="(required) Not applicable for telephony tasks. May be omitted or set to `null`."),
+    channel_type: str = typer.Option(None, "--channel-type", help="(required) Choices: workItem, customMessaging, telephony"),
+    channel: str = typer.Option(None, "--channel", help="Identifier of the configured workItem channel in the organization. Required for `workItem` requests. | Identifier of the configured custom messaging channel in the organization. Required for `customMessaging` requests. | Not applicable for telephony tasks. May be omitted or set to `null`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Task.\n\n\b\nExample: wxcli cc-tasks create-tasks --json-body '{"origin":{"id":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"telephony","channel":"...","channelParams":{"type":"telephony","entryPointId":"...","outboundType":"CALLBACK"}}'\n\n\b\nExample --json-body: '{"origin":{"id":"...","name":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"telephony","channel":"...","channelParams":{"type":"telephony","entryPointId":"...","outboundType":"CALLBACK","callback":{"type":"immediate","origin":"web","number":"..."},"sipHeaders":{}},"flowSettings":{},"globalVariables":{}}'"""
+    """Create Task.\n\n\b\nExample: wxcli cc-tasks create-tasks --json-body '{"origin":{"id":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"workItem","channel":"...","channelParams":{"type":"work-item-form","message":{"aliasId":"...","workItemData":{},"timestamp":0}}}'\n\n\b\nExample --json-body: '{"origin":{"id":"...","name":"..."},"destination":{"id":"...","type":"businessAddress"},"channelType":"workItem","channel":"...","channelParams":{"type":"work-item-form","message":{"aliasId":"...","workItemData":{},"timestamp":0}},"flowSettings":{},"globalVariables":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TASKS), indent=2))
         raise typer.Exit(0)
@@ -1082,7 +1082,7 @@ def create_tasks(
             body["channelType"] = channel_type
         if channel is not None:
             body["channel"] = channel
-        _missing = [f for f in ['channelType', 'channel'] if f not in body or body[f] is None]
+        _missing = [f for f in ['channelType'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -1104,19 +1104,19 @@ def create_tasks(
 
 
 
-_BODY_SKELETON_CREATE_MESSAGES = '{"mediaType":"customMessaging","channelParams":{"type":"text","message":{"aliasId":"...","text":"...","timestamp":0,"attachments":[{"fileName":"...","mimeType":"...","fileUrl":"..."}]}}}'
+_BODY_SKELETON_CREATE_MESSAGES = '{"mediaType":"workItem","channelParams":{"type":"work-item-form","message":{"aliasId":"...","workItemData":{},"timestamp":0}}}'
 
 @app.command("create-messages", short_help="Append Task Message.")
 def create_messages(
     task_id: str = typer.Argument(help="UUID, from: wxcli cc-tasks list"),
-    media_type: str = typer.Option(None, "--media-type", help="(required) Choices: customMessaging"),
+    media_type: str = typer.Option(None, "--media-type", help="(required) Choices: workItem, customMessaging"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Append Task Message.\n\n\b\nExample: wxcli cc-tasks create-messages TASK_ID --json-body '{"mediaType":"customMessaging","channelParams":{"type":"text","message":{"aliasId":"...","text":"...","timestamp":0,"attachments":[{"fileName":"...","mimeType":"...","fileUrl":"..."}]}}}'"""
+    """Append Task Message.\n\n\b\nExample: wxcli cc-tasks create-messages TASK_ID --json-body '{"mediaType":"workItem","channelParams":{"type":"work-item-form","message":{"aliasId":"...","workItemData":{},"timestamp":0}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_MESSAGES), indent=2))
         raise typer.Exit(0)

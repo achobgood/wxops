@@ -117,6 +117,39 @@ def _resolve_param_schema(spec: dict, schema: dict) -> dict:
     return resolved
 
 
+def _single_allof_branch(schema) -> dict | None:
+    """The one member of a single-branch `allOf: [X]`, else None.
+
+    Cisco writes `allOf: [{$ref}]` to hang a `description` on a property that
+    is really a `$ref` (OpenAPI 3.0 ignores siblings of a `$ref`)."""
+    if not isinstance(schema, dict):
+        return None
+    members = schema.get("allOf")
+    if (isinstance(members, list) and len(members) == 1
+            and isinstance(members[0], dict)):
+        return members[0]
+    return None
+
+
+def _resolve_property_schema(spec: dict, schema: dict) -> dict:
+    """The schema a request-body property really has: `$ref` followed, and a
+    single-branch `allOf: [X]` replaced by X (itself resolved).
+
+    The audit counted exactly 11 composed properties, all of that shape, so
+    there is no `oneOf` branch here (audit F2). Returns the referenced schema
+    itself, not the property's own sibling keys (`description`): the caller
+    decides which description wins. Always a copy; the spec is never mutated.
+    A schema that is neither a `$ref` nor a single-branch `allOf` comes back as
+    it is."""
+    for _ in range(8):
+        schema = _follow_ref(spec, schema)
+        inner = _single_allof_branch(schema)
+        if inner is None:
+            break
+        schema = inner
+    return dict(schema)
+
+
 def parse_parameters(
     params: list[dict], spec: dict, omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
@@ -325,15 +358,134 @@ _SCALA_SEQ_PLACEHOLDER = frozenset({"empty", "traversableAgain"})
 _SCALA_SEQ_MARKER = "x-wxcli-scala-seq"
 
 
-def _request_body_schema(op: dict, spec: dict) -> dict | None:
+def _prop_signature(spec: dict, prop) -> tuple[str, list | None, dict]:
+    """(field type, enum or None, resolved schema) of one body property, read
+    the way `parse_request_body` reads it, so branches compare on what the CLI
+    would render."""
+    composed = isinstance(prop, dict) and (
+        "$ref" in prop or _single_allof_branch(prop) is not None)
+    resolved = _resolve_property_schema(spec, prop) if composed else (
+        prop if isinstance(prop, dict) else {})
+    if composed:
+        rtype = resolved.get("type", "object")
+        ftype = (_openapi_type_to_field_type(resolved)
+                 if rtype in ("string", "integer", "number", "boolean")
+                 else "object")
+    else:
+        ftype = _openapi_type_to_field_type(resolved)
+    enum = resolved.get("enum")
+    return ftype, (list(enum) if isinstance(enum, list) else None), resolved
+
+
+def _merge_alternatives(spec: dict, schema: dict) -> tuple[dict, dict]:
+    """Read a top-level `oneOf`/`anyOf` body as a choice between shapes
+    (audit F3). Returns `(merged_for_flags, first_branch)`.
+
+    `_resolve_schema_node` reads such a body as if it were `allOf` (it merges
+    the branches with `dict.update` and concatenates their `required` lists), so
+    `cc-agent-summaries create` demanded `--interaction-id` AND
+    `--agent-ci-user-id` together and showed only the last branch's enum. It
+    cannot be changed: list-response item schemas use it too, and there a merge
+    is what is wanted. So a request body is read here:
+
+    * `required` is the INTERSECTION of the branches' required lists (plus
+      whatever the body itself requires): a flag may demand only what every
+      alternative demands;
+    * a property keeps the first branch's schema; its enum is the ordered UNION
+      across branches (one branch with no enum accepts any value, so there is
+      none). When the enum varies by branch and the branches describe it
+      differently, the description is dropped (the first branch's text names
+      only its own value); when only the description differs, the distinct
+      descriptions are joined with " | ";
+    * a property whose field type differs between branches (a fixture-only case
+      today) becomes a flagless object: `--json-body` is the only honest route;
+    * `first_branch` is the first alternative alone, siblings of the `oneOf`
+      included. The skeleton and the Example come from it, never from a mix.
+
+    Always new dicts; the spec is never mutated."""
+    key = "oneOf" if isinstance(schema.get("oneOf"), list) else "anyOf"
+    base = _resolve_schema_node(
+        spec, {k: v for k, v in schema.items() if k not in ("oneOf", "anyOf")})
+    base_props = dict(base.get("properties") or {})
+    base_req = list(base.get("required") or [])
+    branches = [_resolve_schema_node(spec, b) for b in schema[key]]
+    # The skeleton: the first alternative, with the body's own properties.
+    first = {k: v for k, v in base.items() if k not in ("properties", "required")}
+    first["type"] = "object"
+    first["properties"] = {**base_props, **(branches[0].get("properties") or {})}
+    first["required"] = list(dict.fromkeys(
+        base_req + list(branches[0].get("required") or []))) if branches else base_req
+    if not branches:
+        return dict(first), first
+
+    occurrences: dict[str, list] = {n: [p] for n, p in base_props.items()}
+    for b in branches:
+        for name, prop in (b.get("properties") or {}).items():
+            occurrences.setdefault(name, []).append(prop)
+    required_sets = [set(b.get("required") or []) for b in branches]
+    shared = set.intersection(*required_sets) if required_sets else set()
+    merged_props: dict = {}
+    for name, props in occurrences.items():
+        sigs = [_prop_signature(spec, p) for p in props]
+        types = {t for t, _, _ in sigs}
+        if len(types) > 1:
+            merged_props[name] = {
+                "type": "object",
+                "description": (props[0].get("description", "")
+                                if isinstance(props[0], dict) else "")}
+            continue
+        enums = [e for _, e, _ in sigs]
+        varies = (len({tuple(e) for e in enums if e is not None}) > 1
+                  or (any(e is None for e in enums)
+                      and any(e is not None for e in enums)))
+        if not varies:
+            # Same choices everywhere. When the branches describe the property
+            # differently (`channel` is "required for workItem", "required for
+            # customMessaging" and "not applicable for telephony"), say all of
+            # them: the first branch's text alone reads as the whole rule.
+            descs = list(dict.fromkeys(
+                d for d in ((p.get("description") or "") if isinstance(p, dict)
+                            else "" for p in props) if d))
+            if len(descs) > 1:
+                merged_props[name] = {**props[0], "description": " | ".join(descs)}
+            else:
+                merged_props[name] = props[0]
+            continue
+        union = None
+        if all(e is not None for e in enums):
+            union = list(dict.fromkeys(v for e in enums for v in e))
+        ftype, _, resolved = sigs[0]
+        descs = {(p.get("description") or r.get("description") or "")
+                 for p, (_, _, r) in zip(props, sigs) if isinstance(p, dict)}
+        resolved = {k: v for k, v in resolved.items() if k != "enum"}
+        if union is not None:
+            resolved["enum"] = union
+        resolved["description"] = (next(iter(descs)) if len(descs) == 1 else "")
+        merged_props[name] = resolved
+    merged = {k: v for k, v in base.items() if k not in ("properties", "required")}
+    merged["type"] = "object"
+    merged["properties"] = merged_props
+    merged["required"] = list(dict.fromkeys(
+        base_req + [n for n in merged_props if n in shared]))
+    return merged, first
+
+
+def _request_body_schema(op: dict, spec: dict, *, for_example: bool = False) -> dict | None:
     """The resolved JSON request-body schema, or None if the op has no body.
 
-    One reader for both the flag list and the skeleton, so the two can never
-    disagree about what the body contains. It composes allOf/oneOf/anyOf via
-    _resolve_schema_node — without that, a body declared purely as a
-    composition reads as having no properties at all, which is how
-    `cc-callbacks update` shipped with zero flags, no skeleton, and no
-    --generate-json-body while its spec declares 8 required fields.
+    Flags and skeleton read the SAME body, so they cannot disagree about which
+    fields exist. `allOf` is composed via _resolve_schema_node — without that, a
+    body declared purely as a composition reads as having no properties at all,
+    which is how `cc-callbacks update` shipped with zero flags, no skeleton, and
+    no --generate-json-body while its spec declares 8 required fields.
+
+    A top-level `oneOf`/`anyOf` is a choice, not a sum (audit F3), and one
+    schema cannot serve both readers: `for_example=False` (the default, for the
+    flag list and `declares_json_body`) returns the merged shape
+    (_merge_alternatives: required is the intersection, enums the union);
+    `for_example=True` (the skeleton and the Example) returns the FIRST
+    alternative alone, so an example is one valid body and never a mix of
+    branches. Any other body reads the same either way.
     """
     content = op.get("requestBody", {}).get("content", {})
     json_content = (
@@ -347,7 +499,10 @@ def _request_body_schema(op: dict, spec: dict) -> dict | None:
     ref_name = schema.get("$ref", "").rsplit("/", 1)[-1]
     if "$ref" in schema:
         schema = resolve_ref(spec, schema["$ref"])
-    if any(k in schema for k in ("allOf", "oneOf", "anyOf")):
+    if isinstance(schema.get("oneOf"), list) or isinstance(schema.get("anyOf"), list):
+        merged, first = _merge_alternatives(spec, schema)
+        schema = first if for_example else merged
+    elif "allOf" in schema:
         schema = _resolve_schema_node(spec, schema)
     if set(schema.get("properties") or ()) == _SCALA_SEQ_PLACEHOLDER:
         # springfox's stand-in for a Scala `Seq` (Flow Store `SeqString`,
@@ -404,7 +559,7 @@ def generate_body_example(
     `notes` is an optional out-parameter collecting any place expansion had to
     stop (see _schema_to_example). An empty list means the skeleton is complete.
     """
-    schema = _request_body_schema(op, spec)
+    schema = _request_body_schema(op, spec, for_example=True)
     if schema is None:
         return None
     if schema.get(_SCALA_SEQ_MARKER):
@@ -448,9 +603,13 @@ def parse_request_body(
     fields: list[EndpointField] = []
 
     for name, prop in properties.items():
-        # Resolve property-level $ref — check if it's a simple type or true object
-        if "$ref" in prop:
-            resolved = resolve_ref(spec, prop["$ref"])
+        # Resolve property-level $ref — check if it's a simple type or true
+        # object. A single-branch `allOf: [{$ref}]` is the same thing with a
+        # description attached (audit F2): without this it had no `type` and
+        # became a text flag whose value was written where the API wants an
+        # object.
+        if "$ref" in prop or _single_allof_branch(prop) is not None:
+            resolved = _resolve_property_schema(spec, prop)
             resolved_type = resolved.get("type", "object")
             if resolved_type in ("string", "integer", "number", "boolean"):
                 # Simple type behind $ref (e.g., enum) — treat as normal field

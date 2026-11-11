@@ -359,6 +359,21 @@ Checks (docs/arch/target-architecture.md §A6):
       `lastUpdatedTime` of the shared Contact Center DTOs were flags on 22
       commands; the server ignores them (audit F6, live 2026-11-10). Top level
       only. Examined = write commands with a spec op and a body.
+  37. Composed object/array body property rendered as a text flag: for every
+      `body["<name>"] = <option>` write whose option is a scalar
+      `typer.Option`, the spec property is resolved through `$ref`, `allOf`,
+      `oneOf` and `anyOf`; one that resolves to an object or an array fires.
+      `{allOf: [{$ref: <object>}]}` had no `type` key, so `ai-receptionist
+      create` offered `--default-action DEFAULT_ACTION` and its Example was
+      that call (audit F2). A composed enum missing from the help is an
+      ADVISORY line, never a failure. Examined = scalar body flags.
+  38. `oneOf`/`anyOf` request body read as `allOf`: for a write whose body is a
+      top-level `oneOf`/`anyOf` (a) the rendered `_missing = [...]` is a subset
+      of the branches' required intersection, (b) every enum that varies by
+      branch is fully listed in the help, (c) the skeleton and the minimal
+      Example equal `_schema_to_example` of the FIRST branch. `cc-agent-summaries
+      create` required `--interaction-id` AND `--agent-ci-user-id` together and
+      offered only `AGENT` (audit F3). Examined = oneOf/anyOf write commands.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -2423,15 +2438,61 @@ def required_query_params(op: dict, spec: dict | None = None) -> list[str]:
             and not (lifted and p["name"] == lifted[0])]
 
 
-def field_shape(op: dict, spec: dict, name: str) -> str:
-    """'object' | 'array' | 'scalar' for one top-level body property."""
-    prop = (body_schema(op, spec) or {}).get("properties", {}).get(name, {})
-    if "$ref" in prop:
-        prop = _ref(spec, prop)
-    t = prop.get("type")
+def _composed_shape(spec: dict, node, depth: int = 0) -> str:
+    """'object' | 'array' | 'scalar' for one property schema: `$ref` followed,
+    and a schema with no `type` of its own read through its `allOf`, `oneOf` and
+    `anyOf` members (the first member that is an object or an array decides).
+    `_resolve_ref` is the bounded follower; a dangling `$ref` reads 'scalar'."""
+    node = _resolve_ref(spec, node)
+    if depth > 8 or not node:
+        return "scalar"
+    t = node.get("type")
     if t in ("object", "array"):
         return t
-    return "object" if (t is None and "properties" in prop) else "scalar"
+    if t is None and "properties" in node:
+        return "object"
+    if t is None:
+        for key in ("allOf", "oneOf", "anyOf"):
+            members = node.get(key)
+            for member in members if isinstance(members, list) else ():
+                shape = _composed_shape(spec, member, depth + 1)
+                if shape != "scalar":
+                    return shape
+    return "scalar"
+
+
+def _body_prop_candidates(spec: dict, schema, depth: int = 0) -> dict[str, list]:
+    """{property name: [every schema that declares it]} for a body schema,
+    `$ref` followed and `allOf`, `oneOf` and `anyOf` members all read: the
+    candidates are what one property may be in ANY alternative."""
+    schema = _resolve_ref(spec, schema)
+    out: dict[str, list] = {}
+    if depth > 8 or not schema:
+        return out
+    for key in ("allOf", "oneOf", "anyOf"):
+        members = schema.get(key)
+        for member in members if isinstance(members, list) else ():
+            for name, props in _body_prop_candidates(spec, member, depth + 1).items():
+                out.setdefault(name, []).extend(props)
+    own = schema.get("properties")
+    if isinstance(own, dict):
+        for name, prop in own.items():
+            out.setdefault(name, []).append(prop)
+    return out
+
+
+def field_shape(op: dict, spec: dict, name: str) -> str:
+    """'object' | 'array' | 'scalar' for one top-level body property.
+
+    A property declared only by composition (`allOf: [{$ref}]`) is read through
+    its members, and a property of a top-level `oneOf`/`anyOf` body is found in
+    its branches (audit F2/F3: this used to read only `type` and `properties`,
+    so a composed object read as 'scalar')."""
+    prop = (body_schema(op, spec) or {}).get("properties", {}).get(name)
+    if prop is None:
+        cands = _body_prop_candidates(spec, _raw_body_schema(op, spec) or {})
+        prop = (cands.get(name) or [{}])[0]
+    return _composed_shape(spec, prop)
 
 
 def _const_key(node) -> str | None:
@@ -5753,6 +5814,314 @@ CHECK_PRINT["36"] = (
                f"{', '.join(f['defects'])}  {f['op']}  ({f['spec']})"))
 
 
+# ----------------------------------------------------------------- check 37
+
+# Advisory lines a check reports but never fails on: {"NN": [finding, ...]},
+# reset by each call of the check that owns the key.
+CHECK_ADVISORIES: dict[str, list[dict]] = {}
+
+# `name: str = typer.Option(None, "--flag", …` — the parameter AND its flag.
+_PARAM_OPTION = re.compile(
+    r'^\s+(?P<param>\w+): \w+ = typer\.Option\(\s*(?:\.\.\.|None|True|False|"[^"]*")'
+    r'\s*,\s*"--(?P<flag>[^"/\s]+)', re.M)
+_BODY_WRITE = re.compile(
+    r'body\[\s*["\'](?P<name>[^"\']+)["\']\s*\]\s*=\s*(?P<param>\w+)\s*$', re.M)
+
+
+def _composed_enum(spec: dict, node, depth: int = 0) -> list | None:
+    """The enum a property resolves to through `$ref`, `allOf`, `oneOf` and
+    `anyOf` (ordered union over members), or None when it has none."""
+    node = _resolve_ref(spec, node)
+    if depth > 8 or not node:
+        return None
+    if isinstance(node.get("enum"), list):
+        return list(node["enum"])
+    values: list = []
+    for key in ("allOf", "oneOf", "anyOf"):
+        members = node.get(key)
+        for member in members if isinstance(members, list) else ():
+            values += _composed_enum(spec, member, depth + 1) or []
+    return list(dict.fromkeys(values)) or None
+
+
+def check_composed_property_flags(commands_dir: Path = COMMANDS_DIR,
+                                  specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A body property that is an object or an array, rendered as a scalar flag
+    (audit F2).
+
+    `parse_request_body` resolved a property's direct `$ref` but typed anything
+    without a `type` key as "string", so `{allOf: [{$ref: <object>}]}` became
+    `--default-action DEFAULT_ACTION` on `ai-receptionist create`: the text was
+    written into the body where the API wants an object, and the generated
+    `Example:` line was that exact call. Check 13 is satisfied by any flag, so
+    a wrong flag passed it.
+
+    For every `body["<name>"] = <param>` write of a POST/PUT/PATCH block whose
+    `<param>` is a scalar `typer.Option`, the spec property is resolved through
+    `$ref`, `allOf`, `oneOf` and `anyOf` (a `oneOf`/`anyOf` body is read across
+    its branches); one that resolves to an object or an array fires. Every
+    declaring spec must agree (under-report rather than fail a correct
+    command). ADVISORY, never gated: a property that resolves to an enum
+    through composition whose option help omits a value
+    (`CHECK_ADVISORIES["37"]`). No ack key (ADR-13 rules).
+
+    Examined = body writes joined to a property the spec declares; blocks with
+    no spec op are skipped and counted.
+    """
+    findings: list[dict] = []
+    advisories: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        if block.method not in _WRITE_METHODS:
+            continue
+        sops = index.get((block.method, block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        flags = {m.group("param"): m.group("flag")
+                 for m in _PARAM_OPTION.finditer(block.text)}
+        helps = _option_helps(block.text)
+        cands = [_body_prop_candidates(sop.spec, _raw_body_schema(sop.op, sop.spec) or {})
+                 for sop in sops]
+        seen: set[str] = set()
+        for m in _BODY_WRITE.finditer(block.text):
+            name, param = m.group("name"), m.group("param")
+            if param not in flags or name in seen:
+                continue
+            props = [c.get(name) for c in cands]
+            if not any(props):
+                continue
+            seen.add(name)
+            examined += 1
+            shapes = [_composed_shape(sop.spec, p)
+                      for sop, plist in zip(sops, props) for p in plist or ()]
+            if shapes and all(sh in ("object", "array") for sh in shapes):
+                findings.append({
+                    "group": block.group, "command": block.command,
+                    "op": f"{block.method} {sops[0].path}",
+                    "field": name, "flag": f"--{flags[param]}",
+                    "shape": shapes[0],
+                    "spec": ", ".join(sorted({s.spec_file for s in sops}))})
+                continue
+            # Advisory: a composed property's enum must reach the help.
+            help_text = helps.get(_squash(flags[param]), "").lower()
+            for sop, plist in zip(sops, props):
+                for p in plist or ():
+                    if not isinstance(p, dict) or not (
+                            "$ref" in p or any(k in p for k in
+                                               ("allOf", "oneOf", "anyOf"))):
+                        continue
+                    values = _composed_enum(sop.spec, p)
+                    missing = [str(v) for v in values or ()
+                               if str(v).lower() not in help_text]
+                    if missing:
+                        advisories.append({
+                            "group": block.group, "command": block.command,
+                            "op": f"{block.method} {sops[0].path}",
+                            "field": name, "flag": f"--{flags[param]}",
+                            "missing": missing, "spec": sop.spec_file})
+                        break
+                else:
+                    continue
+                break
+    CHECK_ADVISORIES["37"] = advisories
+    return record_examined(
+        "37", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "scalar body flags")
+
+
+CHECK_PRINT["37"] = (
+    "composed body properties rendered as a text flag",
+    "scalar body flags",
+    lambda f: (f"wxcli {f['group']} {f['command']} {f['flag']}  "
+               f"{f['field']} is an {f['shape']}  {f['op']}  ({f['spec']})"))
+
+
+# ----------------------------------------------------------------- check 38
+
+def _schema_required(spec: dict, schema, depth: int = 0) -> list[str]:
+    """`required` of a schema, `$ref` followed and `allOf` members merged."""
+    schema = _resolve_ref(spec, schema)
+    if depth > 8 or not schema:
+        return []
+    out = list(schema.get("required") or [])
+    members = schema.get("allOf")
+    for member in members if isinstance(members, list) else ():
+        out += _schema_required(spec, member, depth + 1)
+    return list(dict.fromkeys(out))
+
+
+def _top_level_alternatives(spec: dict, op: dict) -> tuple[list, dict] | None:
+    """(branch schemas, the body's own non-branch part) when `op`'s request
+    body is a top-level `oneOf`/`anyOf`, else None."""
+    node = _resolve_ref(spec, _raw_body_schema(op, spec) or {})
+    for key in ("oneOf", "anyOf"):
+        members = node.get(key)
+        if isinstance(members, list) and members:
+            return members, {k: v for k, v in node.items() if k != key}
+    return None
+
+
+def _block_skeleton(block: "CommandBlock", commands_dir: Path,
+                    sources: dict[str, str]):
+    """The parsed `_BODY_SKELETON_<FUNCTION>` constant of `block`'s command, or
+    None (no such constant, or it is not JSON)."""
+    fn = re.search(r"^def (\w+)\(", block.text, re.M)
+    if not fn:
+        return None
+    if block.module not in sources:
+        try:
+            sources[block.module] = (
+                Path(commands_dir) / f"{block.module}.py").read_text()
+        except (OSError, UnicodeDecodeError):
+            sources[block.module] = ""
+    m = re.search(rf"^_BODY_SKELETON_{re.escape(fn.group(1).upper())}"
+                  r"\s*=\s*('.*?'|\".*?\")\s*$", sources[block.module], re.M)
+    if not m:
+        return None
+    try:
+        return json.loads(ast.literal_eval(m.group(1)))
+    except (ValueError, SyntaxError):
+        return None
+
+
+# The runnable example's `--json-body '<minimal skeleton>'`. In the source the
+# docstring's newlines are the two characters backslash-n.
+_EXAMPLE_JSON = re.compile(
+    r"\\nExample: wxcli [^\n]*?--json-body '(?P<j>\{.*?\})'(?=\\n|\"\"\")")
+
+
+def check_oneof_bodies(commands_dir: Path = COMMANDS_DIR,
+                       specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A `oneOf`/`anyOf` request body read as if it were `allOf` (audit F3).
+
+    `_resolve_schema_node` merged a top-level `oneOf` body's branches with
+    `dict.update` and concatenated their `required` lists, so
+    `cc-agent-summaries create` required `--interaction-id` AND
+    `--agent-ci-user-id` together and its `--search-type` offered only the last
+    branch's value; `cc-tasks create-tasks` marked `--channel` required on the
+    one branch its own help says it does not apply to. Check 30 accepts "a
+    `oneOf` of closed branches accepts their union" by design, check 13 passes
+    because every unioned field has a flag.
+
+    For a POST/PUT/PATCH block whose spec request body is a top-level
+    `oneOf`/`anyOf`:
+
+      (a) `kind: required` — the rendered `_missing = [...]` must be a subset of
+          the intersection of the branches' required fields (plus the body's
+          own);
+      (b) `kind: enum` — every enum that varies by branch must be fully listed
+          in that option's help, compared case-insensitively;
+      (c) `kind: example` / `skeleton` — the `Example: … --json-body '<minimal>'`
+          must equal `_schema_to_example(first branch, required_only=True)` and
+          the `_BODY_SKELETON_<FUNCTION>` constant `_schema_to_example(first
+          branch)`: one valid body, never a mix of branches.
+
+    Every declaring spec must agree (a finding needs every reading to fail).
+    No ack key (ADR-13 rules). Examined = blocks whose spec op has such a body;
+    blocks with no spec op are skipped and counted.
+    """
+    from tools.openapi_parser import _schema_to_example
+
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    sources: dict[str, str] = {}
+    for block in blocks:
+        if block.method not in _WRITE_METHODS:
+            continue
+        sops = index.get((block.method, block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        readings = [(sop, alt) for sop in sops
+                    if (alt := _top_level_alternatives(sop.spec, sop.op))]
+        if not readings:
+            continue
+        examined += 1
+        helps = _option_helps(block.text)
+        miss = re.search(r"_missing = \[f for f in (\[[^\]]*\]) if", block.text)
+        try:
+            rendered = list(ast.literal_eval(miss.group(1))) if miss else []
+        except (ValueError, SyntaxError):
+            rendered = []
+        skeleton = _block_skeleton(block, commands_dir, sources)
+        ex = _EXAMPLE_JSON.search(block.text)
+        try:
+            example = json.loads(ex.group("j")) if ex else None
+        except ValueError:
+            example = None
+
+        per_kind: dict[str, list[list[str]]] = {}
+        for sop, (branches, own) in readings:
+            spec = sop.spec
+            req_sets = [set(_schema_required(spec, b)) | set(_schema_required(spec, own))
+                        for b in branches]
+            shared = set.intersection(*req_sets)
+            per_kind.setdefault("required", []).append(
+                sorted(f for f in rendered if f not in shared))
+            # (b) enums that vary by branch
+            enums: dict[str, list[tuple]] = {}
+            for b in branches:
+                for name, props in _body_prop_candidates(spec, b).items():
+                    values = _composed_enum(spec, props[0])
+                    if values:
+                        enums.setdefault(name, []).append(
+                            tuple(str(v) for v in values))
+            bad = []
+            for name, per_branch in enums.items():
+                if len(set(per_branch)) < 2:
+                    continue
+                flag = helps.get(_squash(name))
+                if flag is None:
+                    continue
+                union = list(dict.fromkeys(v for e in per_branch for v in e))
+                gone = [v for v in union if v.lower() not in flag.lower()]
+                if gone:
+                    bad.append(f"{name}: {', '.join(gone)}")
+            per_kind.setdefault("enum", []).append(bad)
+            # (c) the first branch alone
+            props = {**(own.get("properties") or {}),
+                     **{n: ps[0] for n, ps in
+                        _body_prop_candidates(spec, branches[0]).items()}}
+            props = {n: p for n, p in props.items()
+                     if not (isinstance(p, dict) and (
+                         p.get("readOnly") is True
+                         or _resolve_ref(spec, p).get("readOnly") is True))}
+            first = {"type": "object", "properties": props,
+                     "required": list(dict.fromkeys(
+                         _schema_required(spec, own) + _schema_required(spec, branches[0])))}
+            full = _schema_to_example(first, spec)
+            minimal = _schema_to_example(first, spec, required_only=True)
+            per_kind.setdefault("skeleton", []).append(
+                ["differs"] if skeleton is not None and skeleton != full else [])
+            per_kind.setdefault("example", []).append(
+                ["differs"] if example is not None and example != minimal else [])
+        for kind, per_spec in per_kind.items():
+            if per_spec and all(per_spec):
+                fields = per_spec[0]
+                findings.append({
+                    "group": block.group, "command": block.command,
+                    "op": f"{block.method} {readings[0][0].path}",
+                    "kind": kind, "fields": fields,
+                    "spec": ", ".join(sorted({s.spec_file for s, _ in readings}))})
+    return record_examined(
+        "38", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "oneOf/anyOf request bodies")
+
+
+CHECK_PRINT["38"] = (
+    "oneOf/anyOf request bodies read as allOf",
+    "oneOf/anyOf request bodies",
+    lambda f: (f"wxcli {f['group']} {f['command']}  {f['kind']}: "
+               f"{', '.join(f['fields'])}  {f['op']}  ({f['spec']})"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -6734,6 +7103,8 @@ def main() -> int:
                               if command_map_present else [])
     query_enum_help = check_query_enum_help()
     readonly_flags = check_readonly_flags()
+    composed_flags = check_composed_property_flags()
+    oneof_bodies = check_oneof_bodies()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -6794,6 +7165,9 @@ def main() -> int:
         "34_command_map_unresolved": command_map_unresolved,
         "35_query_enum_help": query_enum_help,
         "36_readonly_flags": readonly_flags,
+        "37_composed_property_flags": composed_flags,
+        "37_composed_enum_advisory": CHECK_ADVISORIES.get("37", []),
+        "38_oneof_bodies": oneof_bodies,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -6816,7 +7190,8 @@ def main() -> int:
                   or list_drops_object_fields or query_body_findings
                   or paging_advice
                   or legacy_cli_tokens or command_map_unresolved
-                  or query_enum_help or readonly_flags)
+                  or query_enum_help or readonly_flags
+                  or composed_flags or oneof_bodies)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -7070,6 +7445,17 @@ def main() -> int:
                   f"({COMMAND_MAP.as_posix()} is not in this tree)")
         print_check_findings("35", query_enum_help)
         print_check_findings("36", readonly_flags)
+        print_check_findings("37", composed_flags)
+        advisory_37 = CHECK_ADVISORIES.get("37", [])
+        if advisory_37:
+            print(f"[37] ADVISORY — composed enum missing from --help: "
+                  f"{len(advisory_37)}   (not gated)")
+            for f in advisory_37[:10]:
+                print(f"      wxcli {f['group']} {f['command']} {f['flag']}  "
+                      f"missing: {', '.join(f['missing'][:8])}  ({f['spec']})")
+            if len(advisory_37) > 10:
+                print(f"      ... and {len(advisory_37) - 10} more (--json for all)")
+        print_check_findings("38", oneof_bodies)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

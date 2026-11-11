@@ -810,3 +810,271 @@ class TestReadOnlyBodyProperties:
         parse_request_body(op, spec)
         assert "createdTime" in op["requestBody"]["content"][
             "application/json"]["schema"]["properties"]
+
+
+# ── Audit F2 / F3 (2026-11-10): composed properties; oneOf request bodies ────
+
+SPECS = Path(__file__).parent.parent / "specs"
+
+
+class TestComposedBodyProperties:
+    """A body property declared only by composition (`allOf: [{$ref}]`) was
+    typed "string" (no `type` key), so an object became a text flag (audit F2).
+    """
+
+    def _spec(self):
+        return {"components": {"schemas": {
+            "CreateDefaultAction": {"type": "object", "properties": {
+                "actionType": {"type": "string"}}},
+            "FailureBehavior": {"type": "string", "enum": ["A", "B"],
+                                "description": "long enum prose"},
+        }}}
+
+    def test_allof_object_property_is_object_field(self):
+        spec = self._spec()
+        op = _body_op({"type": "object", "required": ["defaultAction"],
+                       "properties": {"defaultAction": {
+                           "description": "Default action configuration",
+                           "allOf": [{"$ref": "#/components/schemas/CreateDefaultAction"}]}}})
+        fields = parse_request_body(op, spec)
+        assert len(fields) == 1
+        f = fields[0]
+        assert (f.name, f.field_type, f.required) == ("defaultAction", "object", True)
+        assert f.description == "Default action configuration"
+        # What a direct $ref to the same object already produces.
+        direct = _body_op({"type": "object", "required": ["defaultAction"],
+                           "properties": {"defaultAction": {
+                               "$ref": "#/components/schemas/CreateDefaultAction"}}})
+        assert parse_request_body(direct, spec)[0].field_type == "object"
+
+    def test_allof_object_makes_the_example_use_json_body(self):
+        """`_flagless_required_body_fields` then switches the Example: to
+        `--json-body '<minimal skeleton>'` carrying the key."""
+        from tools.command_renderer import _example_json_body
+        spec = self._spec()
+        op = _body_op({"type": "object", "required": ["defaultAction"],
+                       "properties": {"defaultAction": {
+                           "allOf": [{"$ref": "#/components/schemas/CreateDefaultAction"}]}}})
+        ep = parse_operation("POST", "/things", op, spec)
+        body = _example_json_body(ep)
+        assert body is not None and "defaultAction" in json.loads(body)
+
+    def test_allof_enum_property_keeps_choices(self):
+        spec = json.loads((SPECS / "webex-cloud-calling.json").read_text())
+        schema = spec["components"]["schemas"]["CallRecordingVendorPatch"]
+        want = spec["components"]["schemas"]["FailureBehavior"]["enum"]
+        op = _body_op({"$ref": "#/components/schemas/CallRecordingVendorPatch"})
+        fields = {f.name: f for f in parse_request_body(op, spec)}
+        assert "failureBehavior" in schema["properties"]
+        assert fields["failureBehavior"].field_type == "string"
+        assert fields["failureBehavior"].enum_values == want
+        assert fields["failureBehavior"].description == "Call recording failure behavior."
+
+    def test_allof_scalar_with_own_description_keeps_it(self):
+        spec = self._spec()
+        op = _body_op({"type": "object", "properties": {"mode": {
+            "description": "own text",
+            "allOf": [{"$ref": "#/components/schemas/FailureBehavior"}]}}})
+        f = parse_request_body(op, spec)[0]
+        assert (f.field_type, f.enum_values, f.description) == (
+            "string", ["A", "B"], "own text")
+
+    def test_resolve_property_schema_contract(self):
+        from tools.openapi_parser import _resolve_property_schema
+        spec = self._spec()
+        ref = {"$ref": "#/components/schemas/FailureBehavior"}
+        assert _resolve_property_schema(spec, ref)["enum"] == ["A", "B"]
+        assert _resolve_property_schema(spec, {"allOf": [ref]})["enum"] == ["A", "B"]
+        # a plain inline schema comes back as it is; the spec is not mutated
+        inline = {"type": "string"}
+        assert _resolve_property_schema(spec, inline) == inline
+        assert _resolve_property_schema(spec, {}) == {}
+        assert "allOf" not in spec["components"]["schemas"]["FailureBehavior"]
+
+
+class TestOneOfRequestBodies:
+    """A top-level `oneOf` body is a choice between shapes: the flags may demand
+    only what EVERY branch requires, and enums are the union (audit F3)."""
+
+    @staticmethod
+    def _search_spec():
+        def branch(extra, st):
+            return {"type": "object",
+                    "required": ["orgId", *extra, "searchType"],
+                    "properties": {
+                        "orgId": {"type": "string"},
+                        **{e: {"type": "string"} for e in extra},
+                        "searchType": {"type": "string", "enum": [st],
+                                       "description": "The type of search."}}}
+        return {"components": {"schemas": {
+            "Org": branch([], "ORGANIZATION"),
+            "Inter": branch(["interactionId"], "INTERACTION"),
+            "Agent": branch(["agentCiUserId"], "AGENT"),
+            "Req": {"oneOf": [{"$ref": "#/components/schemas/Org"},
+                              {"$ref": "#/components/schemas/Inter"},
+                              {"$ref": "#/components/schemas/Agent"}]}}}}
+
+    def _search_op(self):
+        return _body_op({"$ref": "#/components/schemas/Req"})
+
+    def test_oneof_required_is_intersection(self):
+        fields = parse_request_body(self._search_op(), self._search_spec())
+        assert {f.name for f in fields if f.required} == {"orgId", "searchType"}
+        assert {f.name for f in fields} == {
+            "orgId", "interactionId", "agentCiUserId", "searchType"}
+
+    def test_oneof_enum_is_union(self):
+        fields = {f.name: f for f in parse_request_body(
+            self._search_op(), self._search_spec())}
+        assert fields["searchType"].enum_values == [
+            "ORGANIZATION", "INTERACTION", "AGENT"]
+        assert fields["searchType"].description == "The type of search."
+
+    def test_oneof_free_branch_means_no_enum(self):
+        """One branch with no enum accepts any string: the union has no limit."""
+        spec = {"components": {"schemas": {
+            "A": {"type": "object", "properties": {
+                "kind": {"type": "string", "enum": ["x"]}}},
+            "B": {"type": "object", "properties": {"kind": {"type": "string"}}}}}}
+        op = _body_op({"oneOf": [{"$ref": "#/components/schemas/A"},
+                                 {"$ref": "#/components/schemas/B"}]})
+        f = parse_request_body(op, spec)[0]
+        assert f.enum_values is None
+
+    def test_oneof_type_conflict_drops_flag(self):
+        """Fixture only: no tracked spec has it. A property whose type differs
+        between branches cannot be one text flag, so it is flagless
+        (`--json-body`), and still required only if every branch requires it."""
+        spec = {"components": {"schemas": {
+            "A": {"type": "object", "required": ["v", "n"], "properties": {
+                "v": {"type": "string"}, "n": {"type": "string"}}},
+            "B": {"type": "object", "required": ["v", "n"], "properties": {
+                "v": {"type": "integer"}, "n": {"type": "string"}}}}}}
+        op = _body_op({"oneOf": [{"$ref": "#/components/schemas/A"},
+                                 {"$ref": "#/components/schemas/B"}]})
+        fields = {f.name: f for f in parse_request_body(op, spec)}
+        assert fields["v"].field_type == "object" and fields["v"].required is True
+        assert fields["n"].field_type == "string"
+
+    def test_oneof_differing_descriptions_are_joined_and_not_required(self):
+        """`cc-tasks create-tasks --channel`: "required for workItem" in one
+        branch, "not applicable" in another. Not in the intersection, so not
+        required; the help says every branch's rule, not only the first."""
+        def branch(channel_desc, required):
+            return {"type": "object", "required": ["kind", *required],
+                    "properties": {
+                        "kind": {"type": "string"},
+                        "channel": {"type": "string", "description": channel_desc}}}
+        spec = {"components": {"schemas": {
+            "A": branch("Required for A.", ["channel"]),
+            "B": branch("Not applicable for B.", [])}}}
+        op = _body_op({"oneOf": [{"$ref": "#/components/schemas/A"},
+                                 {"$ref": "#/components/schemas/B"}]})
+        fields = {f.name: f for f in parse_request_body(op, spec)}
+        assert fields["channel"].required is False
+        assert fields["channel"].description == "Required for A. | Not applicable for B."
+        assert fields["kind"].required is True
+
+    def test_anyof_is_read_like_oneof(self):
+        spec = self._search_spec()
+        spec["components"]["schemas"]["Req"] = {
+            "anyOf": spec["components"]["schemas"]["Req"]["oneOf"]}
+        fields = parse_request_body(self._search_op(), spec)
+        assert {f.name for f in fields if f.required} == {"orgId", "searchType"}
+
+    def test_oneof_examples_come_from_first_branch(self):
+        from tools.openapi_parser import _schema_to_example
+        spec = {"components": {"schemas": {
+            "A": {"type": "object", "required": ["kind", "channelParams"], "properties": {
+                "kind": {"type": "string", "enum": ["a"]},
+                "channelParams": {"type": "object", "required": ["onlyA"],
+                                  "properties": {"onlyA": {"type": "string"}}}}},
+            "B": {"type": "object", "required": ["kind", "channelParams"], "properties": {
+                "kind": {"type": "string", "enum": ["b"]},
+                "channelParams": {"type": "object", "required": ["onlyB"],
+                                  "properties": {"onlyB": {"type": "string"}}}}}}}}
+        op = {**_body_op({"oneOf": [{"$ref": "#/components/schemas/A"},
+                                    {"$ref": "#/components/schemas/B"}]})}
+        first = spec["components"]["schemas"]["A"]
+        ep = parse_operation("POST", "/things", op, spec)
+        assert json.loads(ep.json_body_example) == _schema_to_example(first, spec)
+        assert json.loads(ep.json_body_minimal_example) == _schema_to_example(
+            first, spec, required_only=True)
+        assert json.loads(ep.json_body_example)["channelParams"] == {"onlyA": "..."}
+
+    def test_for_example_returns_first_branch_default_returns_merge(self):
+        from tools.openapi_parser import _request_body_schema
+        spec, op = self._search_spec(), self._search_op()
+        first = _request_body_schema(op, spec, for_example=True)
+        assert set(first["properties"]) == {"orgId", "searchType"}
+        assert first["properties"]["searchType"]["enum"] == ["ORGANIZATION"]
+        merged = _request_body_schema(op, spec)
+        assert set(merged["properties"]) == {
+            "orgId", "interactionId", "agentCiUserId", "searchType"}
+
+    def test_merge_alternatives_contract(self):
+        from tools.openapi_parser import _merge_alternatives
+        spec = self._search_spec()
+        schema = spec["components"]["schemas"]["Req"]
+        merged, first = _merge_alternatives(spec, schema)
+        assert merged["required"] == ["orgId", "searchType"]
+        assert first["required"] == ["orgId", "searchType"]
+        # the spec is never mutated
+        assert spec["components"]["schemas"]["Inter"]["properties"][
+            "searchType"]["enum"] == ["INTERACTION"]
+
+    def test_allof_body_still_merges_everything(self):
+        """`cc-callbacks update` is `allOf`: the merge exists so a composed body
+        is not read as empty, and it is untouched by the oneOf handling."""
+        spec = {"components": {"schemas": {
+            "A": {"type": "object", "required": ["a"], "properties": {"a": {"type": "string"}}},
+            "B": {"type": "object", "required": ["b"], "properties": {"b": {"type": "string"}}}}}}
+        op = _body_op({"allOf": [{"$ref": "#/components/schemas/A"},
+                                 {"$ref": "#/components/schemas/B"}]})
+        fields = parse_request_body(op, spec)
+        assert {f.name for f in fields if f.required} == {"a", "b"}
+
+
+# The `_item_fields` output of four list operations, captured BEFORE the F2/F3
+# change (venv/bin/python, 2026-11-10). A list response's item schema is read by
+# `_resolve_schema_node`, which F3 must not touch: it merges the branches of a
+# composed ITEM, where a request body is a choice between shapes.
+_ITEM_BASELINE = {
+    ("webex-meetings.json", "/slido/compliance/events"): {"items": [
+        ["createdAtMs", "number", True], ["sessionId", "string", True],
+        ["sessionOrgId", "string", True], ["userId", "string", True],
+        ["data", "object", True]]},
+    ("webex-meetings.json", "/videoMesh/eventThresholds"): {"eventThresholds": [
+        ["eventName", "string", False], ["eventThresholdId", "string", False],
+        ["eventScope", "string", False], ["entityId", "string", False],
+        ["thresholdConfig", "object", False]]},
+    ("webex-meetings.json", "/videoMesh/testStatus"): {"nodes": [
+        ["nodeId", "string", False], ["status", "string", False]]},
+    ("webex-contact-center.json",
+     "/v3/campaign-management/campaign-groups/{campaignGroupName}/campaigns"): {
+        "campaigns": [[n, t, False] for n, t in [
+            ("campaignId", "string"), ("campaignName", "string"),
+            ("campaignGroupName", "string"), ("channel", "string"),
+            ("campaignType", "string"), ("campaignDialingMode", "string"),
+            ("status", "string"), ("createdTime", "string"),
+            ("lastUpdatedTime", "string"), ("startDate", "string"),
+            ("endDate", "string"), ("sourceCampaigns", "array"),
+            ("fieldMapping", "string"), ("timezone", "string"),
+            ("scheduleType", "string"), ("scheduleInfo", "array"),
+            ("safeCallingWindow", "array"), ("contactAttemptsStrategy", "object"),
+            ("contactFlowPriority", "object"), ("campaignCreatedBy", "string"),
+            ("controlHubChannelEntryPointID", "string"), ("outdialANI", "string"),
+            ("dncLists", "array"), ("purposeTags", "array"), ("pAndLTag", "string"),
+            ("cpaEnabled", "string"), ("numberOfSFTPContactLists", "integer"),
+            ("numberOfAPIContactLists", "integer"),
+            ("numberOfManualFileContactLists", "integer")]]},
+}
+
+
+@pytest.mark.parametrize("key", sorted(_ITEM_BASELINE))
+def test_response_item_schemas_unchanged(key):
+    spec_file, path = key
+    spec = json.loads((SPECS / spec_file).read_text())
+    got = extract_response_item_fields(spec["paths"][path]["get"], spec)
+    assert {k: [[f.name, f.field_type, f.required] for f in v]
+            for k, v in got.items()} == _ITEM_BASELINE[key]

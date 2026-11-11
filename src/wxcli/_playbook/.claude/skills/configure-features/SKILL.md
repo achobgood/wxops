@@ -842,12 +842,13 @@ wxcli ai-receptionist list --all
 ```
 
 > **`create` and `create-intents` need `--json-body`, not flags.** Both declare required
-> fields that are nested objects — `--default-action` and `--ai-agent` on `create`,
-> `transferTo` on `create-intents` — and the generator renders a nested object as a plain
-> TEXT option, so passing a JSON string to those flags sends a string where the API expects
-> an object (`docs/reference/wxcli-behavior.md` Known Issue #2). Run the command with `--generate-json-body` first, fill in the
-> skeleton, then pass it back with `--json-body`. `create-knowledge-bases` has no nested
-> required field and works with plain flags.
+> fields that are nested objects — `defaultAction` and `aiAgent` on `create`, `transferTo`
+> on `create-intents` — and a nested object has no flag of its own, so `--json-body` is the
+> only way to supply it (`docs/reference/wxcli-behavior.md` Known Issue #2). Until the
+> 2026-11-10 generator fix, `create` and `update` showed a text flag for `defaultAction` and
+> `aiAgent` that sent a JSON string where the API expects an object; those flags are gone. Run the command with
+> `--generate-json-body` first, fill in the skeleton, then pass it back with `--json-body`.
+> `create-knowledge-bases` has no nested required field and works with plain flags.
 
 **Document upload is not in the CLI.** `POST .../documents/actions/upload/invoke` is a
 `multipart/form-data` endpoint, which the generator structurally skips — that is why this

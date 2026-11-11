@@ -286,10 +286,13 @@ command — see [Gotcha 3](#7-gotchas).
 
 2. **`create` and `create-intents` cannot be driven by their flags alone.** Both declare
    required fields that are nested objects — `defaultAction` and `aiAgent` on `create`,
-   `transferTo` on `create-intents`. The generator renders a nested object as a plain `TEXT`
-   option, so `--ai-agent '{"voice":...}'` sends a JSON *string* where the API expects an
-   object. Print the skeleton with `--generate-json-body`, edit it, and pass it back with
-   `--json-body` ([wxcli-behavior.md](wxcli-behavior.md) Known Issue #2). `create-knowledge-bases` and
+   `transferTo` on `create-intents`. A nested object has no flag, so `--json-body` is the only
+   way to supply it: print the skeleton with `--generate-json-body`, edit it, and pass it back
+   with `--json-body` ([wxcli-behavior.md](wxcli-behavior.md) Known Issue #2). Before the
+   2026-11-10 generator fix, `defaultAction`, `aiAgent` and `directLineCallerIdName` were
+   declared as `allOf: [{$ref}]`, which the generator typed as text, so `create` and `update`
+   offered a text flag for each of them that sent a JSON *string* where the API
+   expects an object; those flags are removed. `create-knowledge-bases` and
    `create-documents` have no nested required field and work with plain flags.
 
 3. **Document file upload has no CLI command — 27 commands for 28 operations.**
