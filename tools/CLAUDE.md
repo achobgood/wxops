@@ -2199,6 +2199,20 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
 
     Lesson: the fix for a mis-tagged spec is to fix the tagging, not to loosen dedup. The break shipped because its commit message claimed "drift_check.py runs with no new issues" while the gate was in fact failing — that single unverified claim is the whole reason a command got repurposed. Run the gate, paste the output, and diff command *names* (issue #18), not just counts. Note the trap in how it surfaces: the gate reports "docs cite flags that don't exist", which reads like a docs bug. The docs were right and the CLI was wrong; "fixing" the docs to match would have cemented the break.
 
+23. **A spec-declared `force` query param doubles as the confirm-skip on DELETE.** **OPEN — logged 2026-11-11, not fixed.** Found in the generator-audit live acceptance: an agent deleting a throwaway flow with `cc-flow delete PROJECT_ID FLOW_ID` hit the `Delete …? [y/N]` prompt, found no skip flag in `--help`, and had to pipe `y` in.
+
+    **Cause (read from code, 2026-11-11):** when a DELETE declares a query param named `force`, `_render_delete_command` (`tools/command_renderer.py` ~2413) skips the usual `force: bool … "--force", help="Skip confirmation"` option, but still emits `if not force: typer.confirm(…)`. That `force` is now the spec's **string** (`If 'yes', the flow is deleted even if it is still referenced by other entities. Defaults to 'no'.`), so the prompt is skipped by *any* non-empty value, and the same value is sent to Webex as `params["force"]`:
+    - `--force no` skips the prompt and keeps the reference check. It works, but nothing in `--help` says so.
+    - `--force yes` skips the prompt **and** overrides the reference check. One flag carries two meanings, one of them destructive.
+    - No `--force`: the prompt appears with no documented way past it, and an agent without a terminal is stuck.
+
+    **Scope:** one command today. `src/wxcli/commands/cc_flow.py` `delete` is the only generated command with `force: str` (grep `force: str = typer.Option` over `src/wxcli/commands/`). The same branch applies to any future DELETE whose spec adds a `force` query param. `_emits_force_flag` (~2329) guards create/update/action against the same collision by dropping the confirm gate entirely; the DELETE path has no matching guard.
+
+    **Fix options (not decided):**
+    - Keep `--force` as the boolean confirm-skip everywhere, and rename the spec's param on the CLI (e.g. `--force-delete-referenced`, still sent as `force`) through a query-param rename. One meaning per flag. It renames a user-facing option, so check docs and skills that cite `cc-flow delete --force`.
+    - Or add a separate `--yes` confirm-skip only where `force` collides. It is smaller, but the confirm flag then differs by command.
+    - Either way: make the confirm test read the boolean, never the spec string, and add a drift check that fails when a DELETE's confirm gate reads a non-bool `force`.
+
 ## Templates, Examples & Plans
 
 | Path | Purpose |
