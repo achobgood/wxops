@@ -115,17 +115,21 @@ def switch_org(
     api = WebexApi(WebexSession(token))
 
     if org_id:
-        # Direct switch — resolve org name
+        # Direct switch — resolve org name. The lookup fails exactly when the id
+        # is wrong or not visible to this token, so then no name is stored (never
+        # "Unknown"; the id stands in) and the auto-mode offer is skipped.
+        confirmed = True
         try:
             org = api.session.rest_get(f"https://webexapis.com/v1/organizations/{org_id}")
-            org_name = org.get("displayName", "Unknown")
+            org_name = org.get("displayName")
         except Exception:
-            org_name = "Unknown"
+            org_name = None
+            confirmed = False
         save_org(org_id, org_name)
         emit({"orgId": org_id, "orgName": org_name}, output=output, fields=fields)
         # Prompts only when stdin and stdout are both terminals and no agent
         # runs this; its text goes to stderr, so `-o json` stays clean.
-        offer_automode(org_name, org_id)
+        offer_automode(org_name, org_id, confirmed=confirmed)
         return
 
     # Interactive — list orgs

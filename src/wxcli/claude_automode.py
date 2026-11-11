@@ -265,12 +265,17 @@ def _not_changed(path: Path, why) -> str:
 def offer_automode(org_name: str | None, org_id: str | None, *,
                    token_org_id: str | None = None,
                    settings_path: Path | None = None,
-                   confirm=None) -> str:
+                   confirm=None,
+                   confirmed: bool = True) -> str:
     """Offer to write the auto-mode rule for `org_id`. Never raises for a
     settings problem: the caller's own work (a saved token) is already done.
 
-    Returns "disabled", "no-org", "in-agent", "non-interactive", "already",
-    "declined", "written" or "invalid".
+    `confirmed=False` means the caller could not look the org up with this
+    token (`switch-org <id>`), which is when the id is most likely wrong, so
+    nothing is offered (final review T6.8).
+
+    Returns "disabled", "no-org", "in-agent", "unconfirmed",
+    "non-interactive", "already", "declined", "written" or "invalid".
     """
     if _disabled():
         return "disabled"
@@ -284,10 +289,14 @@ def offer_automode(org_name: str | None, org_id: str | None, *,
             has_rule = _has_rule_for(_read(path)[0], org_id)
         except (OSError, ValueError):
             has_rule = False
-        if not has_rule:
+        if not has_rule and confirmed:
             _say(f'To let Claude Code work in {name} without stopping to ask, run '
                  '"wxcli configure" once in your own terminal, outside Claude Code.')
         return "in-agent"
+    if not confirmed:
+        _say("Not offering the Claude Code auto-mode rule: wxcli could not confirm "
+             f"org {org_id} with this token.")
+        return "unconfirmed"
     if not _interactive():
         return "non-interactive"
 

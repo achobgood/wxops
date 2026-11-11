@@ -571,10 +571,13 @@ def test_configure_exits_zero_whatever_the_offer_says(tmp_path, outcome):
 def _switch(args, offer_result="written"):
     from wxcli.main import app
 
+    def get(url, **kw):
+        if url.endswith("/ORG_BAD"):   # not visible to this token
+            raise RuntimeError("404 Not Found")
+        return {"id": "ORG_ACME", "displayName": "Acme Corp"} if url.endswith("/ORG_ACME") else THREE
+
     api = MagicMock()
-    api.session.rest_get.side_effect = lambda url, **kw: (
-        {"id": "ORG_ACME", "displayName": "Acme Corp"} if url.endswith("/ORG_ACME") else THREE
-    )
+    api.session.rest_get.side_effect = get
     offer = MagicMock(return_value=offer_result)
     saved = MagicMock()
     with patch("wxcli.main.resolve_token", return_value="tok"), \
@@ -605,6 +608,32 @@ def test_switch_org_json_stdout_stays_clean():
     result, offer, _ = _switch(["switch-org", "ORG_ACME", "-o", "json"])
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == {"orgId": "ORG_ACME", "orgName": "Acme Corp"}
+    assert offer.call_args.kwargs.get("confirmed", True) is True
+
+
+def test_switch_org_unresolved_id_stores_no_name_and_is_not_offered():
+    """Final review T6.8: the name lookup fails exactly when the id is wrong or
+    not visible to the token. Never store or show "Unknown": keep no name (the
+    rule and prompt then show the id), and tell the offer the id is unconfirmed."""
+    result, offer, saved = _switch(["switch-org", "ORG_BAD", "-o", "json"])
+    assert result.exit_code == 0, result.output
+    saved.assert_called_once_with("ORG_BAD", None)
+    assert json.loads(result.stdout) == {"orgId": "ORG_BAD", "orgName": None}
+    assert "Unknown" not in result.output
+    assert offer.call_args.args == (None, "ORG_BAD")
+    assert offer.call_args.kwargs["confirmed"] is False
+
+
+def test_unconfirmed_org_is_not_offered(tmp_path, tty, capsys):
+    path = _settings(tmp_path)
+    assert _offer(path, name=None, confirm=_never, confirmed=False) == "unconfirmed"
+    assert not path.exists()
+    out, err = capsys.readouterr()
+    assert out == ""
+    assert err.strip() == (
+        f"Not offering the Claude Code auto-mode rule: wxcli could not confirm org "
+        f"{ORG_A} with this token."
+    )
 
 
 def test_clear_org_clears_the_rules():
