@@ -388,6 +388,28 @@ def test_declined_removes_other_org_rules(tmp_path, tty, capsys):
     assert "Answering n also removes the rule for Acme Corp" in printed + question
 
 
+def test_declined_removes_the_rule_for_the_same_org(tmp_path, tty, capsys):
+    """Final review T6.5: the user was asked "Let Claude Code ... in Acme?" and
+    said n, so a rule for Acme whose text differs (a renamed org, an older copy)
+    must not stay behind; the prompt says so first, and one line says it went."""
+    path = _settings(tmp_path)
+    _seed(path, OTHER_PROJECT)
+    assert _offer(path) == "written"
+    capsys.readouterr()
+    asked = []
+
+    def no(question):
+        asked.append(capsys.readouterr().err)
+        return False
+
+    assert _offer(path, name="Acme Renamed", confirm=no) == "declined"
+    got = json.loads(path.read_text())
+    assert got["autoMode"] == OTHER_PROJECT["autoMode"]
+    assert ORG_A not in path.read_text()
+    assert "Answering n also removes the rule for Acme Corp." in asked[0]
+    assert "Removed the rule for Acme Corp." in capsys.readouterr().err
+
+
 @pytest.mark.parametrize("exc", [EOFError, KeyboardInterrupt])
 def test_eof_and_ctrl_c_count_as_declined(tmp_path, tty, exc):
     path = _settings(tmp_path)

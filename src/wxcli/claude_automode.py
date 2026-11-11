@@ -124,9 +124,9 @@ def merge_automode(settings: dict, rules: dict[str, list[str]]) -> bool:
     return settings.get("autoMode") != before
 
 
-def remove_automode(settings: dict, keep_org_id: str | None = None) -> bool:
-    """Drop MARK entries, except those naming `keep_org_id`. Creates nothing.
-    Returns whether anything changed."""
+def remove_automode(settings: dict) -> bool:
+    """Drop every MARK entry. Creates nothing. Returns whether anything
+    changed."""
     _validate(settings, KEYS)
     mode = settings.get("autoMode")
     if not isinstance(mode, dict):
@@ -136,8 +136,7 @@ def remove_automode(settings: dict, keep_org_id: str | None = None) -> bool:
         entries = mode.get(key)
         if entries is None:
             continue
-        kept = [e for e in entries
-                if not _ours(e) or (keep_org_id and f"({keep_org_id})" in e)]
+        kept = [e for e in entries if not _ours(e)]
         if kept != entries:
             mode[key] = kept
             changed = True
@@ -164,11 +163,13 @@ def _is_already(settings: dict, rules: dict[str, list[str]]) -> bool:
                for key, new in rules.items())
 
 
-def _other_org_names(settings: dict, org_id: str) -> list[str]:
+def _rule_org_names(settings: dict) -> list[str]:
+    """The org names wxcli's existing entries carry, this org's included:
+    answering n removes them all (final review T6.5)."""
     names: list[str] = []
     for entry in _marked(settings):
         match = _NAMED.search(entry)
-        if match and match.group(2) != org_id:
+        if match:
             name = match.group(1)
             if name not in names:
                 names.append(name)
@@ -297,7 +298,7 @@ def offer_automode(org_name: str | None, org_id: str | None, *,
     rules = automode_rules(org_name, org_id)
     if _is_already(settings, rules):
         return "already"
-    others = _other_org_names(settings, org_id)
+    others = _rule_org_names(settings)
 
     _say()
     if token_org_id and token_org_id != org_id:
@@ -322,7 +323,7 @@ def offer_automode(org_name: str | None, org_id: str | None, *,
             _write(path, settings, original)
             _say("Added. Change it later in Claude Code with /permissions → Auto mode.")
             return "written"
-        if remove_automode(settings, keep_org_id=org_id):
+        if remove_automode(settings):
             _write(path, settings, original)
             _say(f"Removed the rule for {', '.join(others)}.")
         return "declined"
