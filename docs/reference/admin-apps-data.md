@@ -270,6 +270,23 @@ The `admin-recordings` group provides org-wide recording management for administ
 | `admin-recordings create` | Query recordings (a **search**, POST `/v1/recordings/query` -- read-only despite the name) | `--from`, `--to`, `--meeting-id`, `--host-email`, `--site-url`, `--topic`, `--format`, `--service-type`, `--status`, `--json-body` |
 | `admin-recordings create-query` | Query recordings for an admin or compliance officer (POST `/v1/admin/recordings/query`) | `--from`, `--to`, `--meeting-id`, `--site-url`, `--topic`, `--format`, `--service-type`, `--status`, `--json-body` |
 
+**Header options.** These are sent as HTTP request headers because the spec declares them `in: header` (the rule: [wxcli-behavior.md](wxcli-behavior.md) § 1, Header options); they did not exist before 2026-11-10.
+
+| Command | Option | Header sent | Status |
+|---|---|---|---|
+| `admin-recordings list` | `--timezone` | `timezone` | spec only |
+| `admin-recordings create` | `--timezone` | `timezone` | spec only |
+| `admin-recordings list-recordings-admin` | `--timezone` | `timezone` | spec only |
+| `admin-recordings create-query` | `--header-timezone` | `timezone` | spec only. The request body also has a `timezone` field, which keeps `--timezone`; the header option is spelled with `header-` in front of the name |
+| `admin-recordings show` | `--timezone` | `timezone` | spec only |
+| `admin-recordings show` | `--site-url` | `siteUrl` | spec only |
+| `admin-recordings list-recordings-group` | `--timezone` | `timezone` | spec only |
+| `admin-recordings list-recordings-group` | `--host-email` | `hostEmail` | spec only |
+| `admin-recordings show-recordings` | `--timezone` | `timezone` | spec only |
+| `admin-recordings show-recordings` | `--host-email` | `hostEmail` | spec only |
+
+> **Unverified:** rows marked *spec only* follow the spec's `in: header` declaration; the option and the header it sends are generated from it (2026-11-10), but no live call has shown the server acting on that header for that operation. The only `timezone` header measured live is on `GET /meetings/{id}`, where the server honoured it ([meetings-core.md](meetings-core.md) § 2).
+
 #### Lifecycle Management
 
 | Command | Description | Key Options |

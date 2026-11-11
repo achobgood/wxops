@@ -305,6 +305,151 @@ from wxcli.common import emit, load_json_body
     return lines
 
 
+# ── in: header parameters (audit F4) ─────────────────────────────────────────
+
+# Options the renderer may add to a command, by Python parameter name. A header
+# whose name matches one of these, or any name the rendered command already
+# declares (path arguments, query options, body flags, lifted hidden flags),
+# is renamed `--header-<name>`. `headers` is the local the build lines use.
+_HEADER_RESERVED_NAMES = frozenset({
+    "output", "fields", "all", "all_pages", "limit", "offset", "debug", "force",
+    "verify", "value", "file", "json_body", "generate_json_body", "headers"})
+
+# Every WebexSession method a rendered command calls; the drift gate's
+# _BLOCK_CALL names the same ten.
+_SESSION_CALL_RE = re.compile(
+    r"api\.session\.(?:rest_(?:get|post|put|patch|delete)(?:_multipart)?"
+    r"|follow_pagination|follow_page_param|fetch_from_offset|follow_scim)\(")
+_VERIFY_CALL_RE = re.compile(r"\bverify_write\(")
+_SIGNATURE_PARAM_RE = re.compile(r'^    (\w+)\s*:.*?=\s*typer\.(?:Option|Argument)\((.*)$')
+_SIGNATURE_FLAG_RE = re.compile(r'"--([a-z0-9][a-z0-9-]*)')
+
+
+class HeaderParamRenderError(Exception):
+    """A header option could not be given a free name, or the command has no
+    URL line / session call to attach the headers to."""
+
+
+def _close_paren(text: str, open_idx: int) -> int:
+    """Index of the `)` matching the `(` at open_idx, skipping string literals."""
+    depth, i, quote = 0, open_idx, None
+    while i < len(text):
+        ch = text[i]
+        if quote:
+            if ch == "\\":
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    raise HeaderParamRenderError(f"unbalanced call at offset {open_idx}")
+
+
+def _pass_headers(text: str, pattern: re.Pattern) -> tuple[str, int]:
+    """Append `headers=headers or None` to every call `pattern` matches."""
+    out, pos, n = [], 0, 0
+    for m in pattern.finditer(text):
+        if m.start() < pos:
+            continue
+        close = _close_paren(text, m.end() - 1)
+        out.append(text[pos:close])
+        out.append(", headers=headers or None")
+        pos = close
+        n += 1
+    out.append(text[pos:])
+    return "".join(out), n
+
+
+def _header_option_names(ep: Endpoint, rendered: str) -> dict[str, tuple[str, str]]:
+    """{header name: (python name, flag name)}: kebab of the header, or
+    `header-<kebab>` when that collides with a name the command has."""
+    taken = set(_HEADER_RESERVED_NAMES)
+    in_signature = rendered.split("\n):", 1)[0]
+    for line in in_signature.splitlines():
+        m = _SIGNATURE_PARAM_RE.match(line)
+        if m:
+            taken.add(m.group(1))
+            decl = m.group(2).split("help=", 1)[0]   # flags, never help text
+            taken.update(f.replace("-", "_") for f in _SIGNATURE_FLAG_RE.findall(decl))
+    names: dict[str, tuple[str, str]] = {}
+    for hf in ep.header_params:
+        flag = hf.python_name
+        param = _safe_param_name(flag)
+        if param in taken or flag.replace("-", "_") in taken:
+            flag = f"header-{hf.python_name}"
+            param = _safe_param_name(flag)
+        if param in taken:
+            raise HeaderParamRenderError(
+                f"{ep.method} /{ep.url_path} (command {ep.command_name!r}): header "
+                f"{hf.name!r} has no free option name ({param!r} is taken).")
+        taken.add(param)
+        names[hf.name] = (param, flag)
+    return names
+
+
+def _apply_header_params(ep: Endpoint, rendered: str) -> str:
+    """Give a rendered command its `in: header` parameters (audit F4).
+
+    One option per header param, `headers = {}` plus one `if <p> is not None:
+    headers["<Name>"] = <p>` per header (and a fixed line per auto-injected
+    header) right after the URL line, and `headers=headers or None` on every
+    session call and on `verify_write`. A command with neither header params
+    nor auto-injected headers is returned unchanged, byte for byte."""
+    header_params = getattr(ep, "header_params", None) or []
+    injected = getattr(ep, "auto_inject_headers", None) or []
+    if not header_params and not injected:
+        return rendered
+    names = _header_option_names(ep, rendered)
+
+    option_lines = []
+    for hf in header_params:
+        param, flag = names[hf.name]
+        help_text = _enum_help(hf)
+        sent_as = f"Sent as the {hf.name} request header."
+        if help_text and not help_text.endswith((".", "!", "?")):
+            help_text += "."
+        help_text = f"{help_text} {sent_as}" if help_text else sent_as
+        default = "..." if hf.required else "None"
+        option_lines.append(f'    {param}: str = typer.Option({default}, "--{flag}", help="{help_text}"),')
+
+    lines = rendered.split("\n")
+    sig_end = lines.index("):")
+    debug_line = '    debug: bool = typer.Option(False, "--debug"),'
+    at = lines.index(debug_line) if debug_line in lines[:sig_end] else sig_end
+    lines[at:at] = option_lines
+
+    url_idx = next((i for i, ln in enumerate(lines) if ln.startswith('    url = f"')), None)
+    if url_idx is None:
+        raise HeaderParamRenderError(
+            f"{ep.method} /{ep.url_path} (command {ep.command_name!r}) has no URL line "
+            f"to build its headers after.")
+    build = ["    headers = {}"]
+    for name in injected:
+        # Only X-ORGANIZATION-ID is ever injected (openapi_parser.ORG_HEADER).
+        build.append(f'    headers["{name}"] = get_cc_org_id(api.session)')
+    for hf in header_params:
+        param, _ = names[hf.name]
+        build.append(f'    if {param} is not None:\n        headers["{hf.name}"] = {param}')
+    lines[url_idx + 1:url_idx + 1] = build
+
+    text = "\n".join(lines)
+    text, calls = _pass_headers(text, _SESSION_CALL_RE)
+    if not calls:
+        raise HeaderParamRenderError(
+            f"{ep.method} /{ep.url_path} (command {ep.command_name!r}) makes no "
+            f"session call to send its headers on.")
+    text, _ = _pass_headers(text, _VERIFY_CALL_RE)
+    return text
+
+
 def _render_url_expr(url_path: str, path_vars: list[str], method: str | None = None,
                      spec_v1: bool = False) -> str:
     # Module-level override takes precedence (set by render_command_file for CC spec)
@@ -2816,7 +2961,10 @@ def render_command_file(
     needs_verify = any(_can_verify(e) for e in endpoints)
     needs_cc_url = base_url_override == BASE_URL_CC
     needs_fs_url = base_url_override == BASE_URL_FS
-    needs_cc_org_id = base_url_override in _CC_HOST_BASES and needs_org_id
+    # A required X-ORGANIZATION-ID header is filled with get_cc_org_id too
+    # (audit F4), so a module whose only org use is that header imports it.
+    needs_cc_org_id = ((base_url_override in _CC_HOST_BASES and needs_org_id)
+                       or any(getattr(ep, "auto_inject_headers", None) for ep in endpoints))
     # The group-help label names the product of the SPEC the group comes from.
     # It used to be guessed from the CLI-name prefix ("cc-" -> Contact Center,
     # "meeting" -> Meetings, everything else -> Calling), which labelled every
@@ -2849,7 +2997,8 @@ def render_command_file(
             sections.append("")
             continue
         if _multipart_part(ep):
-            sections.append(_render_multipart_command(ep, folder_overrides))
+            sections.append(_apply_header_params(
+                ep, _render_multipart_command(ep, folder_overrides)))
             sections.append("")
             continue
         renderer = RENDERERS.get(ep.command_type)
@@ -2859,7 +3008,7 @@ def render_command_file(
         if ep.json_body_example:
             func_name = _safe_func_name(ep.command_name)
             sections.append(f"_BODY_SKELETON_{func_name.upper()} = {ep.json_body_example!r}")
-        sections.append(renderer(ep, folder_overrides))
+        sections.append(_apply_header_params(ep, renderer(ep, folder_overrides)))
         sections.append("")
 
     return "\n\n".join(sections) + "\n"

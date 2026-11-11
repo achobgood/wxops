@@ -111,6 +111,14 @@ class Endpoint:
     # body. The renderer's flag path builds the body from this, not from the
     # media type: only "op" and "op_array" are wrapped as `[patch_op]`.
     body_shape: str | None = None
+    # The operation's `in: header` parameters outside the transport set
+    # (openapi_parser.parse_header_parameters; audit F4). Each renders as an
+    # option whose value the command sends as that header.
+    header_params: list[EndpointField] = field(default_factory=list)
+    # Header names the command fills itself and renders no option for:
+    # `X-ORGANIZATION-ID` where the spec marks it required (the CC org UUID,
+    # `get_cc_org_id`).
+    auto_inject_headers: list[str] = field(default_factory=list)
 
 
 # Known issue #20: command_type comes from the HTTP method, but Cisco models

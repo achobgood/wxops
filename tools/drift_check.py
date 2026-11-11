@@ -390,6 +390,16 @@ Checks (docs/arch/target-architecture.md §A6):
       for `.../project/{project_id}/flows/{flow_id}:publish` while its sibling
       `export` took `PROJECT_ID FLOW_ID` (audit F5). Pure source check, no spec.
       Examined = commands with two or more arguments that appear in the URL.
+  41. Header parameters sent: every non-transport `in: header` parameter of a
+      command's spec operation (path-level included, `$ref` resolved;
+      transport = Authorization, Content-Type, Accept, Content-Length,
+      TrackingId) is written into `headers["<Name>"]` with every session call
+      passing `headers=`, or is a required `X-ORGANIZATION-ID` auto-injected
+      from `get_cc_org_id`, or is an optional `X-ORGANIZATION-ID` on one of
+      the two operations `HEADER_OPTIONAL_ORG_EXCEPTIONS` names (re-validated:
+      a stale entry is a finding). `meetings list-group-meetings` had no
+      `--host-email` and `cc-agent-wellbeing create` never sent its required
+      org header (audit F4). Examined = commands whose op declares such a header.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -6324,6 +6334,134 @@ CHECK_PRINT["40"] = (
                f"URL order {' '.join(a.upper() for a in f['url_order'])}"))
 
 
+# ----------------------------------------------------------------- check 41
+
+# The two operations whose OPTIONAL `X-ORGANIZATION-ID` header is deliberately
+# not rendered: the call already returns the same 200 without it, so an option
+# would change nothing a working command does. Keyed (METHOD, raw spec path),
+# re-validated on every run: an entry whose operation vanished, or whose header
+# is gone or became required, is a `stale-exception` finding, and an optional
+# X-ORGANIZATION-ID on any THIRD operation that is not sent is `dropped`.
+HEADER_OPTIONAL_ORG_EXCEPTIONS: dict[tuple[str, str], str] = {
+    ("GET", "/search/v2/meta"): (
+        "cc-search-metadata list. Live 2026-11-10: header=real, none and "
+        "query=real all 200 with the same body; header=bogus 401. Read, not "
+        "needed. docs/audit/claude-fable-5-2/live_f4_headers_round3.md § 5"),
+    ("PUT", "/v1/data/updateExternal"): (
+        "external-data-updates update. Untested live; follows /search/v2/meta "
+        "by analogy (same header, same optional declaration, same CC host). "
+        "docs/audit/claude-fable-5-2/live_f4_headers_round3.md § 5"),
+}
+
+_ORG_HEADER_INJECT = re.compile(
+    r'headers\["X-ORGANIZATION-ID"\] = get_cc_org_id\(api\.session\)', re.I)
+
+
+def _spec_header_params(sop: SpecOp) -> dict[str, bool]:
+    """{header name: required} for the op, path-level parameters included,
+    `$ref` resolved, transport headers excluded (the parser's own reader)."""
+    from tools.openapi_parser import parse_header_parameters
+    paths = sop.spec.get("paths") if isinstance(sop.spec, dict) else None
+    item = paths.get(sop.path) if isinstance(paths, dict) else None
+    try:
+        fields = parse_header_parameters(sop.op, item if isinstance(item, dict) else {},
+                                         sop.spec)
+    except (KeyError, TypeError, AttributeError):
+        return {}
+    return {f.name: f.required for f in fields}
+
+
+def check_header_params(commands_dir: Path = COMMANDS_DIR,
+                        specs_dir: Path = SPECS_DIR,
+                        exceptions: dict | None = None) -> list[dict]:
+    """Every non-transport `in: header` parameter of a command's spec operation
+    is sent (audit F4).
+
+    `parse_parameters` read `in: path` and `in: query` only, so a header fell
+    through: `meetings list-group-meetings` could not name the host by email,
+    and `cc-agent-wellbeing create` never sent its required
+    `X-ORGANIZATION-ID`. Check 19 records every header in the spec snapshot
+    but never compares it with the rendered command; checks 11a/13 read only
+    query and body.
+
+    For each block with a spec op, each header outside the transport set
+    (`openapi_parser.TRANSPORT_HEADERS`) must be one of:
+
+      written — `headers["<Name>"] = …` in the block, and every session call
+          in the block passes `headers=` (kind `not-passed` otherwise);
+      auto-injected — a REQUIRED `X-ORGANIZATION-ID` written as
+          `get_cc_org_id(api.session)` (kind `not-injected` when it is written
+          from anything else);
+      excepted — an OPTIONAL `X-ORGANIZATION-ID` on an operation named in
+          `HEADER_OPTIONAL_ORG_EXCEPTIONS`.
+
+    Anything else is `dropped`. Every declaring spec must fail for a finding
+    (as checks 37-39). The exceptions are re-validated: an entry no spec op
+    matches with an optional X-ORGANIZATION-ID is `stale-exception`. No ack
+    key (ADR-13 rules). Examined = blocks whose spec op declares a
+    non-transport header; a block with no spec op is skipped and counted.
+    """
+    exceptions = HEADER_OPTIONAL_ORG_EXCEPTIONS if exceptions is None else exceptions
+    findings: list[dict] = []
+    examined = skipped = 0
+    index = spec_ops_by_key(specs_dir)
+    for block in iter_command_blocks(commands_dir):
+        sops = index.get((block.method, block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        # A spec that declares no header is a reading the block satisfies.
+        readings = [(sop, _spec_header_params(sop)) for sop in sops]
+        if not any(h for _, h in readings):
+            continue
+        examined += 1
+        calls = len(_BLOCK_CALL.findall(block.text))
+        passed = block.text.count("headers=headers")
+        per_spec = []
+        for sop, headers in readings:
+            bad: dict[str, list[str]] = {}
+            for name, required in headers.items():
+                is_org = name.lower() == "x-organization-id"
+                if is_org and not required and (sop.method, sop.path) in exceptions:
+                    continue
+                if f'headers["{name}"] = ' not in block.text:
+                    bad.setdefault("dropped", []).append(name)
+                elif is_org and required and not _ORG_HEADER_INJECT.search(block.text):
+                    bad.setdefault("not-injected", []).append(name)
+                elif passed < calls:
+                    bad.setdefault("not-passed", []).append(name)
+            per_spec.append((sop, bad))
+        if all(bad for _, bad in per_spec):
+            sop, bad = per_spec[0]
+            for kind, names in bad.items():
+                findings.append({
+                    "group": block.group, "command": block.command, "kind": kind,
+                    "headers": names, "op": f"{block.method} {sop.path}",
+                    "spec": ", ".join(sorted({s.spec_file for s, _ in per_spec}))})
+    for (method, path), why in sorted(exceptions.items()):
+        live = any(
+            any(n.lower() == "x-organization-id" and not req
+                for n, req in _spec_header_params(sop).items())
+            for sop in index.get((method, normalize_path(path)), [])
+            if sop.path == path)
+        if not live:
+            findings.append({
+                "group": "-", "command": "-", "kind": "stale-exception",
+                "headers": ["X-ORGANIZATION-ID"], "op": f"{method} {path}",
+                "spec": why})
+    return record_examined(
+        "41", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "header-bearing commands")
+
+
+CHECK_PRINT["41"] = (
+    "header parameters sent",
+    "header-bearing commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  {f['kind']}: "
+               f"{', '.join(f['headers'])}  {f['op']}  ({f['spec']})"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -7309,6 +7447,7 @@ def main() -> int:
     oneof_bodies = check_oneof_bodies()
     body_shape = check_body_shape()
     positional_order = check_positional_order()
+    header_params = check_header_params()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -7374,6 +7513,7 @@ def main() -> int:
         "38_oneof_bodies": oneof_bodies,
         "39_body_shape": body_shape,
         "40_positional_order": positional_order,
+        "41_header_params": header_params,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -7398,7 +7538,7 @@ def main() -> int:
                   or legacy_cli_tokens or command_map_unresolved
                   or query_enum_help or readonly_flags
                   or composed_flags or oneof_bodies or body_shape
-                  or positional_order)
+                  or positional_order or header_params)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -7665,6 +7805,7 @@ def main() -> int:
         print_check_findings("38", oneof_bodies)
         print_check_findings("39", body_shape)
         print_check_findings("40", positional_order)
+        print_check_findings("41", header_params)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

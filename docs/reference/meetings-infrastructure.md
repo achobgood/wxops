@@ -664,6 +664,15 @@ resp = requests.post(f"{BASE}/meetingParticipants/cancelCallout", headers=header
 # Returns 204 No Content on success
 ```
 
+### Header options
+
+| Command | Option | Header sent | Status |
+|---|---|---|---|
+| `meeting-participants list` | `--timezone` | `timezone` | spec only |
+| `meeting-participants create` | `--timezone` | `timezone` | spec only |
+
+`--timezone` is sent as an HTTP request header, as the spec declares it (the rule: [wxcli-behavior.md](wxcli-behavior.md) § 1, Header options; added 2026-11-10). > **Unverified:** rows marked *spec only* follow the spec's `in: header` declaration; the option and the header it sends are generated from it (2026-11-10), but no live call has shown the server acting on that header for that operation.
+
 ---
 
 ## 10. Meeting Invitees

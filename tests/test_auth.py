@@ -494,3 +494,153 @@ def test_webex_error_carries_response_headers_for_the_tracking_id(monkeypatch):
         WebexSession("tok").rest_get("https://x/p")
     assert exc_info.value.status_code == 400
     assert exc_info.value.headers["trackingid"] == "ROUTERGW_test-1"
+
+
+# ── Caller headers (audit F4): an `in: header` spec parameter is sent ────────
+
+
+def test_extra_headers_merged():
+    """A caller header rides beside the session's own Authorization."""
+    session = WebexSession("tok")
+    with patch("httpx.request", return_value=_response(body={})) as req:
+        session.rest_get("https://api/x", headers={"timezone": "UTC"})
+    sent = req.call_args.kwargs["headers"]
+    assert sent["timezone"] == "UTC"
+    assert sent["Authorization"] == "Bearer tok"
+
+
+def test_no_headers_sends_exactly_the_old_set():
+    """headers=None leaves the request byte-for-byte what it was."""
+    session = WebexSession("tok")
+    with patch("httpx.request", return_value=_response(body={})) as req:
+        session.rest_get("https://api/x")
+    assert req.call_args.kwargs["headers"] == {
+        "Authorization": "Bearer tok", "Content-Type": "application/json"}
+
+
+@pytest.mark.parametrize("name", ["authorization", "Content-Type", "ACCEPT",
+                                  "content-length", "trackingid"])
+def test_transport_header_rejected(name):
+    """A caller can never override a transport header, in any case."""
+    session = WebexSession("tok")
+    with patch("httpx.request", return_value=_response(body={})) as req:
+        with pytest.raises(ValueError):
+            session.rest_get("https://api/x", headers={name: "x"})
+    req.assert_not_called()
+
+
+@pytest.mark.parametrize("value", [None, "café@example.com"])
+def test_bad_header_value_is_webexerror(value):
+    """None or a non-ASCII value is a plain WebexError, never a traceback
+    from deep inside httpx, and no request is made."""
+    session = WebexSession("tok")
+    with patch("httpx.request", return_value=_response(body={})) as req:
+        with pytest.raises(WebexError) as exc_info:
+            session.rest_get("https://api/x", headers={"hostEmail": value})
+    req.assert_not_called()
+    assert "hostEmail" in str(exc_info.value)
+    assert exc_info.value.status_code is None
+
+
+def test_bad_header_value_prints_one_line_and_exits_1(capsys):
+    """What a generated command does with that WebexError: its
+    `except WebexError` calls handle_rest_error, which prints the message
+    and exits 1 — no traceback."""
+    import typer
+    from wxcli.errors import handle_rest_error
+    session = WebexSession("tok")
+    with patch("httpx.request", return_value=_response(body={})):
+        try:
+            session.rest_get("https://api/x", headers={"hostEmail": "café@x.com"})
+        except WebexError as e:
+            with pytest.raises(typer.Exit) as exc:
+                handle_rest_error(e)
+    assert exc.value.exit_code == 1
+    err = capsys.readouterr().err
+    assert err.startswith("Error: Header hostEmail must be plain ASCII text")
+    assert "Traceback" not in err
+
+
+def test_transport_set_matches_the_generator():
+    """The runtime refuses exactly the headers the generator never renders."""
+    from wxcli.auth import TRANSPORT_HEADERS
+    from tools.openapi_parser import TRANSPORT_HEADERS as GENERATOR
+    assert TRANSPORT_HEADERS == GENERATOR == {
+        "authorization", "content-type", "accept", "content-length", "trackingid"}
+
+
+def test_multipart_keeps_caller_header_and_drops_content_type():
+    session = WebexSession("tok")
+    with patch("httpx.request", return_value=_response(body={})) as req:
+        session.rest_post_multipart("https://api/x", files={"f": ("a", b"x", "text/plain")},
+                                    headers={"siteUrl": "s.webex.com"})
+    sent = req.call_args.kwargs["headers"]
+    assert sent["siteUrl"] == "s.webex.com" and "Content-Type" not in sent
+
+
+def test_headers_on_every_page(monkeypatch):
+    """A two-page Link walk sends the caller header on request 2 as well."""
+    seen = []
+
+    def fake(method, url, headers=None, json=None, params=None, timeout=None):
+        seen.append(dict(headers))
+        link = {"Link": '<https://api/x?page=2>; rel="next"'} if len(seen) == 1 else {}
+        return httpx.Response(200, json={"items": [{"id": len(seen)}]}, headers=link,
+                              request=httpx.Request(method, url))
+
+    monkeypatch.setattr("httpx.request", fake)
+    items = list(WebexSession("tok").follow_pagination(
+        "https://api/x", headers={"timezone": "UTC"}))
+    assert [i["id"] for i in items] == [1, 2]
+    assert len(seen) == 2
+    assert all(h.get("timezone") == "UTC" for h in seen)
+
+
+def _gate_call_methods():
+    """Every WebexSession method the drift gate's _BLOCK_CALL regex names: the
+    set a generated command can call, so the set that must take headers=."""
+    from tools.drift_check import _BLOCK_CALL
+    return sorted(n for n in dir(WebexSession)
+                  if not n.startswith("_") and _BLOCK_CALL.search(f".{n}("))
+
+
+def test_every_call_method_accepts_headers():
+    import inspect
+
+    names = _gate_call_methods()
+    assert names == sorted([
+        "rest_get", "rest_put", "rest_post", "rest_patch", "rest_delete",
+        "rest_post_multipart", "follow_pagination", "follow_page_param",
+        "follow_scim", "fetch_from_offset"])
+    for name in names:
+        param = inspect.signature(getattr(WebexSession, name)).parameters.get("headers")
+        assert param is not None, name
+        assert param.kind is inspect.Parameter.KEYWORD_ONLY, name
+        assert param.default is None, name
+
+    class Recorder(WebexSession):
+        def __init__(self):
+            self.sent = []
+
+        def _request(self, method, url, params=None, headers=None, **kw):
+            self.sent.append(headers)
+            return _response(body={"data": [], "items": [], "Resources": []})
+
+    calls = {
+        "rest_get": lambda s: s.rest_get("u", headers=H),
+        "rest_put": lambda s: s.rest_put("u", json={}, headers=H),
+        "rest_post": lambda s: s.rest_post("u", json={}, headers=H),
+        "rest_patch": lambda s: s.rest_patch("u", json={}, headers=H),
+        "rest_delete": lambda s: s.rest_delete("u", headers=H),
+        "rest_post_multipart": lambda s: s.rest_post_multipart(
+            "u", files={"f": ("a", b"x", "text/plain")}, headers=H),
+        "follow_pagination": lambda s: list(s.follow_pagination("u", headers=H)),
+        "follow_page_param": lambda s: list(s.follow_page_param("u", headers=H)),
+        "follow_scim": lambda s: list(s.follow_scim("u", headers=H)),
+        "fetch_from_offset": lambda s: s.fetch_from_offset("u", offset=3, headers=H),
+    }
+    H = {"timezone": "UTC"}
+    for name in names:
+        s = Recorder()
+        calls[name](s)
+        assert s.sent and all(h == H for h in s.sent), name

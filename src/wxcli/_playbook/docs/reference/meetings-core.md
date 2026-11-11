@@ -247,6 +247,36 @@ resp = requests.get(f"{BASE}/admin/meetings", headers=headers,
 - **`state` filter only applies to certain meeting types.** For example, `ended` only applies to meeting instances, not series.
 - **Creating a recurring meeting** uses RFC 5545 RRULE syntax: `--recurrence "FREQ=WEEKLY;COUNT=10;BYDAY=MO"`.
 
+### Header options (every `meetings` command)
+
+These options are sent as HTTP **request headers**, not query parameters, because the spec declares them `in: header` (the rule: [wxcli-behavior.md](wxcli-behavior.md) § 1, Header options). Before 2026-11-10 none of them existed, so a call that needed one (naming another host by email, say) could not be made.
+
+| Command | Option | Header sent | Status |
+|---|---|---|---|
+| `meetings show-meetings` | `--timezone` | `timezone` | Verified live 2026-11-10: `America/New_York` returned the same meeting with `start` `2026-11-11T10:00:00-05:00` instead of `2026-11-11T15:00:00Z` |
+| `meetings show-meetings` | `--password` | `password` | spec only (an admin token got the same 200 with a right, a wrong or no password, so the test could not tell) |
+| `meetings list-meetings` | `--timezone` | `timezone` | spec only |
+| `meetings list-meetings` | `--password` | `password` | spec only |
+| `meetings list` | `--timezone` | `timezone` | spec only |
+| `meetings show` | `--timezone` | `timezone` | spec only |
+| `meetings list-group-meetings` | `--host-email` | `hostEmail` | spec only (every request returned 403 for the sandbox token, header or not) |
+| `meetings list-group-meetings` | `--timezone` | `timezone` | spec only |
+| `meetings update-group-meetings` | `--host-email` | `hostEmail` | spec only |
+| `meetings update-group-controls` | `--host-email` | `hostEmail` | spec only |
+| `meetings show-templates` | `--timezone` | `timezone` | spec only |
+| `meetings delete-registration` | `--host-email` | `hostEmail` | spec only |
+| `meetings list-breakout-sessions` | `--host-email` | `hostEmail` | Verified live 2026-11-10: a wrong address returned 403 "User does not have host privilege"; the same value as a query parameter was ignored |
+| `meetings delete-breakout-sessions` | `--host-email` | `hostEmail` | spec only |
+| `meetings list-survey` | `--host-email` | `hostEmail` | spec only |
+| `meetings list-survey-results` | `--host-email` | `hostEmail` | spec only |
+| `meetings list-survey-results` | `--timezone` | `timezone` | spec only |
+| `meetings create-survey-links` | `--timezone` | `timezone` | spec only |
+| `meetings list-invitation-sources` | `--person-id` | `personId` | Verified live 2026-11-10: an invalid id returned 400 "Person ID '…' is invalid."; the same value as a query parameter was ignored |
+| `meetings list-invitation-sources` | `--host-email` | `hostEmail` | spec only |
+| `meetings create-reassign-host` | `--site-url` | `siteUrl` | spec only |
+
+> **Unverified:** rows marked *spec only* follow the spec's `in: header` declaration; the option and the header it sends are generated from it (2026-11-10), but no live call has shown the server acting on that header for that operation. `meetings list-meetings --host-email` is a different option: that endpoint declares `hostEmail` as a query parameter, and the header form was measured to be ignored there (2026-11-10).
+
 ---
 
 ## 3. Meeting Lifecycle

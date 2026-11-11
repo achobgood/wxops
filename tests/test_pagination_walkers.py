@@ -432,3 +432,59 @@ class TestDefaultsUnchanged:
             all_flag += src.count('"--all", help="Fetch every page')
         assert paging_limit > 400, "denominator collapsed — the marker moved"
         assert all_flag == paging_limit
+
+
+# ── Caller headers reach every page (audit F4) ───────────────────────────────
+
+
+class HeaderRecordingServer(PagedServer):
+    """PagedServer that also records the caller headers of each request."""
+
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.headers_seen: list = []
+
+    def _request(self, method, url, params=None, headers=None, **kw):  # type: ignore[override]
+        self.headers_seen.append(headers)
+        return super()._request(method, url, params=params, **kw)
+
+
+H = {"timezone": "UTC"}
+
+
+class TestHeadersOnEveryPage:
+    def test_follow_page_param(self):
+        s = HeaderRecordingServer(total=25)
+        got = list(s.follow_page_param("u", params={"pageSize": 10}, headers=H))
+        assert len(got) == 25 and len(s.headers_seen) == 3
+        assert all(h == H for h in s.headers_seen)
+
+    def test_fetch_from_offset_continues_with_headers(self):
+        """A window spanning two pages re-enters follow_page_param; the
+        second request carries the header too."""
+        s = HeaderRecordingServer(total=40)
+        got = s.fetch_from_offset("u", offset=5, count=10, headers=H)
+        assert [r["id"] for r in got] == list(range(5, 15))
+        assert len(s.headers_seen) >= 2
+        assert all(h == H for h in s.headers_seen)
+
+    def test_follow_scim(self):
+        class Scim(FakeSession):
+            def __init__(self, pages):
+                super().__init__(pages)
+                self.headers_seen = []
+
+            def _request(self, method, url, params=None, headers=None, **kw):  # type: ignore[override]
+                self.headers_seen.append(headers)
+                return super()._request(method, url, params=params, **kw)
+
+        s = Scim([{"Resources": [{"id": i} for i in range(2)], "totalResults": 3},
+                  {"Resources": [{"id": 2}], "totalResults": 3}])
+        got = list(s.follow_scim("u", params={"count": 2}, headers=H))
+        assert len(got) == 3 and len(s.headers_seen) == 2
+        assert all(h == H for h in s.headers_seen)
+
+    def test_no_headers_passes_none(self):
+        s = HeaderRecordingServer(total=5)
+        list(s.follow_page_param("u", params={"pageSize": 10}))
+        assert s.headers_seen == [None]

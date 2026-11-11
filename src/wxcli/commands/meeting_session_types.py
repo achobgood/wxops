@@ -53,11 +53,15 @@ def list_session_types(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    email: str = typer.Option(None, "--email", help="e.g. `john.andersen@example.com` (string, optional) - The email of the user. Sent as the email request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List User Session Type."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/userconfig/sessionTypes"
+    headers = {}
+    if email is not None:
+        headers["email"] = email
     params = {}
     if site_url is not None:
         params["siteUrl"] = site_url
@@ -69,7 +73,7 @@ def list_session_types(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

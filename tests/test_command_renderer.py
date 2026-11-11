@@ -2331,3 +2331,199 @@ class TestPathArgsFollowUrlOrder:
                             path_vars=["extra", "a"])
         render_command_file("Things", [ep], {})
         assert ep.path_vars == ["a", "extra"]
+
+
+# ── in: header parameters (audit F4) ─────────────────────────────────────────
+
+
+def _hdr(name, required=False, description="e.g. UTC"):
+    from tools.postman_parser import camel_to_kebab
+    return _make_field(name=name, python_name=camel_to_kebab(name),
+                       field_type="string", description=description,
+                       required=required)
+
+
+def _function_source(code: str, func: str) -> str:
+    """The text of one rendered command function (its def through the next
+    decorator)."""
+    start = code.index(f"def {func}(")
+    nxt = code.find("\n@app.command", start)
+    return code[start:] if nxt == -1 else code[start:nxt]
+
+
+_SESSION_CALL = re.compile(
+    r"api\.session\.(rest_(?:get|post|put|patch|delete)(?:_multipart)?|follow_pagination"
+    r"|follow_page_param|fetch_from_offset|follow_scim)\(")
+
+
+def _calls_without_headers(src: str) -> list[str]:
+    """Every session call (and verify_write) in `src` that does not pass
+    headers=headers or None."""
+    bad = []
+    for m in list(_SESSION_CALL.finditer(src)) + list(re.finditer(r"verify_write\(", src)):
+        depth, i = 0, m.end() - 1
+        while True:
+            ch = src[i]
+            depth += ch == "("
+            depth -= ch == ")"
+            if depth == 0:
+                break
+            i += 1
+        call = src[m.start():i + 1]
+        if "headers=headers or None" not in call:
+            bad.append(call)
+    return bad
+
+
+class TestHeaderParams:
+    def test_header_param_becomes_option(self):
+        ep = _make_endpoint(command_type="show", command_name="show",
+                            url_path="meetings/{meetingId}", path_vars=["meetingId"],
+                            response_list_key=None)
+        ep.header_params = [_hdr("hostEmail", description="Email of the host.")]
+        code = render_command_file("Meetings", [ep], {})
+        compile(code, "<rendered>", "exec")
+        src = _function_source(code, "show")
+        assert 'host_email: str = typer.Option(None, "--host-email"' in src
+        assert "    headers = {}" in src
+        assert 'if host_email is not None:\n        headers["hostEmail"] = host_email' in src
+        assert "rest_get(url, headers=headers or None)" in src
+        # the header is built after the URL and before the call
+        assert src.index("    headers = {}") > src.index("    url = f")
+        assert src.index("    headers = {}") < src.index("api.session.rest_get")
+
+    def test_header_body_collision_prefixed(self):
+        """admin-recordings create: body `timezone` + header `timezone`."""
+        ep = _make_endpoint(
+            method="POST", command_type="create", command_name="create",
+            url_path="recordings/query", response_list_key=None,
+            body_fields=[_make_field(name="timezone", python_name="timezone",
+                                     field_type="string", description="Body tz.")])
+        ep.header_params = [_hdr("timezone")]
+        code = render_command_file("Recordings", [ep], {})
+        compile(code, "<rendered>", "exec")
+        src = _function_source(code, "create")
+        assert 'timezone: str = typer.Option(None, "--timezone"' in src
+        assert 'header_timezone: str = typer.Option(None, "--header-timezone"' in src
+        assert 'body["timezone"] = timezone' in src
+        assert 'headers["timezone"] = header_timezone' in src
+        assert "rest_post(url, json=body, headers=headers or None)" in src
+
+    @pytest.mark.parametrize("reserved", [
+        "output", "fields", "all", "limit", "offset", "debug", "force", "verify",
+        "value", "file", "jsonBody", "generateJsonBody"])
+    def test_header_named_like_an_injected_option_is_prefixed(self, reserved):
+        ep = _make_endpoint(command_type="show", command_name="show",
+                            response_list_key=None)
+        ep.header_params = [_hdr(reserved)]
+        code = render_command_file("Things", [ep], {})
+        compile(code, "<rendered>", "exec")
+        from tools.postman_parser import camel_to_kebab
+        assert f'"--header-{camel_to_kebab(reserved)}"' in code
+
+    def test_header_colliding_with_query_and_path_is_prefixed(self):
+        ep = _make_endpoint(command_type="show", command_name="show",
+                            url_path="meetings/{personId}", path_vars=["personId"],
+                            query_params=[_make_field(name="hostEmail", python_name="host-email",
+                                                      field_type="string", description="q")],
+                            response_list_key=None)
+        ep.header_params = [_hdr("hostEmail"), _hdr("personId")]
+        code = render_command_file("Meetings", [ep], {})
+        compile(code, "<rendered>", "exec")
+        assert '"--header-host-email"' in code and '"--header-person-id"' in code
+        assert 'headers["hostEmail"] = header_host_email' in code
+        assert 'headers["personId"] = header_person_id' in code
+
+    def test_x_org_id_import_emitted(self):
+        """A module whose only org use is the header still imports
+        get_cc_org_id, and injects it on the required header."""
+        ep = _make_endpoint(method="POST", command_type="create", command_name="create",
+                            url_path="v1/agentburnout/subscribe",
+                            raw_path=["v1", "agentburnout", "subscribe"],
+                            response_list_key=None)
+        ep.auto_inject_headers = ["X-ORGANIZATION-ID"]
+        code = render_command_file("Wellbeing", [ep], {},
+                                   base_url_override="{cc_base_url}")
+        compile(code, "<rendered>", "exec")
+        assert "get_cc_org_id" in code.split("app = typer.Typer")[0]
+        src = _function_source(code, "create")
+        assert '    headers["X-ORGANIZATION-ID"] = get_cc_org_id(api.session)' in src
+        assert "x_organization_id" not in src and "--x-organization-id" not in src
+        assert not _calls_without_headers(src)
+
+    def test_transport_headers_skipped(self):
+        """A spec whose only headers are transport headers renders byte-for-byte
+        what the same spec without them renders."""
+        def spec(with_headers):
+            hdrs = [{"name": n, "in": "header", "schema": {"type": "string"}}
+                    for n in ("TrackingId", "Authorization", "Accept")]
+            return {"paths": {"/things": {"get": {
+                "tags": ["T"], "operationId": "listThings", "summary": "List Things",
+                "parameters": (hdrs if with_headers else []) + [
+                    {"name": "max", "in": "query", "schema": {"type": "integer"}}],
+                "responses": {"200": {"content": {"application/json": {"schema": {
+                    "type": "object", "properties": {"items": {"type": "array",
+                    "items": {"type": "object", "properties": {"id": {"type": "string"}}}}}}}}}}}}}}
+        with_h, _ = parse_tag("T", spec(True))
+        without, _ = parse_tag("T", spec(False))
+        assert with_h[0].header_params == []
+        assert render_command_file("T", with_h, {}) == render_command_file("T", without, {})
+
+    @pytest.mark.parametrize("shape", [
+        dict(command_type="list", paginates=True),
+        dict(command_type="list", pagination_style="link",
+             query_params=[_make_field(name="max", python_name="max", field_type="number",
+                                       description="m"),
+                           _make_field(name="start", python_name="start",
+                                       field_type="number", description="s")]),
+        dict(command_type="list", pagination_style="page",
+             query_params=[_make_field(name="page", python_name="page", field_type="number",
+                                       description="p"),
+                           _make_field(name="pageSize", python_name="page-size",
+                                       field_type="number", description="s")]),
+        dict(command_type="list", pagination_style="scim",
+             query_params=[_make_field(name="startIndex", python_name="start-index",
+                                       field_type="number", description="i"),
+                           _make_field(name="count", python_name="count",
+                                       field_type="number", description="c")]),
+        dict(command_type="list"),
+        dict(command_type="show", response_list_key=None),
+        dict(method="POST", command_type="create", response_list_key=None),
+        dict(method="POST", command_type="action", command_name="create-thing",
+             response_list_key=None),
+        dict(method="DELETE", command_type="delete", command_name="delete",
+             url_path="things/{thingId}", path_vars=["thingId"], response_list_key=None),
+        dict(method="POST", command_type="create", response_list_key=None,
+             op_overrides={"multipart": True}),
+    ], ids=["paginates", "link", "page", "scim", "unpaged", "show", "create",
+            "action", "delete", "multipart"])
+    def test_every_render_path_sends_headers(self, shape):
+        ep = _make_endpoint(**shape)
+        ep.header_params = [_hdr("timezone")]
+        code = render_command_file("Things", [ep], {})
+        compile(code, "<rendered>", "exec")
+        src = _function_source(code, _safe_func_name(ep.command_name))
+        assert _SESSION_CALL.search(src)
+        assert not _calls_without_headers(src), _calls_without_headers(src)
+
+    def test_update_verify_rereads_with_headers(self):
+        get = _make_endpoint(command_type="show", command_name="show",
+                             url_path="things/{thingId}", path_vars=["thingId"],
+                             response_list_key=None)
+        put = _make_endpoint(method="PUT", command_type="update", command_name="update",
+                             url_path="things/{thingId}", path_vars=["thingId"],
+                             response_list_key=None,
+                             body_fields=[_make_field(name="name", python_name="name",
+                                                      field_type="string", description="n")])
+        put.header_params = [_hdr("hostEmail")]
+        code = render_command_file("Things", [get, put], {})
+        compile(code, "<rendered>", "exec")
+        src = _function_source(code, "update")
+        assert "verify_write(api, url, None, body, headers=headers or None)" in src
+        assert not _calls_without_headers(src)
+
+    def test_no_header_params_render_unchanged(self):
+        """An endpoint with no header params renders no headers at all."""
+        ep = _make_endpoint(command_type="show", command_name="show", response_list_key=None)
+        code = render_command_file("Things", [ep], {})
+        assert "headers" not in code

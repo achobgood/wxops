@@ -226,6 +226,74 @@ def parse_parameters(
             path_var_meta)
 
 
+# Headers the session sets itself (src/wxcli/auth.py TRANSPORT_HEADERS, pinned
+# equal by tests/test_auth.py). Never rendered as an option, compared
+# case-insensitively. TrackingId is a correlation id the runtime has no use for.
+TRANSPORT_HEADERS = frozenset({
+    "authorization", "content-type", "accept", "content-length", "trackingid"})
+
+# The Contact Center org header. Required on two operations (agent wellbeing
+# subscribe/action): auto-injected as the CC org UUID. Optional on two
+# (`/search/v2/meta`, `/v1/data/updateExternal`): not rendered, because the
+# call already succeeds without it (live 2026-11-10,
+# docs/audit/claude-fable-5-2/live_f4_headers_round3.md § 5). Drift check 41
+# names those two and fails on a third.
+ORG_HEADER = "x-organization-id"
+
+
+def parse_header_parameters(op: dict, path_item: dict, spec: dict) -> list[EndpointField]:
+    """The operation's `in: header` parameters, transport headers excluded
+    (audit F4).
+
+    Path-level parameters apply too; an operation-level header of the same
+    name (case-insensitive, as HTTP header names are) replaces it. `$ref`s are
+    resolved. The flag name is the header name in kebab case; the renderer
+    decides any collision prefix. `parse_parameters` and its 5-tuple are
+    deliberately untouched: a header is not a query parameter."""
+    by_name: dict[str, dict] = {}
+    for source in ((path_item or {}).get("parameters") or [],
+                   (op or {}).get("parameters") or []):
+        for param in source:
+            if not isinstance(param, dict):
+                continue
+            if "$ref" in param:
+                param = resolve_ref(spec, param["$ref"])
+            if not isinstance(param, dict) or param.get("in") != "header":
+                continue
+            name = param.get("name") or ""
+            if not name or name.lower() in TRANSPORT_HEADERS:
+                continue
+            by_name[name.lower()] = param
+    fields = []
+    for param in by_name.values():
+        name = param["name"]
+        schema = param.get("schema") or {}
+        resolved = _resolve_param_schema(spec, schema)
+        fields.append(EndpointField(
+            name=name,
+            python_name=re.sub(r"[^a-z0-9_-]+", "-", camel_to_kebab(name)).strip("-"),
+            field_type=_openapi_type_to_field_type(schema),
+            description=param.get("description", ""),
+            required=bool(param.get("required", False)),
+            enum_values=resolved.get("enum"),
+        ))
+    return fields
+
+
+def _split_org_header(fields: list[EndpointField]) -> tuple[list[EndpointField], list[str]]:
+    """(header options, auto-injected header names). A required
+    X-ORGANIZATION-ID is injected; an optional one is dropped (see ORG_HEADER)."""
+    options: list[EndpointField] = []
+    injected: list[str] = []
+    for f in fields:
+        if f.name.lower() == ORG_HEADER:
+            if f.required:
+                injected.append(f.name)
+            continue
+        options.append(f)
+    return options, injected
+
+
 def _openapi_type_to_field_type(schema: dict) -> str:
     """Convert OpenAPI schema type to our field_type string."""
     t = schema.get("type", "string")
@@ -1224,9 +1292,16 @@ def parse_operation(
     spec: dict,
     omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
+    path_item: dict | None = None,
 ) -> Endpoint:
-    """Convert one OpenAPI operation to an Endpoint dataclass."""
+    """Convert one OpenAPI operation to an Endpoint dataclass.
+
+    `path_item` is the operation's path object, for its path-level header
+    parameters (`parse_tag` has already merged its path-level path and query
+    parameters into `op`)."""
     op, lifted_query_params = _lift_query_body(method, op, spec)
+    header_params, auto_inject_headers = _split_org_header(
+        parse_header_parameters(op, path_item or {}, spec))
     params = op.get("parameters", [])
     (path_vars, query_params, auto_inject_names, auto_inject_path_names,
      path_var_meta) = parse_parameters(
@@ -1303,6 +1378,8 @@ def parse_operation(
         lifted_query_params=lifted_query_params,
         declares_json_body=_request_body_schema(op, spec) is not None,
         body_shape=request_body_shape(op, spec),
+        header_params=header_params,
+        auto_inject_headers=auto_inject_headers,
     )
 
 
@@ -1395,7 +1472,8 @@ def parse_tag(
                 ] + op_params
                 op = {**op, "parameters": merged}
 
-            ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params)
+            ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params,
+                                 path_item=path_obj)
             if ep.command_type == "list" and (
                     _declares_single_object(op, spec)
                     or (not ep.paginates and ep.pagination_style == "none"

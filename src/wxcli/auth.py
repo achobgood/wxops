@@ -398,6 +398,33 @@ DEFAULT_CONNECT_TIMEOUT = 10.0
 DEFAULT_READ_TIMEOUT = 60.0
 
 
+# Headers the session itself owns. A spec `in: header` parameter with one of
+# these names is never rendered as an option, and a caller can never override
+# one (case-insensitive). tools/openapi_parser.TRANSPORT_HEADERS is the
+# generator's copy; tests/test_auth.py pins the two equal.
+TRANSPORT_HEADERS = frozenset({
+    "authorization", "content-type", "accept", "content-length", "trackingid"})
+
+
+def _caller_headers(headers: dict) -> dict:
+    """The caller's headers, checked: no transport header, every value ASCII."""
+    out = {}
+    for name, value in headers.items():
+        if str(name).lower() in TRANSPORT_HEADERS:
+            raise ValueError(f"header {name!r} is set by the session and cannot be overridden")
+        if value is None:
+            raise WebexError(f"Header {name} has no value; pass a value or leave the option out.")
+        text = str(value)
+        try:
+            text.encode("ascii")
+        except UnicodeEncodeError:
+            raise WebexError(
+                f"Header {name} must be plain ASCII text; {text!r} is not "
+                f"(an HTTP header cannot carry it).") from None
+        out[str(name)] = text
+    return out
+
+
 def _env_float(name: str, default: float) -> float:
     try:
         return float(os.environ[name])
@@ -424,17 +451,26 @@ class WebexSession:
         }
 
     def _request(self, method: str, url: str, json=None, params=None,
-                 content_type: str | None = None, files=None) -> httpx.Response:
+                 content_type: str | None = None, files=None,
+                 headers: dict | None = None) -> httpx.Response:
         """Single HTTP path for all verbs: bounded retry on RETRY_STATUSES
         (Retry-After honored on ALL of them, capped at 30s; jittered backoff
-        otherwise; POST/PATCH are retried on 429 only, never on 5xx) + one connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both."""
+        otherwise; POST/PATCH are retried on 429 only, never on 5xx) + one connect-error retry. WXCLI_RETRY_MODE=off / WXCLI_NO_RETRY=1 disable both.
+
+        `headers` are the operation's own `in: header` parameters (audit F4),
+        merged over the session's. A transport header is never the caller's
+        to set (ValueError: a generator bug, not a user error); a value that
+        is None or not ASCII is a WebexError, so the command prints one line
+        instead of an httpx traceback."""
         import httpx  # deferred — see module docstring note above the imports
 
-        headers = self._headers(content_type)
+        sent = self._headers(content_type)
+        if headers:
+            sent.update(_caller_headers(headers))
         extra = {}
         if files is not None:
             # multipart: httpx writes Content-Type itself, with the boundary.
-            del headers["Content-Type"]
+            del sent["Content-Type"]
             extra["files"] = files
         enabled = _retry_enabled()
         attempts_left = _max_attempts() if enabled else 1
@@ -444,7 +480,7 @@ class WebexSession:
             attempt += 1
             try:
                 response = httpx.request(
-                    method, url, headers=headers,
+                    method, url, headers=sent,
                     json=json, params=params, timeout=self._timeout, **extra,
                 )
             except (httpx.ConnectError, httpx.ConnectTimeout) as e:
@@ -489,44 +525,55 @@ class WebexSession:
         except ValueError:
             return response.text
 
-    def rest_get(self, url: str, params=None, *, remedies=()) -> dict:
+    def rest_get(self, url: str, params=None, *, remedies=(),
+                 headers: dict | None = None) -> dict:
         """One GET. `remedies` names the paging flags the CALLING command
         offers (`"all"`, `"offset"`), for the truncation note; the default
         names none, so a caller that declares nothing is never told to use a
         flag it does not have (ADR-18)."""
-        response = self._request("GET", url, params=params)
+        response = self._request("GET", url, params=params, headers=headers)
         data = self._json_or_raise(response)
         _warn_if_more_pages(response, params, remedies)
         return data
 
-    def rest_put(self, url: str, json=None, params=None) -> dict:
-        return self._json_or_raise(self._request("PUT", url, json=json, params=params))
+    def rest_put(self, url: str, json=None, params=None, *,
+                 headers: dict | None = None) -> dict:
+        return self._json_or_raise(self._request("PUT", url, json=json, params=params,
+                                                 headers=headers))
 
-    def rest_post(self, url: str, json=None, params=None) -> dict:
-        return self._json_or_raise(self._request("POST", url, json=json, params=params))
+    def rest_post(self, url: str, json=None, params=None, *,
+                  headers: dict | None = None) -> dict:
+        return self._json_or_raise(self._request("POST", url, json=json, params=params,
+                                                 headers=headers))
 
     def rest_post_multipart(self, url: str, *, files: dict[str, tuple[str, bytes, str]],
-                            params: dict | None = None) -> dict | list | str:
+                            params: dict | None = None,
+                            headers: dict | None = None) -> dict | list | str:
         """POST a multipart/form-data body, e.g. a Flow Store file import.
         `files` maps part name -> (filename, content, content type)."""
-        return self._json_or_raise(self._request("POST", url, params=params, files=files))
+        return self._json_or_raise(self._request("POST", url, params=params, files=files,
+                                                 headers=headers))
 
-    def rest_patch(self, url: str, json=None, params=None, content_type: str | None = None) -> dict:
+    def rest_patch(self, url: str, json=None, params=None, content_type: str | None = None,
+                   *, headers: dict | None = None) -> dict:
         return self._json_or_raise(self._request("PATCH", url, json=json, params=params,
-                                                 content_type=content_type))
+                                                 content_type=content_type, headers=headers))
 
-    def rest_delete(self, url: str, json=None, params=None) -> dict:
+    def rest_delete(self, url: str, json=None, params=None, *,
+                    headers: dict | None = None) -> dict:
         # DELETE carries a body on 10 Webex operations: the body is what SCOPES
         # the delete (`supervisorIds`, `phoneNumbers`, `backgroundImages`...).
         # Without it the API rejects the call outright — verified live against
         # /telephony/config/supervisors: 400, errorCode 25024, "Required request
         # body is missing". It does NOT delete everything; those endpoints gate
         # delete-all behind an explicit `deleteAll: true`.
-        return self._json_or_raise(self._request("DELETE", url, json=json, params=params))
+        return self._json_or_raise(self._request("DELETE", url, json=json, params=params,
+                                                 headers=headers))
 
-    def follow_pagination(self, url: str, params=None, item_key: str = "items"):
+    def follow_pagination(self, url: str, params=None, item_key: str = "items", *,
+                          headers: dict | None = None):
         while url:
-            response = self._request("GET", url, params=params)
+            response = self._request("GET", url, params=params, headers=headers)
             if not response.is_success:
                 raise WebexError(response.text, status_code=response.status_code, headers=response.headers)
             data = response.json() if response.content else {}
@@ -542,7 +589,8 @@ class WebexSession:
 
     def follow_page_param(self, url: str, params=None, item_key: str = "data",
                           page_param: str = "page", size_param: str = "pageSize",
-                          page_size: int = 200, first_page: int = 0):
+                          page_size: int = 200, first_page: int = 0, *,
+                          headers: dict | None = None):
         """Walk a `page`/`pageSize` collection — Contact Center's shape.
 
         CC sends no Link header, so follow_pagination cannot see these at all;
@@ -568,7 +616,8 @@ class WebexSession:
         previous = None
         while True:
             params[page_param] = page
-            data = self._json_or_raise(self._request("GET", url, params=params))
+            data = self._json_or_raise(self._request("GET", url, params=params,
+                                                     headers=headers))
             items = _items_of(data, item_key)
             if _repeated_page(items, previous, page, "follow_page_param"):
                 return
@@ -593,7 +642,8 @@ class WebexSession:
 
     def fetch_from_offset(self, url: str, params=None, offset: int = 0, count: int = 0,
                           item_key: str = "data", page_param: str = "page",
-                          size_param: str = "pageSize", *, remedies=()) -> list:
+                          size_param: str = "pageSize", *, remedies=(),
+                          headers: dict | None = None) -> list:
         """`--offset N` on a page-numbered endpoint: records [N, N + count).
 
         These endpoints ignore `start`, so `--offset` used to re-fetch page 0
@@ -617,7 +667,8 @@ class WebexSession:
             page, skip = divmod(offset, size)
             params[size_param] = size
             params[page_param] = page
-            body = self._json_or_raise(self._request("GET", url, params=params))
+            body = self._json_or_raise(self._request("GET", url, params=params,
+                                                     headers=headers))
             items = _items_of(body, item_key)
             total = _declared_total(body)
             capped = (0 < len(items) < size and total is not None
@@ -631,7 +682,8 @@ class WebexSession:
         if len(window) < need and len(items) == size:
             for item in self.follow_page_param(
                     url, params={**params, page_param: page + 1}, item_key=item_key,
-                    page_param=page_param, size_param=size_param, page_size=size):
+                    page_param=page_param, size_param=size_param, page_size=size,
+                    headers=headers):
                 window.append(item)
                 if len(window) >= need:
                     break
@@ -643,7 +695,7 @@ class WebexSession:
         return window
 
     def follow_scim(self, url: str, params=None, item_key: str = "Resources",
-                    count: int = 100):
+                    count: int = 100, *, headers: dict | None = None):
         """Walk a SCIM `startIndex`/`count` collection. startIndex is 1-based.
 
         Terminates on `totalResults` when the server sends it and on a short page
@@ -657,7 +709,8 @@ class WebexSession:
         previous = None
         while True:
             params["startIndex"] = index
-            data = self._json_or_raise(self._request("GET", url, params=params))
+            data = self._json_or_raise(self._request("GET", url, params=params,
+                                                     headers=headers))
             items = _items_of(data, item_key)
             if _repeated_page(items, previous, index, "follow_scim"):
                 return

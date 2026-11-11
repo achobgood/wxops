@@ -17,16 +17,20 @@ def show(
     current: str = typer.Option(None, "--current", help="Whether or not to retrieve only the current scheduled meeting of the meeting series, i.e. the meeting ready to join or start or the upcoming meeting of the meeting series. If it's `true`, return details for the current scheduled meeting of the series, i.e. the scheduled meeting ready to join or..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting By an Admin.\n\n\b\nExample: wxcli meetings show MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meetings/{meeting_id}"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if current is not None:
         params["current"] = current
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -45,6 +49,7 @@ def cmd_list(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meetings By an Admin."""
@@ -53,6 +58,9 @@ def cmd_list(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meetings"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if meeting_number is not None:
         params["meetingNumber"] = meeting_number
@@ -64,13 +72,13 @@ def cmd_list(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             if "max" not in params:
                 params["max"] = 1000
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -91,6 +99,8 @@ def list_group_meetings(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="[Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) for time stamps in response body, defined in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default value is `UTC` if not specified. Sent as the timezone request header."),
+    host_email: str = typer.Option(None, "--host-email", help="Email of the user whose meetings will be retrieved. The `hostEmail` parameter is optional, but one of the `personId` parameter and `hostEmail` header must be specified. Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Group Meetings."""
@@ -99,6 +109,11 @@ def list_group_meetings(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/group/meetings"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     params = {}
     if person_id is not None:
         params["personId"] = person_id
@@ -112,13 +127,13 @@ def list_group_meetings(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
             if "max" not in params:
                 params["max"] = 1000
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -168,6 +183,7 @@ def update_group_meetings(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    host_email: str = typer.Option(None, "--host-email", help="Email of the user whose meetings will be patched. The `hostEmail` parameter is optional, but one of the `personId` parameter and `hostEmail` header must be specified. Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Patch a Group Meeting.\n\n\b\nExample: wxcli meetings update-group-meetings MEETING_ID\n\n\b\nExample --json-body: '{"title":"...","agenda":"...","password":"...","start":"...","end":"...","timezone":"...","recurrence":"...","enabledAutoRecordMeeting":true,"allowAnyUserToBeCoHost":true,"enabledJoinBeforeHost":true,"enableConnectAudioBeforeHost":true,"joinBeforeHostMinutes":0,"excludePassword":true,"publicMeeting":true,"reminderTime":0,"unlockedMeetingJoinSecurity":"allowJoin","sessionTypeId":0,"enabledWebcastView":true,"panelistPassword":"...","enableAutomaticLock":true,"automaticLockMinutes":0,"allowFirstUserToBeCoHost":true,"allowAuthenticatedDevices":true,"sendEmail":true,"meetingOptions":{"enabledChat":true,"enabledVideo":true,"enabledPolling":true,"enabledNote":true,"noteType":"allowAll","enabledFileTransfer":true,"enabledUCFRichMedia":true},"attendeePrivileges":{"enabledShareContent":true,"enabledSaveDocument":true,"enabledPrintDocument":true,"enabledAnnotate":true,"enabledViewParticipantList":true,"enabledViewThumbnails":true,"enabledRemoteControl":true,"enabledViewAnyDocument":true,"enabledViewAnyPage":true,"enabledContactOperatorPrivately":true,"enabledChatHost":true,"enabledChatPresenter":true,"enabledChatOtherParticipants":true},"integrationTags":["..."],"enabledBreakoutSessions":true,"trackingCodes":[{"name":"...","value":"..."}],"enabledAudioWatermark":true,"enabledVisualWatermark":true,"visualWatermarkOpacity":0,"audioConnectionOptions":{"audioConnectionType":"webexAudio","enabledTollFreeCallIn":true,"enabledGlobalCallIn":true,"enabledAudienceCallBack":true,"entryAndExitTone":"beep","allowHostToUnmuteParticipants":true,"allowAttendeeToUnmuteSelf":true,"muteAttendeeUponEntry":true},"requireAttendeeLogin":true,"restrictToInvitees":true,"enabledLiveStream":true,"liveStream":{"destination":"...","rtmpUrl":"...","streamUrl":"...","layoutWithoutSharedContent":"grid","layoutWithSharedContent":"stack","allowChangeLayoutInMeeting":true,"followStageLayoutWhenSynced":true,"resolution":"..."}}'"""
@@ -176,6 +192,9 @@ def update_group_meetings(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/group/meetings/{meeting_id}"
+    headers = {}
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     params = {}
     if person_id is not None:
         params["personId"] = person_id
@@ -246,7 +265,7 @@ def update_group_meetings(
         if enabled_live_stream is not None:
             body["enabledLiveStream"] = enabled_live_stream
     try:
-        result = api.session.rest_patch(url, json=body, params=params, content_type="application/json-patch+json")
+        result = api.session.rest_patch(url, json=body, params=params, content_type="application/json-patch+json", headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -271,6 +290,7 @@ def update_group_controls(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    host_email: str = typer.Option(None, "--host-email", help="Email of the user whose meeting control will be updated. The `hostEmail` parameter is optional, but one of the `personId` parameter and `hostEmail` header must be specified. Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Update Group Meeting Control Status.\n\n\b\nExample: wxcli meetings update-group-controls --meeting-id MEETING_ID --action startRecording\n\n\b\nExample --json-body: '{"meetingId":"...","action":"startRecording"}'"""
@@ -279,6 +299,9 @@ def update_group_controls(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/group/meetings/controls"
+    headers = {}
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     params = {}
     if person_id is not None:
         params["personId"] = person_id
@@ -295,7 +318,7 @@ def update_group_controls(
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -341,6 +364,8 @@ def list_meetings(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, measured live. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    password: str = typer.Option(None, "--password", help="e.g. BgJep@4323. Sent as the password request header."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meetings."""
@@ -349,6 +374,11 @@ def list_meetings(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings"
+    headers = {}
+    if password is not None:
+        headers["password"] = password
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if meeting_number is not None:
         params["meetingNumber"] = meeting_number
@@ -398,11 +428,11 @@ def list_meetings(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -572,18 +602,25 @@ def show_meetings(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a meeting that is hosted by that user."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    password: str = typer.Option(None, "--password", help="e.g. BgJep@4323. Sent as the password request header."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting.\n\n\b\nExample: wxcli meetings show-meetings MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}"
+    headers = {}
+    if password is not None:
+        headers["password"] = password
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if current is not None:
         params["current"] = current
     if host_email is not None:
         params["hostEmail"] = host_email
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1026,16 +1063,20 @@ def show_templates(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return the meeting template that is available for that user."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting Template.\n\n\b\nExample: wxcli meetings show-templates TEMPLATE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/templates/{template_id}"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if host_email is not None:
         params["hostEmail"] = host_email
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -1304,6 +1345,7 @@ def delete_registration(
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    host_email: str = typer.Option(None, "--host-email", help="e.g. `brenda.song@example.com` (string, optional) - Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin on-behalf-of scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details... Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Meeting Registration Form.\n\n\b\nExample: wxcli meetings delete-registration MEETING_ID"""
@@ -1311,8 +1353,11 @@ def delete_registration(
     if not force:
         typer.confirm(f"Delete Registration for {meeting_id}?", abort=True)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/registration"
+    headers = {}
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     try:
-        result = api.session.rest_delete(url)
+        result = api.session.rest_delete(url, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -2093,11 +2138,15 @@ def list_breakout_sessions(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    host_email: str = typer.Option(None, "--host-email", help="e.g. `john.andersen@example.com` (string, optional) - Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will return details for a... Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings list-breakout-sessions MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/breakoutSessions"
+    headers = {}
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -2105,7 +2154,7 @@ def list_breakout_sessions(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -2168,6 +2217,7 @@ def delete_breakout_sessions(
     force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    host_email: str = typer.Option(None, "--host-email", help="e.g. `john.andersen@example.com` (string, optional) - Email address for the meeting host. This parameter is only used if the user or application calling the API has the admin-level scopes. If set, the admin may specify the email of a user in a site they manage and the API will delete breakout... Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Delete Meeting Breakout Sessions.\n\n\b\nExample: wxcli meetings delete-breakout-sessions MEETING_ID"""
@@ -2175,11 +2225,14 @@ def delete_breakout_sessions(
     if not force:
         typer.confirm(f"Delete Breakout Sessions for {meeting_id}?", abort=True)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/breakoutSessions"
+    headers = {}
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     params = {}
     if send_email is not None:
         params["sendEmail"] = send_email
     try:
-        result = api.session.rest_delete(url, params=params)
+        result = api.session.rest_delete(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -2201,13 +2254,17 @@ def list_survey(
     limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
     offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
     all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
+    host_email: str = typer.Option(None, "--host-email", help="e.g. john.andersen@example.com. Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get a Meeting Survey.\n\n\b\nExample: wxcli meetings list-survey MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/survey"
+    headers = {}
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -2226,6 +2283,8 @@ def list_survey_results(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
+    host_email: str = typer.Option(None, "--host-email", help="e.g. john.andersen@example.com. Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meeting Survey Results.\n\n\b\nExample: wxcli meetings list-survey-results MEETING_ID"""
@@ -2234,6 +2293,11 @@ def list_survey_results(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/surveyResults"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     params = {}
     if meeting_start_time_from is not None:
         params["meetingStartTimeFrom"] = meeting_start_time_from
@@ -2244,9 +2308,9 @@ def list_survey_results(
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
         else:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -2269,6 +2333,7 @@ def create_survey_links(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Meeting Survey Links.\n\n\b\nExample: wxcli meetings create-survey-links MEETING_ID\n\n\b\nExample --json-body: '{"hostEmail":"...","meetingStartTimeFrom":"...","meetingStartTimeTo":"...","emails":["..."]}'"""
@@ -2277,6 +2342,9 @@ def create_survey_links(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/surveyLinks"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -2288,7 +2356,7 @@ def create_survey_links(
         if meeting_start_time_to is not None:
             body["meetingStartTimeTo"] = meeting_start_time_to
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -2313,11 +2381,18 @@ def list_invitation_sources(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    host_email: str = typer.Option(None, "--host-email", help="e.g. john.andersen@example.com. Sent as the hostEmail request header."),
+    person_id: str = typer.Option(None, "--person-id", help="e.g. Y2lzY29zcGFyazovL3VzL1BFT1BMRS8yNWJiZjgzMS01YmU5LTRjMjUtYjRiMC05YjU5MmM4YTA4NmI. Sent as the personId request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Invitation Sources.\n\n\b\nExample: wxcli meetings list-invitation-sources MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/{meeting_id}/invitationSources"
+    headers = {}
+    if host_email is not None:
+        headers["hostEmail"] = host_email
+    if person_id is not None:
+        headers["personId"] = person_id
     params = {}
     if limit > 0:
         params["max"] = limit
@@ -2325,7 +2400,7 @@ def list_invitation_sources(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -2429,6 +2504,7 @@ def create_reassign_host(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    site_url: str = typer.Option(None, "--site-url", help="e.g. example.webex.com. Sent as the siteUrl request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Reassign Meetings to a New Host.\n\n\b\nExample: wxcli meetings create-reassign-host --json-body '{"hostEmail":"...","meetingIds":["..."]}'"""
@@ -2437,6 +2513,9 @@ def create_reassign_host(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetings/reassignHost"
+    headers = {}
+    if site_url is not None:
+        headers["siteUrl"] = site_url
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -2448,7 +2527,7 @@ def create_reassign_host(
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

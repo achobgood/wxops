@@ -116,7 +116,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-40 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-41 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -383,7 +383,7 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   name the new command.
 - The two halves print as two `[34]` lines (`CHECK_EXAMINED` keys `34i`/`34ii`;
   `print_check_findings(..., heading="[34]")`), each with its own examined count. CI's
-  completion assertion greps the highest-numbered check (`^\[40\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
+  completion assertion greps the highest-numbered check (`^\[41\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
   (`TestLegacyCliCheck`: a planted fixture fires and a clean control does not, for each half).
   Proven on the live tree too: a planted `` `wxcc-flow list --type SUBFLOW` `` in
   `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
@@ -453,6 +453,20 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   create-accept-preview-task`, `create-skip`, `delete-preview-task`. **To clear:**
   `command_renderer._order_path_vars_by_url`, regen. No ack key. Tests:
   `tests/test_drift_check_positional_order.py`.
+
+- **[41] An `in: header` spec parameter the command does not send** (audit F4, 2026-11-10). For
+  every block with a spec op, each header outside the transport set (Authorization, Content-Type,
+  Accept, Content-Length, TrackingId; `openapi_parser.TRANSPORT_HEADERS`, path-level included,
+  `$ref` resolved) must be written as `headers["<Name>"] = …` with every session call in the block
+  passing `headers=` (kinds `dropped`, `not-passed`), or, for a REQUIRED `X-ORGANIZATION-ID`,
+  written from `get_cc_org_id(api.session)` (`not-injected`). An OPTIONAL `X-ORGANIZATION-ID` is
+  exempt only on the two operations `HEADER_OPTIONAL_ORG_EXCEPTIONS` names (with the round-3
+  evidence path); an entry whose operation vanished or whose header became required is
+  `stale-exception`, so the constant cannot rot or quietly cover a third operation. Every declaring
+  spec must fail for a finding. Examined = commands whose op declares a non-transport header (41 at
+  landing, 5 skipped with no spec op). Run against the pre-fix modules it fires 39. **To clear:**
+  `openapi_parser.parse_header_parameters` / `command_renderer._apply_header_params`, regen. No ack
+  key. Tests: `tests/test_drift_check_header_params.py`.
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
@@ -1928,6 +1942,77 @@ operation, which is what check 40 now catches); leaving the order and documentin
 "Argument-order trap" note that sat in `contact-center-routing.md`, which an agent only reads after
 the wrong call). **Live-verified:** only the 2026-10-13 `export` 404 above. **Spec only:** the 7 new
 orders were not called live; each follows the URL the command already sends.
+
+### `in: header` parameters become options and are sent (2026-11-10, audit F4, check 41)
+
+`parse_parameters` read `in: path` and `in: query` only, so every header parameter fell through: no
+option, never sent. `meetings list-group-meetings` could not name a host by email,
+`meeting-session-types list-session-types` could not be called by email at all, and
+`cc-agent-wellbeing create`/`create-action` never sent a header the spec marks required.
+
+**What changed.**
+- Runtime (`src/wxcli/auth.py`): `_request` and all ten call methods a generated command can emit
+  (`rest_get/put/post/patch/delete`, `rest_post_multipart`, `follow_pagination`,
+  `follow_page_param`, `follow_scim`, `fetch_from_offset`) take keyword-only `headers=None`, passed
+  to every page a walker requests. In `_request`, before the multipart branch drops `Content-Type`:
+  a key in the transport set (`TRANSPORT_HEADERS`: Authorization, Content-Type, Accept,
+  Content-Length, TrackingId, case-insensitive) raises `ValueError` (a generator bug, never user
+  input); a `None` or non-ASCII value raises `WebexError` with a one-line message. `headers=None`
+  sends exactly the old header set. `common.verify_write(..., headers=None)` re-reads with the
+  same headers (passed only when given, so an older session fake still works).
+- Parser: `parse_header_parameters(op, path_item, spec)` (op- and path-level, `$ref` resolved,
+  op-level wins by case-insensitive name, transport set skipped) fills `Endpoint.header_params`;
+  `parse_parameters` and its 5-tuple are unchanged. A required `X-ORGANIZATION-ID` goes to
+  `Endpoint.auto_inject_headers`; an optional one is dropped (below).
+- Renderer: `_apply_header_params` runs on each rendered command in `render_command_file` (and
+  the multipart path). A command with neither list is returned unchanged, so every module without a
+  header parameter is byte-identical (measured: a full regen changed exactly 10 modules and 39
+  command blocks, every one header-bearing). For the rest: one option per header (kebab case;
+  `--header-` prefix when the name is taken by a path argument, query option, body flag, lifted
+  hidden flag, or an option the renderer injects), `headers = {}` plus one `if <p> is not None:
+  headers["<Name>"] = <p>` after the URL line, `headers["X-ORGANIZATION-ID"] =
+  get_cc_org_id(api.session)` for an injected one, and `headers=headers or None` on every session
+  call and `verify_write`. `needs_cc_org_id` is also true when any endpoint injects a header.
+- Gate: check 41. Commands changed (39): `admin-recordings` ×7, `cc-agent-wellbeing` ×2,
+  `converged-recordings` ×3, `meeting-captions` ×1, `meeting-participants` ×2, `meeting-reports`
+  ×2, `meeting-session-types` ×1, `meeting-tracking-codes` ×1, `meetings` ×16, `recording-report`
+  ×4. The audit baseline (`count_header_params.baseline.json`) listed 38 non-TrackingId commands:
+  its counter treated `admin-recordings create-query` as already exposed because that command has a
+  BODY `--timezone`. That command is the one real collision, so its header is `--header-timezone`
+  (the plan named `create`, whose body has no `timezone`).
+
+**Live-verified (sandbox, `docs/audit/claude-fable-5-2/live_f4_headers_rerun.md`,
+`live_f4_headers_round3.md`):** `timezone` on `GET /meetings/{id}` (`meetings show-meetings`);
+`hostEmail` on `GET /meetings/{id}/breakoutSessions` (`list-breakout-sessions`); `personId` on
+`GET /meetings/{id}/invitationSources` (`list-invitation-sources`); `email` on `GET
+/admin/meeting/userconfig/sessionTypes` (`meeting-session-types list-session-types`, required in
+practice); `X-ORGANIZATION-ID` on `GET /search/v2/meta` (read, but optional). In each, the same name
+sent as a query value was ignored. **Not distinguishable live:** `hostEmail` on `/group/meetings`
+(403 for every variant, token scope) and `password` on `GET /meetings/{id}` (an admin token needs
+none). **Spec only:** `siteUrl`, `timezone` everywhere but `GET /meetings/{id}`, `hostEmail` and
+`email` on every other operation, and both required `X-ORGANIZATION-ID` writes (writes needing a
+webhook URL; not run). The doc rows say which (`> **Unverified:**`).
+
+**`X-ORGANIZATION-ID` decision.** Required on 2 operations → auto-injected, no option. Optional on 2
+(`cc-search-metadata list` = `GET /search/v2/meta`, `external-data-updates update` = `PUT
+/v1/data/updateExternal`) → no option, nothing sent. Round 3 (§ 5 of
+`live_f4_headers_round3.md`) shows the server reads the header (a bogus org → 401) but returns the
+same 200 body without it, so sending or offering it would change nothing a working command does.
+Only `/search/v2/meta` was tested; `external-data-updates update` follows by analogy (same header,
+same optional declaration, same host). Check 41 names exactly those two in
+`HEADER_OPTIONAL_ORG_EXCEPTIONS` with that evidence path, re-validates them every run (a vanished
+op, or a header that became required, is `stale-exception`), and fires `dropped` on an optional
+`X-ORGANIZATION-ID` on any third operation.
+
+**Rejected:** per-operation location overrides (render a header as a query parameter where the
+spec mis-declares it): every probe that could tell found the spec right, so none is built; add one
+with `basis: live` only when a probe finds a mis-declared header. Rendering `TrackingId` (a
+correlation id; 21 commands would gain an option nobody needs). An option for the optional
+`X-ORGANIZATION-ID` (no measured effect on a working call; a partner, multi-org token was not
+tested, and is the case to revisit). Threading headers through each renderer by hand (six render
+paths plus multipart, each a chance to miss a call; a post-pass over the rendered text cannot miss
+one, and it raises if a header-bearing command has no URL line or no session call). Extending
+`parse_parameters`' 5-tuple (every caller would change for a field only the renderer reads).
 
 ## Flow Store spec
 

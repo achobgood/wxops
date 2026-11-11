@@ -26,6 +26,7 @@ def cmd_list(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Recordings."""
@@ -34,6 +35,9 @@ def cmd_list(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/convergedRecordings"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -57,11 +61,11 @@ def cmd_list(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -88,6 +92,7 @@ def list_converged_recordings(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Recordings for Admin or Compliance officer."""
@@ -96,6 +101,9 @@ def list_converged_recordings(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/convergedRecordings"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -123,11 +131,11 @@ def list_converged_recordings(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -141,13 +149,17 @@ def show(
     recording_id: str = typer.Argument(help="UUID, from: wxcli converged-recordings list"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Recording Details.\n\n\b\nExample: wxcli converged-recordings show RECORDING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/convergedRecordings/{recording_id}"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

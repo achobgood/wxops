@@ -1191,3 +1191,90 @@ class TestBodyShape:
             spec = json.loads((SPECS / spec_file).read_text())
             ep = parse_operation("PATCH", path, spec["paths"][path]["patch"], spec)
             assert ep.body_shape == shape, (spec_file, path)
+
+
+# ── in: header parameters (audit F4) ─────────────────────────────────────────
+
+
+class TestHeaderParameters:
+    SPEC = {"components": {"parameters": {
+        "Tz": {"name": "timezone", "in": "header", "schema": {"type": "string"},
+               "description": "e.g. UTC"}}}}
+
+    def _op(self, *params):
+        return {"parameters": list(params), "responses": {"200": {}}}
+
+    def test_header_becomes_a_field_and_query_is_unchanged(self):
+        from tools.openapi_parser import parse_header_parameters
+        op = self._op(
+            {"name": "hostEmail", "in": "header", "required": False,
+             "description": "Email of the host.", "schema": {"type": "string"}},
+            {"name": "personId", "in": "query", "schema": {"type": "string"}})
+        got = parse_header_parameters(op, {}, self.SPEC)
+        assert [(f.name, f.python_name, f.required) for f in got] == [
+            ("hostEmail", "host-email", False)]
+        assert got[0].description == "Email of the host."
+        # parse_parameters and its 5-tuple are untouched by headers
+        path_vars, query, inj, inj_path, meta = parse_parameters(op["parameters"], self.SPEC)
+        assert [q.name for q in query] == ["personId"]
+
+    def test_ref_and_path_level_resolved_op_level_wins(self):
+        from tools.openapi_parser import parse_header_parameters
+        path_item = {"parameters": [
+            {"$ref": "#/components/parameters/Tz"},
+            {"name": "siteUrl", "in": "header", "schema": {"type": "string"},
+             "description": "path-level"}]}
+        op = self._op({"name": "siteUrl", "in": "header", "required": True,
+                       "schema": {"type": "string"}, "description": "op-level"})
+        got = {f.name: f for f in parse_header_parameters(op, path_item, self.SPEC)}
+        assert set(got) == {"timezone", "siteUrl"}
+        assert got["siteUrl"].description == "op-level" and got["siteUrl"].required
+
+    def test_transport_headers_skipped(self):
+        from tools.openapi_parser import parse_header_parameters
+        op = self._op(*[{"name": n, "in": "header", "schema": {"type": "string"}}
+                        for n in ("Authorization", "content-type", "Accept",
+                                  "Content-Length", "TrackingId", "trackingid")])
+        assert parse_header_parameters(op, {}, self.SPEC) == []
+
+    def test_x_organization_id_required_is_auto_injected_optional_is_dropped(self):
+        req = self._op({"name": "X-ORGANIZATION-ID", "in": "header", "required": True,
+                        "schema": {"type": "string"}})
+        ep = parse_operation("POST", "/v1/agentburnout/subscribe", req, {})
+        assert ep.auto_inject_headers == ["X-ORGANIZATION-ID"]
+        assert ep.header_params == []
+        opt = self._op({"name": "X-ORGANIZATION-ID", "in": "header", "required": False,
+                        "schema": {"type": "string"}})
+        ep = parse_operation("GET", "/search/v2/meta", opt, {})
+        assert ep.auto_inject_headers == [] and ep.header_params == []
+
+    def test_parse_tag_reads_path_level_headers(self):
+        spec = {"paths": {"/things/{id}": {
+            "parameters": [{"name": "timezone", "in": "header",
+                            "schema": {"type": "string"}}],
+            "get": {"tags": ["T"], "operationId": "getThing",
+                    "parameters": [{"name": "id", "in": "path", "required": True,
+                                    "schema": {"type": "string"}}],
+                    "responses": {"200": {}}}}}}
+        eps, _ = parse_tag("T", spec)
+        assert [h.name for h in eps[0].header_params] == ["timezone"]
+
+    def test_live_specs_header_counts(self):
+        """The audit's 69 header parameters on 59 commands: 21 TrackingId
+        (transport), 2 required X-ORGANIZATION-ID (auto-injected), 2 optional
+        X-ORGANIZATION-ID (not rendered), 44 rendered as options."""
+        specs = Path(__file__).resolve().parent.parent / "specs"
+        from tools.openapi_parser import parse_header_parameters
+        rendered = injected = 0
+        for f in sorted(specs.glob("webex-*.json")):
+            spec = json.loads(f.read_text())
+            for path, item in spec.get("paths", {}).items():
+                for method in ("get", "post", "put", "patch", "delete"):
+                    op = item.get(method)
+                    if not op:
+                        continue
+                    ep = parse_operation(method, path, op, spec, path_item=item)
+                    rendered += len(ep.header_params)
+                    injected += len(ep.auto_inject_headers)
+        assert injected == 2
+        assert rendered >= 44
