@@ -182,6 +182,8 @@ def test_main_session_deny_names_type_and_the_spawn_name_rule():
 ])
 @pytest.mark.parametrize("command", [
     "wxcli configure", "wxcli people list && wxcli configure", 'sh -c "wxcli configure"',
+    # Round-2 review I1: wrappers the scan did not know reached no decision.
+    "timeout 5 wxcli configure", "builtin wxcli configure", "noglob wxcli configure",
 ])
 def test_configure_refused_before_the_trusted_agent_bypass(agent, agent_id, command):
     reason = G.decide(_payload(command, agent, agent_id))

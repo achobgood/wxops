@@ -119,7 +119,7 @@ TRUSTED_AGENTS = ("wxops", "migration-advisor")
 # is anything past the command position scanned — otherwise `grep -rn wxcli
 # docs/` reads as an invocation, and denying an ordinary grep is its own bug.
 WRAPPERS = frozenset(
-    "env command nohup nice time xargs sudo stdbuf setsid sh bash zsh exec eval".split()
+    "env command builtin noglob nohup nice time timeout xargs sudo stdbuf setsid sh bash zsh exec eval".split()
 )
 
 # Shell keywords that put a command after them (`for …; do <cmd>`, `if …; then

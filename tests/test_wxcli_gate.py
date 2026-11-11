@@ -286,6 +286,9 @@ ORG_ASK_REASON = ("wxcli switch-org and clear-org change which Webex org every l
     "/opt/homebrew/bin/wxcli --no-update-check switch-org Y2lz",
     "cd /tmp && wxcli switch-org Y2lz", 'bash -c "wxcli clear-org"',
     "wxcli people list && wxcli clear-org",
+    # Round-2 review I1: wrappers the scan did not know reached no decision.
+    "timeout 5 wxcli switch-org Y2lz", "builtin wxcli clear-org",
+    "noglob wxcli switch-org Y2lz",
 ])
 def test_builder_org_switch_asks_the_user(gate, agent, agent_id, command):
     """Final review I1 (Adam, 2026-11-11): the builder may switch or clear the

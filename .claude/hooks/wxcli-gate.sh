@@ -296,7 +296,7 @@ verdict=$(printf '%s' "$cmd" | awk '
     # Wrappers that take another command as an argument.  Only inside one of
     # these do we scan past the command position — otherwise `grep -rn wxcli
     # docs/` reads as an invocation, and denying an ordinary grep is its own bug.
-    split("env command nohup nice time xargs sudo stdbuf setsid sh bash zsh exec eval", w, " ")
+    split("env command builtin noglob nohup nice time timeout xargs sudo stdbuf setsid sh bash zsh exec eval", w, " ")
     # Shell keywords that put a command after them: `for …; do <cmd>`,
     # `if …; then <cmd>`, `! <cmd>`.  Skipped at command position like VAR=.
     split("do then else elif if while until !", kw, " ")
