@@ -22,6 +22,7 @@ import json
 import os
 import re
 import stat
+import string
 import sys
 import tempfile
 from pathlib import Path
@@ -38,21 +39,25 @@ KEYS = ("environment", "allow")
 # The org id lands in the rule unquoted, so it must look like an id: Webex ids
 # are base64 (A-Z a-z 0-9 + / =), Contact Center ids are UUIDs.
 _ORG_ID = re.compile(r"^[A-Za-z0-9+/=_-]{1,200}$")
+_NAME_CHARS = frozenset(string.ascii_letters + string.digits + " -_")
 _NAMED = re.compile(r'Webex org "([^"]*)" \(([^)]*)\)')
 
 
 def safe_org_name(name: str | None) -> str | None:
-    """Letters, digits, spaces, `-` and `_` only; whitespace collapsed; at most
-    60 characters; None if nothing is left.
+    """ASCII letters, digits, spaces, `-` and `_` only; whitespace collapsed; at
+    most 60 characters; None if nothing is left (the org id is shown instead).
 
     A partner's customer names its own org, so the display name is someone
     else's text. No `.`, `:` or quote survives, so it cannot end the rule's
-    sentence or its quotes and add prose of its own (recheck N3).
+    sentence or its quotes and add prose of its own (recheck N3). ASCII-only,
+    because `str.isalnum()` accepts Unicode look-alikes of those characters
+    (U+02BA `ʺ`, U+02D0 `ː`, U+A4F8 `ꓸ`, U+1427 `ᐧ`; Task 6 review I1):
+    an allow-list closes the whole class, a deny-list would chase code points.
     """
     if not name:
         return None
     kept = "".join(
-        c if (c.isalnum() or c in "-_") else " " if c.isspace() else ""
+        c if c in _NAME_CHARS else " " if c.isspace() else ""
         for c in name
     )
     collapsed = " ".join(kept.split())[:NAME_MAX].strip()

@@ -2037,7 +2037,8 @@ copy's effect on auto mode is the documented behaviour, not a measurement.
 gate and the CLAUDE.md statement close the ordinary agent paths. **Rejected:** a project-level
 `autoMode` (never read); Claude writing the rule (self-modification); a default answer (deletes are in
 scope); passing the raw org name (a partner's customer names its org: `.`, `:` and quotes could end the
-rule's sentence); an org id that is not id-shaped (refused as `no-org`, it lands unquoted).
+rule's sentence), or a Unicode `isalnum()` filter (review I1: look-alikes such as U+02BA `ʺ`, U+02D0
+`ː`, U+A4F8 `ꓸ` and U+1427 `ᐧ` passed it), so the name is ASCII `[A-Za-z0-9 _-]` only; an org id that is not id-shaped (refused as `no-org`, it lands unquoted).
 
 ## Flow Store spec
 
