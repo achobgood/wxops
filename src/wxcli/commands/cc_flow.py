@@ -307,8 +307,8 @@ _BODY_SKELETON_PUBLISH = '{"comment":"...","tagIds":["..."]}'
 @app.command("create", hidden=True)
 @app.command("publish", short_help="Publish a Flow or Subflow.")
 def publish(
-    flow_id: str = typer.Argument(help="24-char hex id"),
     project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
     skip_validation: str = typer.Option(None, "--skip-validation", help="If true, the flow's pre-publish validation is skipped. Use with care."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     comment: str = typer.Option(None, "--comment", help="A comment to provide context on publishing the flow."),
@@ -318,7 +318,7 @@ def publish(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Publish a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow publish FLOW_ID PROJECT_ID\n\n\b\nExample --json-body: '{"comment":"...","tagIds":["..."]}'"""
+    """Publish a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow publish PROJECT_ID FLOW_ID\n\n\b\nExample --json-body: '{"comment":"...","tagIds":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_PUBLISH), indent=2))
         raise typer.Exit(0)
@@ -357,15 +357,15 @@ def publish(
 
 @app.command("create-lock", short_help="Lock a Flow or Subflow.")
 def create_lock(
-    flow_id: str = typer.Argument(help="24-char hex id"),
     project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Lock a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow create-lock FLOW_ID PROJECT_ID"""
+    """Lock a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow create-lock PROJECT_ID FLOW_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)
@@ -397,15 +397,15 @@ def create_lock(
 
 @app.command("create-unlock", short_help="Unlock a Flow or Subflow.")
 def create_unlock(
-    flow_id: str = typer.Argument(help="24-char hex id"),
     project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Unlock a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow create-unlock FLOW_ID PROJECT_ID"""
+    """Unlock a Flow or Subflow.\n\n\b\nExample: wxcli cc-flow create-unlock PROJECT_ID FLOW_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)

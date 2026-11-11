@@ -120,7 +120,7 @@ def test_legacy_export_ui_and_hidden_list_alias(http):
     assert "list" not in commands_of("cc-legacy-flows")  # hidden alias
     for name in ("export-ui", "list"):
         http.clear()
-        result = invoke("cc-legacy-flows", name, FLOW, PROJECT, "--version", "draft", "-o", "json")
+        result = invoke("cc-legacy-flows", name, PROJECT, FLOW, "--version", "draft", "-o", "json")
         assert result.exit_code == 0, (name, result.output)
         verb, url, kw = http[-1]
         assert verb == "get"

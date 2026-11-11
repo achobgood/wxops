@@ -903,7 +903,7 @@ wxcli cc-flow list PROJECT_ID -o json
 
 > **Paging (fixed 2026-10-13):** `cc-flow list --all` returns every flow (56 of 56 live). The default fetch returns 10 and prints a "more pages … `--offset 10`" note. `--offset N` works (translated to `page`/`size`, record-exact; ADR-12), and so does `--page`.
 
-> **Argument order (verified via `--help` and live 2026-10-13):** `show`, `export`, `list-validate`, `delete` take `PROJECT_ID` then `FLOW_ID`. `publish`, `create-lock`, `create-unlock` take `FLOW_ID` then `PROJECT_ID`. The wrong order on `export` returns 404 "Flow … not found".
+> **Argument order (verified via `--help` and live 2026-10-13; `publish`, `create-lock`, `create-unlock` fixed 2026-11-10):** `show`, `export`, `list-validate`, `delete`, `publish`, `create-lock`, `create-unlock` all take `PROJECT_ID` then `FLOW_ID`. The wrong order on `export` returns 404 "Flow … not found".
 >
 > **Finding the project ID:** `wxcli cc-flow-projects show-user-preferences -o json` (no arguments) returns it as `projectId`. Verified live 2026-10-19 with a read-only GET of the URL this command calls: it returned the project that holds the org's flows. Do not use `cc-flow-projects list` for this: it lists only user-created projects, and on the sandbox its first entry was a different project with no flows (`cc-flow-projects show` returns 404 "Project with id … not found" on the flows' project for the same reason). Fallback: get a flow id from `cc-entry-point show <id>` (field `flowId`), then read `projectId` from `cc-flow show PROJECT_ID FLOW_ID` (reads do not enforce the project in the path, so any value returns the flow). If you already know a project id, `cc-flow list PROJECT_ID` gives flow ids.
 
@@ -932,13 +932,13 @@ wxcli cc-flow export PROJECT_ID FLOW_ID --version draft -o json
 **Publish a flow:**
 
 ```bash
-wxcli cc-flow publish FLOW_ID PROJECT_ID --comment "Initial publish"
+wxcli cc-flow publish PROJECT_ID FLOW_ID --comment "Initial publish"
 ```
 
 Use `--json-body` for additional publish options (e.g., tag IDs):
 
 ```bash
-wxcli cc-flow publish FLOW_ID PROJECT_ID --json-body '{
+wxcli cc-flow publish PROJECT_ID FLOW_ID --json-body '{
   "comment": "Production release",
   "tagIds": ["TAG_ID"]
 }'
@@ -949,8 +949,8 @@ wxcli cc-flow publish FLOW_ID PROJECT_ID --json-body '{
 ```bash
 wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json
 wxcli cc-flow list-validate PROJECT_ID FLOW_ID   # returns {valid, results}
-wxcli cc-flow create-lock FLOW_ID PROJECT_ID
-wxcli cc-flow create-unlock FLOW_ID PROJECT_ID
+wxcli cc-flow create-lock PROJECT_ID FLOW_ID
+wxcli cc-flow create-unlock PROJECT_ID FLOW_ID
 wxcli cc-flow create-import PROJECT_ID --json-body file://flow.json
 ```
 
@@ -980,7 +980,7 @@ wxcli cc-flow list-event-specifications PROJECT_ID
    `{"name":"NewContact","activityType":"start","properties":{"name":"NewContact","activityName":"NewContact","activityId":"start","event":"NewContact","flowType":{"eventSourceId":"5eff0e2eb10162499bc9f932","eventSourceName":"WebexContactCenter","eventClassificationId":"5f10475cf021306e89e1692c","eventClassificationName":"VoiceInteractions","eventSpecificationId":"5f2d02144332507e39cc8a7f","eventSpecificationName":"ContactStartWorkflow"}}}`
 3. **Edge `condition` names seen in the published body:** start and `set-variable` use `out` (+ `error`); `play-message`, `play-music`, `queue-contact`, `callback` use `default` (queue-contact and callback also `failure`); `ivr-menu` uses the digit plus `timeout`/`invalid`/`error`; `ivr-collectdigits` uses `default` (validator rejects it, see above) plus `timeout`/`invalid`/`error`; `condition-activity` uses `true`/`false`/`error`; `business-hours` uses `workingHours`/`holidays`/`override`/`default`/`error`. `queue-contact` `failure` draws a non-fatal import WARNING ("Use one of: default").
 4. **Variables.** A global variable in FlowIr is `{name, type, value, source:"GLOBAL", id:"<global var id>", ...}`; a flow-local one has `source:""`, `id:""`. An `isCAD:true` (agent-viewable) variable needs a non-empty `desktopLabel` or validate returns `FC1015` (also for globals re-declared in the flow).
-5. **Sequence that worked (verified live 2026-10-13):** create queues, business hours and globals first and take their ids from the read-back, then `create-import` the flow, `show` it to compare, `publish FLOW_ID PROJECT_ID`, then create the entry point with `flowId` + `flowTagId` (see Entry Point). No test call was placed, so none of it is runtime-verified.
+5. **Sequence that worked (verified live 2026-10-13):** create queues, business hours and globals first and take their ids from the read-back, then `create-import` the flow, `show` it to compare, `publish PROJECT_ID FLOW_ID`, then create the entry point with `flowId` + `flowTagId` (see Entry Point). No test call was placed, so none of it is runtime-verified.
 6. **Recipe notes, not runtime-tested.** *Callback:* `callback` with `toggleCallbackDestination: false` calls back into the queue the contact is already in, which avoids a `{{QueueNode.QueueId}}` reference (and its FC1038 false positive). *Bilingual prompts:* with the built-in "Cisco Cloud Text-to-Speech" connector the voice follows the `Global_Language` / `Global_VoiceName` globals; a language-specific `set-variable` node sets them (`es-US` / `es-US-Alonso` for Spanish) plus prompt-text variables, and one set of nodes speaks `{{msgX}}`.
 7. **Demo data in global variables is not live data.** A value such as a static restoration time ("9:30 PM tonight") or area name stored in a global variable is spoken on every call until someone edits the variable, whether or not it is still true. That is acceptable for a demo only if everyone knows it. A real deployment would fetch it per call (for example an HTTP Request node against the outage system, via an HTTP Connector). **The HTTP Request alternative was not built or tested here;** for HTTP Request node mechanics in flows, see `docs/reference/contact-center-routing.md` gotchas #16-17 and `docs/reference/contact-center-core.md` gotcha #25, which were written for other calls (JDS events, CC APIs), not an outage system.
 
@@ -1440,7 +1440,7 @@ Next steps:
 4. Create entry point → `wxcli cc-entry-point create --json-body '...'`
 5. Create queue → `wxcli cc-queue create-contact-service-queue --json-body '...'` (`cc-queue create` is the bulk endpoint)
 6. Map dial number → `wxcli cc-dial-number create --json-body '...'`
-7. Create/assign flow → `wxcli cc-flow publish FLOW_ID PROJECT_ID --comment "..."`
+7. Create/assign flow → `wxcli cc-flow publish PROJECT_ID FLOW_ID --comment "..."`
 8. Verify end-to-end → list all resources and confirm IDs are linked
 
 ### Workflow B: Add skill-based routing

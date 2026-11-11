@@ -15,15 +15,15 @@ app = typer.Typer(help="Manage Webex Contact Center: cc-legacy-flows.")
 @app.command("list", hidden=True)
 @app.command("export-ui", short_help="Export a Flow or Subflow.")
 def export_ui(
-    flow_id: str = typer.Argument(help="24-char hex id"),
     project_id: str = typer.Argument(help="24-char hex id"),
+    flow_id: str = typer.Argument(help="24-char hex id"),
     version: str = typer.Option(None, "--version", help="Version ID. Possible values are 'draft', 'latest' or version ID like '64b92c004ccd9f3d1c680709'. Defaulted to 'latest'."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Export a Flow or Subflow.\n\n\b\nExample: wxcli cc-legacy-flows export-ui FLOW_ID PROJECT_ID"""
+    """Export a Flow or Subflow.\n\n\b\nExample: wxcli cc-legacy-flows export-ui PROJECT_ID FLOW_ID"""
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     org_id = get_cc_org_id(api.session)

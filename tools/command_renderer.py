@@ -2696,6 +2696,25 @@ def _infer_missing_path_vars(endpoints: list[Endpoint]) -> None:
                         + [n for n in ep.path_vars if n not in template])
 
 
+def _order_path_vars_by_url(endpoints: list[Endpoint]) -> None:
+    """Make each endpoint's positional path arguments follow the URL.
+
+    A spec lists an operation's path parameters in whatever order its author
+    typed them, so `cc-flow publish` took `FLOW_ID PROJECT_ID` while its own
+    URL reads `.../project/{projectId}/flows/{flowId}:publish` and its sibling
+    `export` took `PROJECT_ID FLOW_ID` (audit F5, 2026-11-10). Sorted by the
+    position of `{var}` in `url_path`; a var the template does not mention
+    keeps its relative order after the ones it does. Stable, so an endpoint
+    whose spec order already matches renders byte-identically.
+    """
+    for ep in endpoints:
+        template = _URL_PLACEHOLDER_RE.findall(ep.url_path)
+        ep.path_vars = sorted(
+            ep.path_vars,
+            key=lambda n: template.index(n) if n in template else len(template),
+        )
+
+
 class CommandHelpNoteError(Exception):
     """A `command_help_notes` entry names a command this tag does not render.
 
@@ -2776,6 +2795,7 @@ def render_command_file(
     base_url_override: str | None = None, spec_filename: str | None = None,
 ) -> str:
     _infer_missing_path_vars(endpoints)
+    _order_path_vars_by_url(endpoints)
     _apply_command_help_notes(endpoints, folder_overrides)
     _apply_command_confirms(endpoints, folder_overrides)
     _, cli_name = folder_name_to_module(folder_name)

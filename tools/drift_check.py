@@ -384,6 +384,12 @@ Checks (docs/arch/target-architecture.md §A6):
       X` sent `[{"title": "X"}]` for an object body (HTTP 400 live) and
       `cc-journey delete-person-id-workspace-id` sent `[{"value": ...}]` for an
       array of strings (audit F1). Examined = write commands with such a body.
+  40. Positional order: the `typer.Argument` parameters of a command, in
+      declaration order, equal the order their `{placeholders}` have in the
+      command's `url = f"..."`. `cc-flow publish` took `FLOW_ID PROJECT_ID`
+      for `.../project/{project_id}/flows/{flow_id}:publish` while its sibling
+      `export` took `PROJECT_ID FLOW_ID` (audit F5). Pure source check, no spec.
+      Examined = commands with two or more arguments that appear in the URL.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -6250,6 +6256,74 @@ CHECK_PRINT["39"] = (
                + f"  {f['op']}  ({f['spec']})"))
 
 
+# ----------------------------------------------------------------- check 40
+
+_POSITIONAL_ARG = re.compile(r"^    (\w+)\s*:\s*[\w\[\], .|]+=\s*typer\.Argument\(", re.M)
+_URL_FSTRING_PLACEHOLDER = re.compile(r"\{(\w+)\}")
+
+
+def check_positional_order(commands_dir: Path = COMMANDS_DIR) -> list[dict]:
+    """A command's positional arguments must follow the URL (audit F5).
+
+    The spec lists an operation's path parameters in whatever order its author
+    typed them, and the renderer used to take that order: `cc-flow publish`
+    read `FLOW_ID PROJECT_ID` for `.../project/{project_id}/flows/{flow_id}`
+    while `cc-flow export` on the same resource read `PROJECT_ID FLOW_ID`, so
+    an agent that learned one built the other backwards and sent a flow id
+    where a project id belongs. Checks 10/11b judge a DOCUMENTED call against
+    the declaration; none judges the declaration against the URL.
+
+    A pure source check, no spec: for each command block, the `typer.Argument`
+    parameters (declaration order) that also appear as `{name}` in a
+    `url = f"..."` of the block must be in the order of their first
+    placeholder in that URL. An argument the URL does not mention (a body or
+    query value) is not judged; a block with fewer than two such arguments has
+    no order to judge and is skipped and counted. With several URLs in a block
+    (a paged walker), each is judged and one finding names the first that
+    disagrees. No ack key (ADR-13 rules). Examined = blocks with two or more
+    arguments that appear in a URL.
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    for block in iter_command_blocks(commands_dir):
+        args = _POSITIONAL_ARG.findall(block.text)
+        urls = _BLOCK_URL.findall(block.text)
+        if len(args) < 2 or not urls:
+            skipped += 1
+            continue
+        judged = False
+        bad = None
+        for url in urls:
+            in_url = [n for n in _URL_FSTRING_PLACEHOLDER.findall(url) if n in args]
+            wanted = list(dict.fromkeys(in_url))
+            if len(wanted) < 2:
+                continue
+            judged = True
+            declared = [a for a in args if a in wanted]
+            if declared != wanted and bad is None:
+                bad = {"declared": declared, "url": wanted}
+        if not judged:
+            skipped += 1
+            continue
+        examined += 1
+        if bad:
+            findings.append({
+                "group": block.group, "command": block.command,
+                "arguments": bad["declared"], "url_order": bad["url"]})
+    return record_examined(
+        "40", findings, examined,
+        skipped + helper_skip_count("modules", "blocks"),
+        "multi-argument commands")
+
+
+CHECK_PRINT["40"] = (
+    "positional order vs URL",
+    "multi-argument commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  arguments "
+               f"{' '.join(a.upper() for a in f['arguments'])}, "
+               f"URL order {' '.join(a.upper() for a in f['url_order'])}"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -7234,6 +7308,7 @@ def main() -> int:
     composed_flags = check_composed_property_flags()
     oneof_bodies = check_oneof_bodies()
     body_shape = check_body_shape()
+    positional_order = check_positional_order()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -7298,6 +7373,7 @@ def main() -> int:
         "37_composed_enum_advisory": CHECK_ADVISORIES.get("37", []),
         "38_oneof_bodies": oneof_bodies,
         "39_body_shape": body_shape,
+        "40_positional_order": positional_order,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -7321,7 +7397,8 @@ def main() -> int:
                   or paging_advice
                   or legacy_cli_tokens or command_map_unresolved
                   or query_enum_help or readonly_flags
-                  or composed_flags or oneof_bodies or body_shape)
+                  or composed_flags or oneof_bodies or body_shape
+                  or positional_order)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -7587,6 +7664,7 @@ def main() -> int:
                 print(f"      ... and {len(advisory_37) - 10} more (--json for all)")
         print_check_findings("38", oneof_bodies)
         print_check_findings("39", body_shape)
+        print_check_findings("40", positional_order)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

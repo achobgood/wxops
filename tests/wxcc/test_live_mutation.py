@@ -226,9 +226,9 @@ def test_lifecycle_lock_unlock_copy_publish(make_flow, project_id, tmp_path):
     tpl = run_cli("cc-flow", "show-starter-flow", "simple-inbound", "-o", "json")
     assert tpl.code == 0, tpl.combined[:200]
     fid, _ = make_flow("Lifecycle", body=json.loads(tpl.out))
-    # Map rows 15 and 12: FLOW_ID comes before PROJECT_ID.
-    assert run_cli("cc-flow", "create-lock", fid, project_id).code == 0
-    assert run_cli("cc-flow", "create-unlock", fid, project_id).code == 0
+    # Map rows 15 and 12: PROJECT_ID comes before FLOW_ID (order fixed 2026-11-10).
+    assert run_cli("cc-flow", "create-lock", project_id, fid).code == 0
+    assert run_cli("cc-flow", "create-unlock", project_id, fid).code == 0
     # Map row 9: `copy F` -> `cc-flow-store copy P --source-flow-id F`.
     cp = run_cli("cc-flow-store", "copy", project_id, "--source-flow-id", fid, "-o", "json")
     assert cp.code == 0, cp.combined[:200]
@@ -241,7 +241,7 @@ def test_lifecycle_lock_unlock_copy_publish(make_flow, project_id, tmp_path):
             _delete(project_id, copy_id)
     # Map row 14: wxcc's `publish` skipped validation, and `cc-flow publish`
     # validates unless given `--skip-validation true` (P2-3).
-    pub = run_cli("cc-flow", "publish", fid, project_id, "--skip-validation", "true")
+    pub = run_cli("cc-flow", "publish", project_id, fid, "--skip-validation", "true")
     print(f"lifecycle publish exit={pub.code}: {pub.combined[:160]}")
     assert "Traceback" not in pub.combined
 
@@ -249,7 +249,7 @@ def test_lifecycle_lock_unlock_copy_publish(make_flow, project_id, tmp_path):
 def test_publish_with_validate_flag(make_flow, project_id):
     """wxcc's `publish --validate` validated at publish time (a distinct code path).
     The unflagged `cc-flow publish` is that same call (map row 14)."""
-    r = run_cli("cc-flow", "publish", make_flow("PublishValidate")[0], project_id)
+    r = run_cli("cc-flow", "publish", project_id, make_flow("PublishValidate")[0])
     print(f"publish (validating) exit={r.code}: {r.combined[:200]}")
     assert "Traceback" not in r.combined
 

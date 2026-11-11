@@ -726,10 +726,7 @@ commands were added 2026-10-13).
 | `wxcli cc-flow create-lock` | POST /{orgId}/project/{projectId}/flows/{flowId}:lock | Lock a Flow or Subflow |
 | `wxcli cc-flow create-unlock` | POST /{orgId}/project/{projectId}/flows/{flowId}:unlock | Unlock a Flow or Subflow |
 
-> **Argument-order trap:** `publish`, `create-lock`, and `create-unlock` take `FLOW_ID` **before**
-> `PROJECT_ID`. Every other `cc-flow` command (`show`, `export`, `list-validate`, `delete`, ...)
-> takes `PROJECT_ID` first. Always check `--help`. Verified live 2026-10-13: `export PROJECT_ID FLOW_ID`
-> returns 200; `export FLOW_ID PROJECT_ID` returns 404 "Flow ... not found".
+> Argument order fixed 2026-11-10: `publish`, `create-lock` and `create-unlock` now take `PROJECT_ID FLOW_ID`, like `cc-flow export` (they used to take `FLOW_ID PROJECT_ID`).
 
 > **Verified live, 2026-10-13** (org "CC Bootcamp Sandbox", full-admin PAT):
 > - **Finding the project ID.** No `cc-*` command lists projects. Get a flow id from
@@ -815,8 +812,8 @@ wxcli cc-flow export <project-id> <flow-id> --version latest -o json
 # 409 FLOW_ALREADY_EXISTS if the name is taken; add --overwrite true to replace it.
 wxcli cc-flow create-import <project-id> --json-body file://flow.json
 
-# Publish a flow -- NOTE: flow-id comes BEFORE project-id here
-wxcli cc-flow publish <flow-id> <project-id>
+# Publish a flow
+wxcli cc-flow publish <project-id> <flow-id>
 ```
 
 `cc-flow publish` runs the pre-publish validation; add `--skip-validation true` to publish without it.
@@ -1026,7 +1023,7 @@ Custom Functions API is in `custom-functions.md`.
 - `cc-flow-connectors` — connectors of a user-created project; the system project answers 404. Flow Store host.
 - `cc-flow-templates` — the flow/subflow template catalog (`list` walks with `--all`, `show ID`). CC API host (`GET /templates` routes on the gateway).
 - `cc-functions` — Custom Functions: `list` (server-side column selection is `--function-fields`, not `--fields`), `show`, `create`, `update`, `delete`, `publish`, `export`, `import --file`, `lock`, `unlock`, and the hand-written `test ID --json-body '{"inputs":{…}}'` (the operation left the spec; it can return a 400 on some orgs, see its `--help`).
-- `cc-legacy-flows` — the v1 UI-format flow: `export-ui FLOW_ID PROJECT_ID [--version draft]` (old name `list` is a hidden alias) and `import-ui PROJECT_ID --file PATH` (multipart; the gateway accepted it, HTTP 201, measured live 2026-10-19). Use it for the `export-ui` → remap → `import-ui` workaround; clear `id`/`flowId` and set a unique `name` in the file first.
+- `cc-legacy-flows` — the v1 UI-format flow: `export-ui PROJECT_ID FLOW_ID [--version draft]` (old name `list` is a hidden alias) and `import-ui PROJECT_ID --file PATH` (multipart; the gateway accepted it, HTTP 201, measured live 2026-10-19). Use it for the `export-ui` → remap → `import-ui` workaround; clear `id`/`flowId` and set a unique `name` in the file first.
 
 History: these groups and `cc-flow` replace wxcc's `wxcc-flow` CLI (66 commands over the
 93-operation Flow Store contract, verified against live prod 2026-07-24), which had itself

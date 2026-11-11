@@ -116,7 +116,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-39 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-40 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -383,7 +383,7 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   name the new command.
 - The two halves print as two `[34]` lines (`CHECK_EXAMINED` keys `34i`/`34ii`;
   `print_check_findings(..., heading="[34]")`), each with its own examined count. CI's
-  completion assertion greps the highest-numbered check (`^\[39\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
+  completion assertion greps the highest-numbered check (`^\[40\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
   (`TestLegacyCliCheck`: a planted fixture fires and a clean control does not, for each half).
   Proven on the live tree too: a planted `` `wxcc-flow list --type SUBFLOW` `` in
   `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
@@ -441,6 +441,18 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   audit commands plus `cc-flow-prefs create/update/delete`. **To clear:**
   `openapi_parser._classify_body` / the renderer's `wrap_patch` and `_array_body_build`,
   regen. No ack key. Tests: `tests/test_drift_check_body_shape.py`.
+
+- **[40] A command's positional arguments contradict its URL** (audit F5, 2026-11-10). For
+  every command block with two or more `typer.Argument` parameters that also appear as
+  `{name}` in a `url = f"..."` of the block, the arguments' declaration order must equal the
+  order of their placeholders in that URL. Pure source check, no spec read; an argument the URL
+  does not mention (a body or query value) is not judged, and a block with several URLs (a paged
+  walker) fires when any disagrees. Examined = blocks with two or more such arguments (278 on the
+  tree at landing, 1,780 skipped as having fewer). Run against the pre-fix modules it fires 7:
+  `cc-flow publish`, `create-lock`, `create-unlock`, `cc-legacy-flows export-ui`, `cc-tasks
+  create-accept-preview-task`, `create-skip`, `delete-preview-task`. **To clear:**
+  `command_renderer._order_path_vars_by_url`, regen. No ack key. Tests:
+  `tests/test_drift_check_positional_order.py`.
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
@@ -1875,6 +1887,47 @@ array command build a one-element array from flags (an array of strings has no f
 name). Known leftover, not in scope: a top-level `allOf` body that composes an array is read
 by `_resolve_schema_node` as an object with no properties, so it classifies `untyped`;
 no tracked spec has one.
+
+### Positional IDs follow URL order, a BREAKING change on 7 commands (2026-11-10, audit F5, check 40)
+
+A spec lists an operation's path parameters in whatever order its author typed them, and the
+renderer took that order for the positional arguments. `cc-flow publish` therefore read
+`FLOW_ID PROJECT_ID` while its URL is `.../project/{projectId}/flows/{flowId}:publish` and its
+siblings `export`, `show`, `list-validate`, `delete` read `PROJECT_ID FLOW_ID`. An agent that
+learned one built the other backwards and sent a flow id where a project id belongs (`export` with
+the order swapped returns 404 "Flow ... not found", live 2026-10-13).
+
+`command_renderer._order_path_vars_by_url` now sorts each endpoint's `path_vars` by the position of
+`{var}` in `url_path`, right after `_infer_missing_path_vars` (whose second pass already used that
+order for borrowed variables). The sort is stable and keeps a variable the template does not mention
+after the ones it does, so an endpoint whose spec order already matched renders byte-identically.
+Exactly 7 of the 278 multi-argument commands changed; a full regen touched only `cc_flow`,
+`cc_legacy_flows` and `cc_tasks`. Check 22 reports `0 moved`: the lock keys operations, not argument
+order.
+
+**Release note (breaking; the next tag's annotated message carries it).** Old order to new order:
+
+| Command | Old | New |
+|---|---|---|
+| `cc-flow publish` | `FLOW_ID PROJECT_ID` | `PROJECT_ID FLOW_ID` |
+| `cc-flow create-lock` | `FLOW_ID PROJECT_ID` | `PROJECT_ID FLOW_ID` |
+| `cc-flow create-unlock` | `FLOW_ID PROJECT_ID` | `PROJECT_ID FLOW_ID` |
+| `cc-legacy-flows export-ui` (hidden alias `list`) | `FLOW_ID PROJECT_ID` | `PROJECT_ID FLOW_ID` |
+| `cc-tasks create-accept-preview-task` | `TASK_ID CAMPAIGN_ID` | `CAMPAIGN_ID TASK_ID` |
+| `cc-tasks create-skip` | `TASK_ID CAMPAIGN_ID` | `CAMPAIGN_ID TASK_ID` |
+| `cc-tasks delete-preview-task` (hidden alias `create-remove`) | `TASK_ID CAMPAIGN_ID` | `CAMPAIGN_ID TASK_ID` |
+
+A script that passes both IDs to one of these must swap them: the old order sends each id in the other's URL slot.
+One side effect, measured in the regen diff: `cc-tasks delete-preview-task` builds its confirm prompt from the
+LAST path argument, so it now reads "Remove Preview Task for <task id>?" (it used to name the campaign id).
+
+**Rejected:** a hidden alias that keeps the old order (the two orders cannot be told apart by value,
+so an alias would answer the old question wrongly, the failure this wave exists to remove);
+sorting only the 7 commands by an override (the next spec refresh re-introduces the defect on a new
+operation, which is what check 40 now catches); leaving the order and documenting it (the
+"Argument-order trap" note that sat in `contact-center-routing.md`, which an agent only reads after
+the wrong call). **Live-verified:** only the 2026-10-13 `export` 404 above. **Spec only:** the 7 new
+orders were not called live; each follows the URL the command already sends.
 
 ## Flow Store spec
 

@@ -2280,3 +2280,54 @@ class TestRequestBodyShapeRendering:
         assert ep.body_shape == "untyped"
         assert "        body = [patch_op]" in code and _ARRAY_MSG not in code
         assert code.count('"--value"') == 1
+
+
+# ── Positional IDs follow URL order (audit F5, 2026-11-10) ──────────────────
+
+
+def _param(name):
+    return {"name": name, "in": "path", "required": True,
+            "schema": {"type": "string"}}
+
+
+def _url_order_spec(listed):
+    """One POST whose spec lists its path parameters in `listed` order."""
+    return {"openapi": "3.0.0", "paths": {
+        "/{orgId}/project/{projectId}/flows/{flowId}:publish": {"post": {
+            "operationId": "publishFlow", "tags": ["Flows"],
+            "summary": "Publish a flow",
+            "parameters": [_param(n) for n in listed],
+            "responses": {"200": {"description": "ok"}}}}}}
+
+
+def _arguments_of(code, func):
+    import re
+    body = _function_body(code, func)
+    return re.findall(r"^\s+(\w+): str = typer\.Argument", body, re.M)
+
+
+class TestPathArgsFollowUrlOrder:
+    def test_path_args_follow_url_order(self):
+        """Spec lists flowId, orgId, projectId; the URL reads orgId, projectId,
+        flowId. The arguments must be `project_id flow_id`, orgId injected."""
+        endpoints, _ = parse_tag("Flows", _url_order_spec(
+            ["flowId", "orgId", "projectId"]), auto_inject_params={"orgId"})
+        code = render_command_file("Flows", endpoints, {},
+                                   base_url_override="{cc_base_url}")
+        func = [e for e in endpoints][0].command_name.replace("-", "_")
+        assert _arguments_of(code, func) == ["project_id", "flow_id"]
+        assert "resolve_org_id" in code or "org_id" in code
+
+    def test_already_ordered_endpoint_is_unchanged(self):
+        endpoints, _ = parse_tag("Flows", _url_order_spec(
+            ["orgId", "projectId", "flowId"]), auto_inject_params={"orgId"})
+        code = render_command_file("Flows", endpoints, {},
+                                   base_url_override="{cc_base_url}")
+        func = endpoints[0].command_name.replace("-", "_")
+        assert _arguments_of(code, func) == ["project_id", "flow_id"]
+
+    def test_path_var_not_in_template_keeps_trailing_position(self):
+        ep = _make_endpoint(command_type="list", url_path="things/{a}/items",
+                            path_vars=["extra", "a"])
+        render_command_file("Things", [ep], {})
+        assert ep.path_vars == ["a", "extra"]
