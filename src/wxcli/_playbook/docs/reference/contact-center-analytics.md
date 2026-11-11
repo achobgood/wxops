@@ -298,6 +298,7 @@ To list or fetch generated summaries by ID, use the `wxcli cc-summaries` group (
 ### Key Parameters
 
 - `--json-body` — `{"orgId","searchType":"AGENT","interactionId","agentCiUserId"}`. This is a lookup of **one interaction for one agent**, not a date-range search: `from`/`to` added to the body are ignored. `orgId` is the bare CC org UUID; `agentCiUserId` is the agent's Webex (CI) user ID.
+- The request body is a `oneOf` of three alternatives, each requiring `orgId` and `searchType`: `ORGANIZATION` (those two only), `INTERACTION` (+ `interactionId`) and `AGENT` (+ `agentCiUserId`). Before the 2026-11-10 generator fix the flags demanded `--interaction-id` **and** `--agent-ci-user-id` together and `--search-type` offered only `AGENT`; now only `--org-id` and `--search-type` are required (choices `ORGANIZATION, INTERACTION, AGENT`). Verified live 2026-11-10 (read-only): the server accepts the `ORGANIZATION` shape (200, empty `summaries`); the `INTERACTION` shape is spec-derived.
 
 ### CLI Examples
 
@@ -584,7 +585,7 @@ and wrap up tasks. The API also handles preview dialer tasks and recording contr
 | `create-tasks` | POST `/v2/tasks` | Create task (v2) |
 | `create-messages` | POST `/v2/tasks/{taskId}/messages` | Update task (v2 messages) |
 | `create-accept-preview-task` | POST `/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/accept` | Accept preview task |
-| `delete-preview-task` | POST `/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/remove` | Remove preview task (args: `TASK_ID CAMPAIGN_ID`) |
+| `delete-preview-task` | POST `/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/remove` | Remove preview task (args: `CAMPAIGN_ID TASK_ID`) |
 | `create-skip` | POST `/v1/dialer/campaign/{campaignId}/preview-task/{taskId}/skip` | Skip preview task |
 
 ### Key Parameters
@@ -596,6 +597,8 @@ and wrap up tasks. The API also handles preview dialer tasks and recording contr
 - `--page-size` — Results per page (for list; max 1000, default 100)
 - `--offset` / `--limit` / `--all` — paging for `list`. `/v1/tasks` declares only `pageSize` (no `page`), so there is no `--page` flag, but the server pages by `page` and says so in a `Link` header (live 2026-10-13: `rel="next"` → `/v1/tasks?from=…&page=1&pageSize=100`). `--offset N` is translated to that `page`, `--limit N` to `pageSize`, and `--all` walks it (226 of 226 tasks, 2 requests, no repeats)
 - `--json-body` — Request body for create/update/action operations
+- `create-tasks` (`POST /v2/tasks`) takes a body that is a `oneOf` by `channelType`: `workItem`, `customMessaging` or `telephony` (`--channel-type` lists all three). `channel` is required for `workItem` and `customMessaging` and not applicable to `telephony`, so it is not a required flag; `origin`, `destination` and `channelParams` are objects, supplied only with `--json-body`. `--generate-json-body` and the `Example:` line show the first alternative (`workItem`) as one complete body, not a mix. Spec-derived, not live-verified (2026-11-10).
+- `create-messages` (`POST /v2/tasks/{taskId}/messages`) is a `oneOf` by `mediaType`: `workItem` or `customMessaging` (`--media-type` lists both); `channelParams` is an object, so use `--json-body`.
 
 ### CLI Examples
 
@@ -646,10 +649,10 @@ wxcli cc-tasks create-wrapup task-789 --json-body '{
 wxcli cc-tasks create-pause task-789
 wxcli cc-tasks create-resume task-789
 
-# Preview dialer: accept/skip/remove (TASK_ID first, then CAMPAIGN_ID)
-wxcli cc-tasks create-accept-preview-task task-789 campaign-001
-wxcli cc-tasks create-skip task-789 campaign-001
-wxcli cc-tasks delete-preview-task task-789 campaign-001
+# Preview dialer: accept/skip/remove (CAMPAIGN_ID first, then TASK_ID)
+wxcli cc-tasks create-accept-preview-task campaign-001 task-789
+wxcli cc-tasks create-skip campaign-001 task-789
+wxcli cc-tasks delete-preview-task campaign-001 task-789
 ```
 
 > **Unverified:** the `create` and `create-consult` bodies are from the spec, not a live call.

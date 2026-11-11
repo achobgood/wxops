@@ -56,8 +56,14 @@ def _generate(tmp_path: Path, op_overrides: dict, spec: dict | None = None) -> P
     spec_path = tmp_path / SPEC_NAME
     spec_path.write_text(json.dumps(spec) if spec else FIXTURE.read_text())
     ovr = tmp_path / "gen_overrides.yaml"
-    ovr.write_text(yaml.safe_dump(
-        {**BASE_OVERRIDES, "operation_overrides": {SPEC_NAME: op_overrides}}))
+    overrides = {**BASE_OVERRIDES, "operation_overrides": {SPEC_NAME: op_overrides}}
+    # deleteWidget's spec `force` would take the delete's prompt-skip --force,
+    # which the generator refuses unrenamed (tools/CLAUDE.md known issue #23).
+    # A rename naming a skipped or blocked delete is refused as stale.
+    if not {"skip", "blocked"} & set(op_overrides.get("deleteWidget", {})):
+        overrides["tag_overrides"] = {SPEC_NAME: {"Widgets": {"param_name_overrides": {
+            "delete": {"force": "force-delete-referenced"}}}}}
+    ovr.write_text(yaml.safe_dump(overrides))
     out = tmp_path / "out"
     r = subprocess.run(
         [sys.executable, "tools/generate_commands.py", "--spec", str(spec_path),

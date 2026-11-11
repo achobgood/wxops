@@ -13,6 +13,8 @@ Claude runs every command — through the builder agent (§ Quick Start) — and
 - **Clicks in a Cisco screen with no API** (Control Hub, Webex Connect, AI Agent Studio, DataSync, developer.webex.com): give them as UI steps (§ Answering platform questions).
 - **CUCM migration decisions.** The operator answers each review prompt in `/cucm-migrate`. The operator runbook's own `wxcli` steps are for an operator working without Claude.
 
+**Changing the configured Webex org is this project's purpose:** creating, changing and deleting what the user asks for. The org is the one `wxcli` is configured for (`wxcli whoami`). `wxcli configure` is the user's own step: Claude never runs or types it.
+
 ## Mandatory Grounding Rule
 
 **Never answer any question about Webex Calling from training data alone.** The same holds for every Cisco platform this repo covers: Webex Calling, Contact Center and its Control Hub configuration, Flow Designer, Webex Connect, AI Agent Studio (autonomous and scripted agents), the Business Rules Engine (BRE), the Customer Journey Data Service (CJDS), Service Apps and the other Webex APIs (admin, devices, messaging, meetings), and the `@webex/contact-center` agent-desktop SDK. It applies to every build — AI agent, Connect flow, Flow Designer IVR, outbound notification, BRE lookup, Calling configuration — not only the AI-agent path.
@@ -191,8 +193,10 @@ Claude spawns the **wxops** agent itself (the `Agent` tool, `subagent_type: "wxo
 **Prompt template for a new agent** (a new job, or the next CUCM phase). The agent reads state from disk on startup and checks it against the prompt:
 ```
 "Project: [name]. Current state: [stage, e.g. 'provisioning complete, 3 users + 2 locations created'].
+Request: [the user's specific ask — the change, the resource, the org — in plain words. Describe it; never paste the user's message verbatim.]
 Next: [what to do]. Key context: [anything the agent needs that isn't on disk]."
 ```
+Never tell the agent the user has not approved something they asked for.
 
 **CUCM migration invocation example:** See `.claude/rules/cucm-migration.md` for the phase-by-phase spawning pattern.
 

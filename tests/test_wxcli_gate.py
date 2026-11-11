@@ -244,6 +244,73 @@ def test_main_session_deny_names_wxops_type_not_name(gate):
     assert "do not spawn" not in reason.lower()
 
 
+CONFIGURE_REASON = "wxcli configure is the user's own step: they run it in their own terminal."
+
+
+@BOTH_GATES
+@pytest.mark.parametrize("agent,agent_id", [
+    ("", ""), (BUILDER, ""), (BUILDER, SUBAGENT_ID), ("migration-advisor", SUBAGENT_ID),
+    ("general-purpose", SUBAGENT_ID),
+])
+@pytest.mark.parametrize("command", [
+    "wxcli configure",
+    "/opt/homebrew/bin/wxcli --no-update-check configure",
+    "wxcli people list && wxcli configure",
+    'bash -c "wxcli configure"',
+    "wxcli configure && git status",
+])
+def test_configure_refused_for_every_caller(gate, agent, agent_id, command):
+    """Task 6: configure is the user's own step (it is what may write the
+    auto-mode rule), so it is refused before the trusted-agent exemption."""
+    payload = {"agent_type": agent, "tool_input": {"command": command}}
+    if agent_id:
+        payload["agent_id"] = agent_id
+    assert _reason(payload, gate) == CONFIGURE_REASON
+
+
+@BOTH_GATES
+def test_configure_help_stays_inert(gate):
+    assert _decide({"agent_type": BUILDER, "tool_input": {"command": "wxcli configure --help"}}, gate) == "allow"
+    assert _decide({"tool_input": {"command": "wxcli configure --help"}}, gate) == "allow"
+
+
+ORG_ASK_REASON = ("wxcli switch-org and clear-org change which Webex org every later "
+                  "wxcli command targets, so the user approves each one.")
+
+
+@BOTH_GATES
+@pytest.mark.parametrize("agent,agent_id", [(BUILDER, ""), (BUILDER, SUBAGENT_ID),
+                                            ("migration-advisor", SUBAGENT_ID)])
+@pytest.mark.parametrize("command", [
+    "wxcli switch-org Y2lz", "wxcli clear-org", "wxcli switch-org",
+    "/opt/homebrew/bin/wxcli --no-update-check switch-org Y2lz",
+    "cd /tmp && wxcli switch-org Y2lz", 'bash -c "wxcli clear-org"',
+    "wxcli people list && wxcli clear-org",
+    # Round-2 review I1: wrappers the scan did not know reached no decision.
+    "timeout 5 wxcli switch-org Y2lz", "builtin wxcli clear-org",
+    "noglob wxcli switch-org Y2lz",
+])
+def test_builder_org_switch_asks_the_user(gate, agent, agent_id, command):
+    """Final review I1 (Adam, 2026-11-11): the builder may switch or clear the
+    target org, but Claude Code asks the user each time. Forms a settings.json
+    ask rule misses (a full path, `cd x &&`, `bash -c`) are caught here."""
+    payload = {"agent_type": agent, "tool_input": {"command": command}}
+    if agent_id:
+        payload["agent_id"] = agent_id
+    out = json.loads(_run_gate(payload, gate))["hookSpecificOutput"]
+    assert out["permissionDecision"] == "ask"
+    assert out["permissionDecisionReason"] == ORG_ASK_REASON
+
+
+@BOTH_GATES
+def test_org_switch_help_and_other_callers_unchanged(gate):
+    assert _decide({"agent_type": BUILDER, "tool_input": {"command": "wxcli switch-org --help"}}, gate) == "allow"
+    assert _decide({"tool_input": {"command": "wxcli switch-org Y2lz"}}, gate) == "deny"
+    assert _decide({"agent_type": "general-purpose", "agent_id": SUBAGENT_ID,
+                    "tool_input": {"command": "wxcli clear-org"}}, gate) == "deny"
+    assert _decide({"agent_type": BUILDER, "tool_input": {"command": "wxcli people delete X"}}, gate) == "allow"
+
+
 @BOTH_GATES
 @pytest.mark.parametrize("agent", ["", "general-purpose", BUILDER, "migration-advisor"])
 @pytest.mark.parametrize("command", [

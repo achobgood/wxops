@@ -87,11 +87,15 @@ def list_download(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Download Meeting Closed Caption Snippets.\n\n\b\nExample: wxcli meeting-captions list-download CLOSED_CAPTION_ID --meeting-id MEETING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingClosedCaptions/{closed_caption_id}/download"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if format_param is not None:
         params["format"] = format_param
@@ -103,7 +107,7 @@ def list_download(
         params["start"] = offset
     result = None
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

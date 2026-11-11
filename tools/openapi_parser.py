@@ -92,6 +92,64 @@ def get_tags(spec: dict) -> list[str]:
     return sorted(tags)
 
 
+def _follow_ref(spec: dict, schema: dict) -> dict:
+    """`schema` with any `$ref` chain followed (bounded; a cycle stops it)."""
+    seen = 0
+    while isinstance(schema, dict) and "$ref" in schema and seen < 8:
+        schema = resolve_ref(spec, schema["$ref"])
+        seen += 1
+    return schema if isinstance(schema, dict) else {}
+
+
+def _resolve_param_schema(spec: dict, schema: dict) -> dict:
+    """The schema that carries a parameter's enum: `$ref` followed, and for
+    `type: array` the (resolved) `items` schema with `"_array": True` added.
+
+    A query parameter's choices used to be read off the raw schema, so an enum
+    behind a `$ref` (`pstn list-available-numbers --action`) or under `items`
+    (`cc-tasks list --channel-types`) never reached `--help` (audit F7). Always
+    returns a copy; the spec is never mutated."""
+    resolved = dict(_follow_ref(spec, schema))
+    if resolved.get("type") == "array":
+        items = dict(_follow_ref(spec, resolved.get("items") or {}))
+        items["_array"] = True
+        return items
+    return resolved
+
+
+def _single_allof_branch(schema) -> dict | None:
+    """The one member of a single-branch `allOf: [X]`, else None.
+
+    Cisco writes `allOf: [{$ref}]` to hang a `description` on a property that
+    is really a `$ref` (OpenAPI 3.0 ignores siblings of a `$ref`)."""
+    if not isinstance(schema, dict):
+        return None
+    members = schema.get("allOf")
+    if (isinstance(members, list) and len(members) == 1
+            and isinstance(members[0], dict)):
+        return members[0]
+    return None
+
+
+def _resolve_property_schema(spec: dict, schema: dict) -> dict:
+    """The schema a request-body property really has: `$ref` followed, and a
+    single-branch `allOf: [X]` replaced by X (itself resolved).
+
+    The audit counted exactly 11 composed properties, all of that shape, so
+    there is no `oneOf` branch here (audit F2). Returns the referenced schema
+    itself, not the property's own sibling keys (`description`): the caller
+    decides which description wins. Always a copy; the spec is never mutated.
+    A schema that is neither a `$ref` nor a single-branch `allOf` comes back as
+    it is."""
+    for _ in range(8):
+        schema = _follow_ref(spec, schema)
+        inner = _single_allof_branch(schema)
+        if inner is None:
+            break
+        schema = inner
+    return dict(schema)
+
+
 def parse_parameters(
     params: list[dict], spec: dict, omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
@@ -145,7 +203,8 @@ def parse_parameters(
                 auto_inject_names.append(name)
                 continue
             field_type = _openapi_type_to_field_type(schema)
-            enum_values = schema.get("enum")
+            resolved = _resolve_param_schema(spec, schema)
+            enum_values = resolved.get("enum")
             desc = param.get("description", "")
             required = param.get("required", False)
             query_params.append(
@@ -159,11 +218,80 @@ def parse_parameters(
                     description=desc,
                     required=required,
                     enum_values=enum_values,
+                    is_array=bool(resolved.get("_array")),
                 )
             )
 
     return (path_vars, query_params, auto_inject_names, auto_inject_path_names,
             path_var_meta)
+
+
+# Headers the session sets itself (src/wxcli/auth.py TRANSPORT_HEADERS, pinned
+# equal by tests/test_auth.py). Never rendered as an option, compared
+# case-insensitively. TrackingId is a correlation id the runtime has no use for.
+TRANSPORT_HEADERS = frozenset({
+    "authorization", "content-type", "accept", "content-length", "trackingid"})
+
+# The Contact Center org header. Required on two operations (agent wellbeing
+# subscribe/action): auto-injected as the CC org UUID. Optional on two
+# (`/search/v2/meta`, `/v1/data/updateExternal`): not rendered, because the
+# call already succeeds without it (live 2026-11-10,
+# docs/audit/claude-fable-5-2/live_f4_headers_round3.md § 5). Drift check 41
+# names those two and fails on a third.
+ORG_HEADER = "x-organization-id"
+
+
+def parse_header_parameters(op: dict, path_item: dict, spec: dict) -> list[EndpointField]:
+    """The operation's `in: header` parameters, transport headers excluded
+    (audit F4).
+
+    Path-level parameters apply too; an operation-level header of the same
+    name (case-insensitive, as HTTP header names are) replaces it. `$ref`s are
+    resolved. The flag name is the header name in kebab case; the renderer
+    decides any collision prefix. `parse_parameters` and its 5-tuple are
+    deliberately untouched: a header is not a query parameter."""
+    by_name: dict[str, dict] = {}
+    for source in ((path_item or {}).get("parameters") or [],
+                   (op or {}).get("parameters") or []):
+        for param in source:
+            if not isinstance(param, dict):
+                continue
+            if "$ref" in param:
+                param = resolve_ref(spec, param["$ref"])
+            if not isinstance(param, dict) or param.get("in") != "header":
+                continue
+            name = param.get("name") or ""
+            if not name or name.lower() in TRANSPORT_HEADERS:
+                continue
+            by_name[name.lower()] = param
+    fields = []
+    for param in by_name.values():
+        name = param["name"]
+        schema = param.get("schema") or {}
+        resolved = _resolve_param_schema(spec, schema)
+        fields.append(EndpointField(
+            name=name,
+            python_name=re.sub(r"[^a-z0-9_-]+", "-", camel_to_kebab(name)).strip("-"),
+            field_type=_openapi_type_to_field_type(schema),
+            description=param.get("description", ""),
+            required=bool(param.get("required", False)),
+            enum_values=resolved.get("enum"),
+        ))
+    return fields
+
+
+def _split_org_header(fields: list[EndpointField]) -> tuple[list[EndpointField], list[str]]:
+    """(header options, auto-injected header names). A required
+    X-ORGANIZATION-ID is injected; an optional one is dropped (see ORG_HEADER)."""
+    options: list[EndpointField] = []
+    injected: list[str] = []
+    for f in fields:
+        if f.name.lower() == ORG_HEADER:
+            if f.required:
+                injected.append(f.name)
+            continue
+        options.append(f)
+    return options, injected
 
 
 def _openapi_type_to_field_type(schema: dict) -> str:
@@ -298,15 +426,134 @@ _SCALA_SEQ_PLACEHOLDER = frozenset({"empty", "traversableAgain"})
 _SCALA_SEQ_MARKER = "x-wxcli-scala-seq"
 
 
-def _request_body_schema(op: dict, spec: dict) -> dict | None:
+def _prop_signature(spec: dict, prop) -> tuple[str, list | None, dict]:
+    """(field type, enum or None, resolved schema) of one body property, read
+    the way `parse_request_body` reads it, so branches compare on what the CLI
+    would render."""
+    composed = isinstance(prop, dict) and (
+        "$ref" in prop or _single_allof_branch(prop) is not None)
+    resolved = _resolve_property_schema(spec, prop) if composed else (
+        prop if isinstance(prop, dict) else {})
+    if composed:
+        rtype = resolved.get("type", "object")
+        ftype = (_openapi_type_to_field_type(resolved)
+                 if rtype in ("string", "integer", "number", "boolean")
+                 else "object")
+    else:
+        ftype = _openapi_type_to_field_type(resolved)
+    enum = resolved.get("enum")
+    return ftype, (list(enum) if isinstance(enum, list) else None), resolved
+
+
+def _merge_alternatives(spec: dict, schema: dict) -> tuple[dict, dict]:
+    """Read a top-level `oneOf`/`anyOf` body as a choice between shapes
+    (audit F3). Returns `(merged_for_flags, first_branch)`.
+
+    `_resolve_schema_node` reads such a body as if it were `allOf` (it merges
+    the branches with `dict.update` and concatenates their `required` lists), so
+    `cc-agent-summaries create` demanded `--interaction-id` AND
+    `--agent-ci-user-id` together and showed only the last branch's enum. It
+    cannot be changed: list-response item schemas use it too, and there a merge
+    is what is wanted. So a request body is read here:
+
+    * `required` is the INTERSECTION of the branches' required lists (plus
+      whatever the body itself requires): a flag may demand only what every
+      alternative demands;
+    * a property keeps the first branch's schema; its enum is the ordered UNION
+      across branches (one branch with no enum accepts any value, so there is
+      none). When the enum varies by branch and the branches describe it
+      differently, the description is dropped (the first branch's text names
+      only its own value); when only the description differs, the distinct
+      descriptions are joined with " | ";
+    * a property whose field type differs between branches (a fixture-only case
+      today) becomes a flagless object: `--json-body` is the only honest route;
+    * `first_branch` is the first alternative alone, siblings of the `oneOf`
+      included. The skeleton and the Example come from it, never from a mix.
+
+    Always new dicts; the spec is never mutated."""
+    key = "oneOf" if isinstance(schema.get("oneOf"), list) else "anyOf"
+    base = _resolve_schema_node(
+        spec, {k: v for k, v in schema.items() if k not in ("oneOf", "anyOf")})
+    base_props = dict(base.get("properties") or {})
+    base_req = list(base.get("required") or [])
+    branches = [_resolve_schema_node(spec, b) for b in schema[key]]
+    # The skeleton: the first alternative, with the body's own properties.
+    first = {k: v for k, v in base.items() if k not in ("properties", "required")}
+    first["type"] = "object"
+    first["properties"] = {**base_props, **(branches[0].get("properties") or {})}
+    first["required"] = list(dict.fromkeys(
+        base_req + list(branches[0].get("required") or []))) if branches else base_req
+    if not branches:
+        return dict(first), first
+
+    occurrences: dict[str, list] = {n: [p] for n, p in base_props.items()}
+    for b in branches:
+        for name, prop in (b.get("properties") or {}).items():
+            occurrences.setdefault(name, []).append(prop)
+    required_sets = [set(b.get("required") or []) for b in branches]
+    shared = set.intersection(*required_sets) if required_sets else set()
+    merged_props: dict = {}
+    for name, props in occurrences.items():
+        sigs = [_prop_signature(spec, p) for p in props]
+        types = {t for t, _, _ in sigs}
+        if len(types) > 1:
+            merged_props[name] = {
+                "type": "object",
+                "description": (props[0].get("description", "")
+                                if isinstance(props[0], dict) else "")}
+            continue
+        enums = [e for _, e, _ in sigs]
+        varies = (len({tuple(e) for e in enums if e is not None}) > 1
+                  or (any(e is None for e in enums)
+                      and any(e is not None for e in enums)))
+        if not varies:
+            # Same choices everywhere. When the branches describe the property
+            # differently (`channel` is "required for workItem", "required for
+            # customMessaging" and "not applicable for telephony"), say all of
+            # them: the first branch's text alone reads as the whole rule.
+            descs = list(dict.fromkeys(
+                d for d in ((p.get("description") or "") if isinstance(p, dict)
+                            else "" for p in props) if d))
+            if len(descs) > 1:
+                merged_props[name] = {**props[0], "description": " | ".join(descs)}
+            else:
+                merged_props[name] = props[0]
+            continue
+        union = None
+        if all(e is not None for e in enums):
+            union = list(dict.fromkeys(v for e in enums for v in e))
+        ftype, _, resolved = sigs[0]
+        descs = {(p.get("description") or r.get("description") or "")
+                 for p, (_, _, r) in zip(props, sigs) if isinstance(p, dict)}
+        resolved = {k: v for k, v in resolved.items() if k != "enum"}
+        if union is not None:
+            resolved["enum"] = union
+        resolved["description"] = (next(iter(descs)) if len(descs) == 1 else "")
+        merged_props[name] = resolved
+    merged = {k: v for k, v in base.items() if k not in ("properties", "required")}
+    merged["type"] = "object"
+    merged["properties"] = merged_props
+    merged["required"] = list(dict.fromkeys(
+        base_req + [n for n in merged_props if n in shared]))
+    return merged, first
+
+
+def _request_body_schema(op: dict, spec: dict, *, for_example: bool = False) -> dict | None:
     """The resolved JSON request-body schema, or None if the op has no body.
 
-    One reader for both the flag list and the skeleton, so the two can never
-    disagree about what the body contains. It composes allOf/oneOf/anyOf via
-    _resolve_schema_node — without that, a body declared purely as a
-    composition reads as having no properties at all, which is how
-    `cc-callbacks update` shipped with zero flags, no skeleton, and no
-    --generate-json-body while its spec declares 8 required fields.
+    Flags and skeleton read the SAME body, so they cannot disagree about which
+    fields exist. `allOf` is composed via _resolve_schema_node — without that, a
+    body declared purely as a composition reads as having no properties at all,
+    which is how `cc-callbacks update` shipped with zero flags, no skeleton, and
+    no --generate-json-body while its spec declares 8 required fields.
+
+    A top-level `oneOf`/`anyOf` is a choice, not a sum (audit F3), and one
+    schema cannot serve both readers: `for_example=False` (the default, for the
+    flag list and `declares_json_body`) returns the merged shape
+    (_merge_alternatives: required is the intersection, enums the union);
+    `for_example=True` (the skeleton and the Example) returns the FIRST
+    alternative alone, so an example is one valid body and never a mix of
+    branches. Any other body reads the same either way.
     """
     content = op.get("requestBody", {}).get("content", {})
     json_content = (
@@ -320,7 +567,10 @@ def _request_body_schema(op: dict, spec: dict) -> dict | None:
     ref_name = schema.get("$ref", "").rsplit("/", 1)[-1]
     if "$ref" in schema:
         schema = resolve_ref(spec, schema["$ref"])
-    if any(k in schema for k in ("allOf", "oneOf", "anyOf")):
+    if isinstance(schema.get("oneOf"), list) or isinstance(schema.get("anyOf"), list):
+        merged, first = _merge_alternatives(spec, schema)
+        schema = first if for_example else merged
+    elif "allOf" in schema:
         schema = _resolve_schema_node(spec, schema)
     if set(schema.get("properties") or ()) == _SCALA_SEQ_PLACEHOLDER:
         # springfox's stand-in for a Scala `Seq` (Flow Store `SeqString`,
@@ -331,7 +581,77 @@ def _request_body_schema(op: dict, spec: dict) -> dict | None:
         # without touching real array bodies (Plan 2 Task 14, review B2).
         items = {"type": "string"} if ref_name == "SeqString" else {"type": "object"}
         return {"type": "array", "items": items, _SCALA_SEQ_MARKER: True}
-    return schema
+    return _without_readonly_properties(schema, spec)
+
+
+def _is_readonly(prop, spec: dict) -> bool:
+    """True when a property's own or `$ref`'d schema says `readOnly: true`."""
+    if not isinstance(prop, dict):
+        return False
+    if prop.get("readOnly") is True:
+        return True
+    try:
+        return _follow_ref(spec, prop).get("readOnly") is True
+    except (KeyError, TypeError):
+        return False
+
+
+def _without_readonly_properties(schema: dict, spec: dict) -> dict:
+    """`schema` minus its TOP-LEVEL `readOnly: true` properties (audit F6).
+
+    A server-assigned property of a shared DTO (`createdTime`,
+    `lastUpdatedTime`) is not something a create or update can set: the server
+    ignored `--created-time 1000` live (2026-11-10, `cc-work-types create`).
+    Done here, in the one reader behind both the flag list and the skeleton, so
+    the two cannot disagree. Nested objects are left whole: this is the top
+    level only. The spec's own schema is never mutated."""
+    props = schema.get("properties")
+    if not isinstance(props, dict):
+        return schema
+    kept = {k: v for k, v in props.items() if not _is_readonly(v, spec)}
+    if len(kept) == len(props):
+        return schema
+    return {**schema, "properties": kept}
+
+
+_PATCH_OP_KEYS = frozenset({"op", "path", "value", "from"})
+
+
+def _is_patch_op_schema(schema: dict) -> bool:
+    """One RFC 6902 operation: an object whose properties are a non-empty subset
+    of {op, path, value, from} and include `op`."""
+    props = schema.get("properties")
+    return (isinstance(props, dict) and "op" in props
+            and set(props) <= _PATCH_OP_KEYS)
+
+
+def _classify_body(spec: dict, schema: dict) -> tuple[str, dict]:
+    """(body_shape, the schema its flags are read from) for a resolved request
+    body schema (audit F1). The shape is read from the schema alone, never from
+    the media type: `application/json-patch+json` carries a plain object on
+    `meetings update-meetings` (measured live, 2026-11-10)."""
+    resolved = _resolve_property_schema(spec, schema)
+    kind = resolved.get("type")
+    if kind == "array":
+        items = resolved.get("items")
+        items = _resolve_property_schema(spec, items) if isinstance(items, dict) else {}
+        if _is_patch_op_schema(items):
+            return "op_array", _without_readonly_properties(items, spec)
+        return "array", resolved
+    if kind == "string":
+        return "string", resolved
+    if kind == "object" or (kind is None and resolved.get("properties")):
+        return ("op" if _is_patch_op_schema(resolved) else "object"), resolved
+    return "untyped", resolved
+
+
+def request_body_shape(op: dict, spec: dict) -> str | None:
+    """One of "op", "op_array", "object", "array", "string", "untyped", or None
+    when the operation declares no JSON body (audit F1)."""
+    schema = _request_body_schema(op, spec)
+    if schema is None:
+        return None
+    return _classify_body(spec, schema)[0]
 
 
 def generate_body_example(
@@ -347,7 +667,7 @@ def generate_body_example(
     `notes` is an optional out-parameter collecting any place expansion had to
     stop (see _schema_to_example). An empty list means the skeleton is complete.
     """
-    schema = _request_body_schema(op, spec)
+    schema = _request_body_schema(op, spec, for_example=True)
     if schema is None:
         return None
     if schema.get(_SCALA_SEQ_MARKER):
@@ -366,6 +686,12 @@ def generate_body_example(
     )
     if nested_only and not has_nested:
         return None
+    if schema.get("type") == "array":
+        # A top-level array body (audit F1): the skeleton is an array, and a
+        # JSON Patch document reads `[{"op": ..., "path": ...}]`.
+        example = _schema_to_example(schema, spec, notes=notes,
+                                     required_only=required_only)
+        return json.dumps(example, separators=(",", ":"))
     if not props:
         return None
 
@@ -385,15 +711,22 @@ def parse_request_body(
     schema = _request_body_schema(op, spec)
     if schema is None:
         return []
+    # An array of JSON Patch operations is flagged from its ITEMS (audit F1);
+    # any other array has no flags (`properties` is empty): --json-body only.
+    schema = _classify_body(spec, schema)[1]
 
     properties = schema.get("properties", {})
     required_fields = set(schema.get("required", []))
     fields: list[EndpointField] = []
 
     for name, prop in properties.items():
-        # Resolve property-level $ref — check if it's a simple type or true object
-        if "$ref" in prop:
-            resolved = resolve_ref(spec, prop["$ref"])
+        # Resolve property-level $ref — check if it's a simple type or true
+        # object. A single-branch `allOf: [{$ref}]` is the same thing with a
+        # description attached (audit F2): without this it had no `type` and
+        # became a text flag whose value was written where the API wants an
+        # object.
+        if "$ref" in prop or _single_allof_branch(prop) is not None:
+            resolved = _resolve_property_schema(spec, prop)
             resolved_type = resolved.get("type", "object")
             if resolved_type in ("string", "integer", "number", "boolean"):
                 # Simple type behind $ref (e.g., enum) — treat as normal field
@@ -959,9 +1292,16 @@ def parse_operation(
     spec: dict,
     omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
+    path_item: dict | None = None,
 ) -> Endpoint:
-    """Convert one OpenAPI operation to an Endpoint dataclass."""
+    """Convert one OpenAPI operation to an Endpoint dataclass.
+
+    `path_item` is the operation's path object, for its path-level header
+    parameters (`parse_tag` has already merged its path-level path and query
+    parameters into `op`)."""
     op, lifted_query_params = _lift_query_body(method, op, spec)
+    header_params, auto_inject_headers = _split_org_header(
+        parse_header_parameters(op, path_item or {}, spec))
     params = op.get("parameters", [])
     (path_vars, query_params, auto_inject_names, auto_inject_path_names,
      path_var_meta) = parse_parameters(
@@ -1037,6 +1377,9 @@ def parse_operation(
         path_var_meta=path_var_meta,
         lifted_query_params=lifted_query_params,
         declares_json_body=_request_body_schema(op, spec) is not None,
+        body_shape=request_body_shape(op, spec),
+        header_params=header_params,
+        auto_inject_headers=auto_inject_headers,
     )
 
 
@@ -1129,7 +1472,8 @@ def parse_tag(
                 ] + op_params
                 op = {**op, "parameters": merged}
 
-            ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params)
+            ep = parse_operation(method, path, op, spec, omit_query_params, auto_inject_params,
+                                 path_item=path_obj)
             if ep.command_type == "list" and (
                     _declares_single_object(op, spec)
                     or (not ep.paginates and ep.pagination_style == "none"

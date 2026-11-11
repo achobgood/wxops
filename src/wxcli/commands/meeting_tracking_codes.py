@@ -214,18 +214,22 @@ def list_tracking_codes(
     limit: int = typer.Option(0, "--limit", hidden=True, help="Accepted and ignored: this command returns one object."),
     offset: int = typer.Option(0, "--offset", hidden=True, help="Accepted and ignored: this command returns one object."),
     all_pages: bool = typer.Option(False, "--all", hidden=True, help="Accepted and ignored: this command returns one object."),
+    email: str = typer.Option(None, "--email", help="e.g. john.andersen@example.com. Sent as the email request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get User Tracking Codes."""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/meeting/userconfig/trackingCodes"
+    headers = {}
+    if email is not None:
+        headers["email"] = email
     params = {}
     if site_url is not None:
         params["siteUrl"] = site_url
     if person_id is not None:
         params["personId"] = person_id
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

@@ -34,6 +34,8 @@ def create(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v1/agentburnout/subscribe"
+    headers = {}
+    headers["X-ORGANIZATION-ID"] = get_cc_org_id(api.session)
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -53,7 +55,7 @@ def create(
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -91,6 +93,8 @@ def create_action(
     api = get_api(debug=debug)
     cc_base_url = get_cc_base_url()
     url = f"{cc_base_url}/v1/agentburnout/action"
+    headers = {}
+    headers["X-ORGANIZATION-ID"] = get_cc_org_id(api.session)
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -104,7 +108,7 @@ def create_action(
         if action_type is not None:
             body["actionType"] = action_type
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

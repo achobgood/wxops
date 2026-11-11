@@ -13,6 +13,8 @@ Claude runs every command — through the builder agent (§ Quick Start) — and
 - **Clicks in a Cisco screen with no API** (Control Hub, Webex Connect, AI Agent Studio, DataSync, developer.webex.com): give them as UI steps (§ Answering platform questions).
 - **CUCM migration decisions.** The operator answers each review prompt in `the `cucm-migrate` skill`. The operator runbook's own `wxcli` steps are for an operator working without Claude.
 
+**Changing the configured Webex org is this project's purpose:** creating, changing and deleting what the user asks for. The org is the one `wxcli` is configured for (`wxcli whoami`). `wxcli configure` is the user's own step: Claude never runs or types it.
+
 ## Mandatory Grounding Rule
 
 **Never answer any question about Webex Calling from training data alone.** The same holds for every Cisco platform this repo covers: Webex Calling, Contact Center and its Control Hub configuration, Flow Designer, Webex Connect, AI Agent Studio (autonomous and scripted agents), the Business Rules Engine (BRE), the Customer Journey Data Service (CJDS), Service Apps and the other Webex APIs (admin, devices, messaging, meetings), and the `@webex/contact-center` agent-desktop SDK. It applies to every build — AI agent, Connect flow, Flow Designer IVR, outbound notification, BRE lookup, Calling configuration — not only the AI-agent path.

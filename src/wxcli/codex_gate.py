@@ -119,7 +119,7 @@ TRUSTED_AGENTS = ("wxops", "migration-advisor")
 # is anything past the command position scanned — otherwise `grep -rn wxcli
 # docs/` reads as an invocation, and denying an ordinary grep is its own bug.
 WRAPPERS = frozenset(
-    "env command nohup nice time xargs sudo stdbuf setsid sh bash zsh exec eval".split()
+    "env command builtin noglob nohup nice time timeout xargs sudo stdbuf setsid sh bash zsh exec eval".split()
 )
 
 # Shell keywords that put a command after them (`for …; do <cmd>`, `if …; then
@@ -194,8 +194,9 @@ def imports_wxcli_from_python(command: str) -> bool:
     )
 
 
-def denies_wxcli_write(command: str) -> bool:
-    """True if any segment invokes wxcli in a way that is not a plain read.
+def _wxcli_calls(command: str):
+    """Yield (group, subcommand) for every segment that invokes wxcli, `--help`
+    calls excluded (they are inert).
 
     Resolves wxcli by RESOLVED BASENAME in every segment. The Claude gate's
     first version compared only token 1 for string equality and fell open on 14
@@ -251,6 +252,12 @@ def denies_wxcli_write(command: str) -> bool:
             p += 1
         group = rest[p] if p < len(rest) else ""
         sub = rest[p + 1] if p + 1 < len(rest) else ""
+        yield group, sub
+
+
+def denies_wxcli_write(command: str) -> bool:
+    """True if any segment invokes wxcli in a way that is not a plain read."""
+    for group, sub in _wxcli_calls(command):
         # bare `wxcli`, `wxcli --version`, `wxcli whoami`
         if group == "" or group == "whoami":
             continue
@@ -260,6 +267,14 @@ def denies_wxcli_write(command: str) -> bool:
         if verb not in READ_VERBS:
             return True
     return False
+
+
+def invokes_wxcli_configure(command: str) -> bool:
+    """True if any segment runs `wxcli configure` (Task 6). It saves the token
+    and is the one step that may write the user's Claude Code auto-mode rule,
+    so it is the user's own step: refused for every caller, BEFORE the
+    trusted-agent exemption."""
+    return any(group == "configure" for group, _ in _wxcli_calls(command))
 
 
 # ── Deny reasons ──────────────────────────────────────────────────────────
@@ -309,6 +324,8 @@ DENY_IMPORT = (
     "first."
 )
 
+DENY_CONFIGURE = "wxcli configure is the user's own step: they run it in their own terminal."
+
 DENY_UNREADABLE = (
     "The wxcli safety gate could not parse the Codex hook payload, so this "
     "call could not be evaluated. Rather than allow an unchecked wxcli "
@@ -330,6 +347,8 @@ def decide(payload: dict) -> str | None:
 
     if imports_wxcli_from_python(command):
         return DENY_IMPORT
+    if invokes_wxcli_configure(command):
+        return DENY_CONFIGURE
     if agent in TRUSTED_AGENTS:
         return None
     if denies_wxcli_write(command):

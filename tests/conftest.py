@@ -5,6 +5,9 @@ import os
 # Keep the suite hermetic: the CLI's PyPI update check fires from the top-level
 # callback on every CliRunner call. Disable it session-wide so no test reaches PyPI.
 os.environ.setdefault("WXCLI_NO_UPDATE_CHECK", "1")
+# Same for the auto-mode offer at the end of `configure` / `switch-org`: no test
+# reaches it (or ~/.claude/settings.json) unless it opts in (Task 6, B9).
+os.environ.setdefault("WXCLI_NO_AUTOMODE_OFFER", "1")
 
 import pytest
 from typer.testing import CliRunner

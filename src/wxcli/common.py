@@ -133,7 +133,8 @@ def _flag_of(param: str) -> str:
     return "".join(out)
 
 
-def verify_write(api, url: str, params: dict | None, sent: Any) -> None:
+def verify_write(api, url: str, params: dict | None, sent: Any,
+                 headers: dict | None = None) -> None:
     """Re-read after a write and report any field that did not take.
 
     A 2xx proves the request was WELL-FORMED, not that the configuration is
@@ -153,12 +154,18 @@ def verify_write(api, url: str, params: dict | None, sent: Any) -> None:
       3. **A read-back failure is reported, never swallowed.** "Could not
          verify" and "verified clean" must never look alike, which is the whole
          point of the flag.
+
+    `headers` are the write's own `in: header` parameters (audit F4); the
+    re-read sends the same ones, so a read scoped by a header (`hostEmail`)
+    reads what was written. Passed only when given, so a session that
+    predates the keyword still re-reads.
     """
     if not isinstance(sent, dict) or not sent:
         typer.echo("Note: --verify had no request body to compare against.", err=True)
         return
     try:
-        got = api.session.rest_get(url, params=params)
+        extra = {"headers": headers} if headers else {}
+        got = api.session.rest_get(url, params=params, **extra)
     except Exception as e:  # noqa: BLE001 - any failure must stay visible
         typer.echo(f"Note: --verify could not re-read {url}: {e}", err=True)
         return

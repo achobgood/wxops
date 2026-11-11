@@ -3,10 +3,12 @@
 # settings.bundled.json and does not bundle .claude/hooks, so this never ships.
 #
 # Policy (order matters):
-#   1. Python that imports wxcli is refused, for every caller.
+#   1. Python that imports wxcli is refused, for every caller.  So is
+#      `wxcli configure` (the user's own step, Task 6), trusted agents included.
 #   2. Agents carrying the playbook rules (wxops,
 #      migration-advisor) may run any wxcli command — unless the caller is an
 #      agent-team teammate (see is_teammate), which is never exempt.
+#      `switch-org` / `clear-org` from them get `ask`: the user approves each.
 #   3. Anyone else (main session, other agents) may run READ-ONLY wxcli only.
 #      Reads are `list*` / `show*` / `whoami` / help.  Everything else is denied:
 #      the main session is sent to the builder agent, a subagent is told to stop
@@ -51,6 +53,25 @@ deny() {
     reason="$2 REQUIRED ACTION: Do NOT run it directly again. Spawn the $BUILDER agent (subagent_type \"$BUILDER\") — any name you give it is fine; this gate matches the agent's type, not its name — and pass it this intent: $1 — The agent handles auth, planning, execution, and verification."
   fi
   jq -nc --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+  exit 0
+}
+
+# Task 6 (2026-11-10): `wxcli configure` saves the token and is the one step
+# that may write the user's Claude Code auto-mode rule, so it is the user's own
+# step.  Refused for every caller, trusted agents included.
+deny_configure() {
+  jq -nc '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:"wxcli configure is the user'"'"'s own step: they run it in their own terminal."}}'
+  exit 0
+}
+
+# Final review I1 (Adam, 2026-11-11): the builder may switch or clear the
+# target org (CLAUDE.md documents `switch-org <orgId>` in automation), but the
+# user is asked each time.  `ask` sends the call to the permission prompt in
+# auto mode; the classifier does not decide it (code.claude.com/docs/en/hooks
+# § PreToolUse `ask` decisions in auto mode).  This catches the forms the
+# settings.json ask rule misses: a full path, `bash -c`, a wrapper.
+ask_org() {
+  jq -nc '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:"wxcli switch-org and clear-org change which Webex org every later wxcli command targets, so the user approves each one."}}'
   exit 0
 }
 
@@ -275,7 +296,7 @@ verdict=$(printf '%s' "$cmd" | awk '
     # Wrappers that take another command as an argument.  Only inside one of
     # these do we scan past the command position — otherwise `grep -rn wxcli
     # docs/` reads as an invocation, and denying an ordinary grep is its own bug.
-    split("env command nohup nice time xargs sudo stdbuf setsid sh bash zsh exec eval", w, " ")
+    split("env command builtin noglob nohup nice time timeout xargs sudo stdbuf setsid sh bash zsh exec eval", w, " ")
     # Shell keywords that put a command after them: `for …; do <cmd>`,
     # `if …; then <cmd>`, `! <cmd>`.  Skipped at command position like VAR=.
     split("do then else elif if while until !", kw, " ")
@@ -321,6 +342,8 @@ verdict=$(printf '%s' "$cmd" | awk '
       g = (p <= m) ? clean(tok[p]) : ""
       s = (p+1 <= m) ? clean(tok[p+1]) : ""
       if (g == "" || g == "whoami") continue   # wxcli / --version / whoami
+      if (g == "configure") ncfg++             # a step only the user runs (Task 6)
+      if (g == "switch-org" || g == "clear-org") norg++   # asked each time (I1)
       if (s == "") { ndeny++; continue }  # bare `wxcli configure` mutates state
       verb = s; sub(/-.*$/,"",verb)            # show-call-forwarding -> show
       if (verb != "list" && verb != "show") ndeny++
@@ -364,7 +387,7 @@ verdict=$(printf '%s' "$cmd" | awk '
       sub(/-.*$/,"",v)
       if (v != "list" && v != "show") qdeny++
     }
-    print nseg+0, nwx+0, ndeny+0, redir+0, qseg+0, qwx+0, qdeny+0, qbad+0, qsep+0, qred+0, qerr+0
+    print nseg+0, nwx+0, ndeny+0, redir+0, qseg+0, qwx+0, qdeny+0, qbad+0, qsep+0, qred+0, qerr+0, ncfg+0, norg+0
   }
 ')
 
@@ -376,7 +399,12 @@ verdict=$(printf '%s' "$cmd" | awk '
 set -- $verdict
 # nseg nwx redir: the quote-blind scan (only ndeny decides anything now).
 nseg=$1 nwx=$2 ndeny=$3 redir=$4
-qseg=$5 qwx=$6 qdeny=$7 qbad=$8 qsep=$9 qred=${10} qerr=${11}
+qseg=$5 qwx=$6 qdeny=$7 qbad=$8 qsep=$9 qred=${10} qerr=${11} ncfg=${12} norg=${13}
+
+# Before the trusted-agent exemption: the builder runs wxcli, but configure is
+# the user's.  Counted by the quote-blind scan, which sees MORE than the shell
+# runs: right for a deny.
+[ "$ncfg" -gt 0 ] && deny_configure
 
 # `allow` skips Claude Code's permission prompt, so it is given only when the
 # whole command is wxcli calls this caller may run — or (P5-19, Adam
@@ -394,6 +422,9 @@ if [ "$qwx" -gt 0 ] && [ "$qred" = 0 ] && [ "$qerr" = 0 ] &&
 fi
 
 if [ "$exempt" = 1 ]; then
+  # Counted by the quote-blind scan (sees more than the shell runs: right for
+  # an ask), and before the allow, so a switch never skips the prompt.
+  [ "$norg" -gt 0 ] && ask_org
   [ "$pure" = 1 ] && allow
   exit 0
 fi

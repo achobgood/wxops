@@ -1502,7 +1502,7 @@ wxcli cc-flow show-starter-flow simple-inbound -o json > flow.json   # starter F
 # ... edit flow.json: nodes, edges, variables, eventFlows ...
 wxcli cc-flow create-validate PROJECT_ID --json-body file://flow.json  # dry-run validate (Step 2)
 wxcli cc-flow create-import PROJECT_ID --json-body file://flow.json    # create the flow (Step 3); prints its ID
-wxcli cc-flow publish FLOW_ID PROJECT_ID                               # publish the draft (Step 5); validates first
+wxcli cc-flow publish PROJECT_ID FLOW_ID                               # publish the draft (Step 5); validates first
 ```
 
 ### Step 1: Build FlowIR
@@ -1847,16 +1847,16 @@ You CAN add activities programmatically and keep the flow UI-openable. The trick
 **Procedure** (always rehearse on a `copy` first — a plain `copy` is UI-loadable, so it's a safe sandbox):
 
 ```
-1. wxcli cc-legacy-flows export-ui FLOW_ID PROJECT_ID -o json > ui_before.json   # BEFORE any save-draft — source of the correct type map
+1. wxcli cc-legacy-flows export-ui PROJECT_ID FLOW_ID -o json > ui_before.json   # BEFORE any save-draft — source of the correct type map
 2. wxcli cc-flow show PROJECT_ID FLOW_ID -o json > flow.json                      # FlowV2 logical graph
    # edit flow.json: add nodes/edges (restore fnName on every fn-activity node first — see prior subsection)
 3. wxcli cc-flow create-flows PROJECT_ID COPY_ID --json-body file://flow.json     # (save-draft) generates the full diagram, but with corrupted widget types
-4. wxcli cc-legacy-flows export-ui COPY_ID PROJECT_ID -o json > ui_after.json    # complete graph + ports + arrows, wrong types
+4. wxcli cc-legacy-flows export-ui PROJECT_ID COPY_ID -o json > ui_after.json    # complete graph + ports + arrows, wrong types
    # remap: for each activity widget in ui_after, set type = map[properties.activityName]
    #        (new activity nodes not in the map → "action"); leave widgetType:"link" arrows alone
    # clear top-level "id"/"flowId", set a unique "name"
 5. wxcli cc-legacy-flows import-ui PROJECT_ID --file ui_after_fixed.json          # transports diagram verbatim → types preserved → UI-loadable
-6. wxcli cc-legacy-flows export-ui NEW_ID PROJECT_ID -o json > verify.json       # confirm no widget has type in {activityName-style values}; confirm fnName intact
+6. wxcli cc-legacy-flows export-ui PROJECT_ID NEW_ID -o json > verify.json       # confirm no widget has type in {activityName-style values}; confirm fnName intact
 ```
 
 **Why it works:** `import-ui` is verbatim transport (v1 shape), so whatever widget `type` you set survives. Doing the graph-building with `save-draft` (on a throwaway copy) and the final write with `import-ui` gets you correct wiring *and* correct types.

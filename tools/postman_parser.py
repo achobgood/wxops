@@ -24,6 +24,10 @@ class EndpointField:
     # used in place of the description and enum choices. Set by
     # command_renderer._apply_param_help.
     help_override: str | None = None
+    # A query parameter declared `type: array`: `enum_values` then come from
+    # `items`, and the option takes the values comma-separated. Set from
+    # openapi_parser._resolve_param_schema's `_array` marker (audit F7).
+    is_array: bool = False
 
 
 @dataclass
@@ -101,6 +105,20 @@ class Endpoint:
     # that is a bare array has no body_fields, and a DELETE renders
     # --json-body only for a body it knows exists.
     declares_json_body: bool = False
+    # What the spec says the request body IS, whatever its content type (audit
+    # F1): "op" (one JSON Patch operation), "op_array" (an array of them),
+    # "object", "array", "string", "untyped" (no type at all), or None for no
+    # body. The renderer's flag path builds the body from this, not from the
+    # media type: only "op" and "op_array" are wrapped as `[patch_op]`.
+    body_shape: str | None = None
+    # The operation's `in: header` parameters outside the transport set
+    # (openapi_parser.parse_header_parameters; audit F4). Each renders as an
+    # option whose value the command sends as that header.
+    header_params: list[EndpointField] = field(default_factory=list)
+    # Header names the command fills itself and renders no option for:
+    # `X-ORGANIZATION-ID` where the spec marks it required (the CC org UUID,
+    # `get_cc_org_id`).
+    auto_inject_headers: list[str] = field(default_factory=list)
 
 
 # Known issue #20: command_type comes from the HTTP method, but Cisco models

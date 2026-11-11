@@ -59,7 +59,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}]}'
 
 @app.command("create", short_help="Create a new Address Book.")
 def create(
@@ -70,15 +70,13 @@ def create(
     description: str = typer.Option(None, "--description", help="A short description indicating the context of the address book."),
     parent_type: str = typer.Option(None, "--parent-type", help="(required) Choices: ORGANIZATION, SITE"),
     site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -104,10 +102,6 @@ def create(
             body["parentType"] = parent_type
         if site_id is not None:
             body["siteId"] = site_id
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
         _missing = [f for f in ['name', 'parentType'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -171,7 +165,7 @@ def list_bulk_export(
 
 
 
-_BODY_SKELETON_CREATE_ENTRY = '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE_ENTRY = '{"name":"...","number":"...","organizationId":"...","id":"...","version":0}'
 
 @app.command("create-entry", short_help="Create a new Address Book Entry.")
 def create_entry(
@@ -181,15 +175,13 @@ def create_entry(
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="(required) A name for the address book entry."),
     number: str = typer.Option(None, "--number", help="(required) The phone number for the entry."),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book Entry.\n\n\b\nExample: wxcli cc-address-book create-entry ADDRESS_BOOK_ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Address Book Entry.\n\n\b\nExample: wxcli cc-address-book create-entry ADDRESS_BOOK_ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ENTRY), indent=2))
         raise typer.Exit(0)
@@ -211,10 +203,6 @@ def create_entry(
             body["name"] = name
         if number is not None:
             body["number"] = number
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
         _missing = [f for f in ['name', 'number'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -301,7 +289,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","number":"...","organizationId":"...","id":"...","version":0}'
 
 @app.command("update", short_help="Update specific Address Book Entry by ID.")
 def update(
@@ -312,8 +300,6 @@ def update(
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     name: str = typer.Option(None, "--name", help="A name for the address book entry."),
     number: str = typer.Option(None, "--number", help="The phone number for the entry."),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -321,7 +307,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book Entry by ID.\n\n\b\nExample: wxcli cc-address-book update ADDRESS_BOOK_ID ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Address Book Entry by ID.\n\n\b\nExample: wxcli cc-address-book update ADDRESS_BOOK_ID ID --name NAME --number NUMBER\n\n\b\nExample --json-body: '{"name":"...","number":"...","organizationId":"...","id":"...","version":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -343,10 +329,6 @@ def update(
             body["name"] = name
         if number is not None:
             body["number"] = number
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
@@ -417,7 +399,7 @@ def show_address_book_organization(
 
 
 
-_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}]}'
 
 @app.command("update-address-book-organization", short_help="Update specific Address Book by ID.")
 def update_address_book_organization(
@@ -429,8 +411,6 @@ def update_address_book_organization(
     description: str = typer.Option(None, "--description", help="A short description indicating the context of the address book."),
     parent_type: str = typer.Option(None, "--parent-type", help="Choices: ORGANIZATION, SITE"),
     site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -438,7 +418,7 @@ def update_address_book_organization(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-organization ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}],"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-organization ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","addressBookEntries":[{"name":"...","number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ADDRESS_BOOK_ORGANIZATION), indent=2))
         raise typer.Exit(0)
@@ -464,10 +444,6 @@ def update_address_book_organization(
             body["parentType"] = parent_type
         if site_id is not None:
             body["siteId"] = site_id
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
@@ -711,7 +687,7 @@ def list_address_book_v3(
 
 
 
-_BODY_SKELETON_CREATE_ADDRESS_BOOK = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE_ADDRESS_BOOK = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"..."}'
 
 @app.command("create-address-book", short_help="Create a new Address Book.")
 def create_address_book(
@@ -722,15 +698,13 @@ def create_address_book(
     description: str = typer.Option(None, "--description", help="A short description indicating the context of the address book."),
     parent_type: str = typer.Option(None, "--parent-type", help="(required) Choices: ORGANIZATION, SITE"),
     site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create-address-book --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Address Book.\n\n\b\nExample: wxcli cc-address-book create-address-book --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_ADDRESS_BOOK), indent=2))
         raise typer.Exit(0)
@@ -756,10 +730,6 @@ def create_address_book(
             body["parentType"] = parent_type
         if site_id is not None:
             body["siteId"] = site_id
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
         _missing = [f for f in ['name', 'parentType'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -804,7 +774,7 @@ def show_address_book_v3(
 
 
 
-_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3 = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3 = '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"..."}'
 
 @app.command("update-address-book-v3", short_help="Update specific Address Book by ID.")
 def update_address_book_v3(
@@ -816,8 +786,6 @@ def update_address_book_v3(
     description: str = typer.Option(None, "--description", help="A short description indicating the context of the address book."),
     parent_type: str = typer.Option(None, "--parent-type", help="Choices: ORGANIZATION, SITE"),
     site_id: str = typer.Option(None, "--site-id", help="The specific site id where the address book is accessible."),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -825,7 +793,7 @@ def update_address_book_v3(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-v3 ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"...","createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Address Book by ID.\n\n\b\nExample: wxcli cc-address-book update-address-book-v3 ID --name NAME --parent-type ORGANIZATION\n\n\b\nExample --json-body: '{"name":"...","parentType":"ORGANIZATION","organizationId":"...","id":"...","version":0,"description":"...","siteId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_ADDRESS_BOOK_V3), indent=2))
         raise typer.Exit(0)
@@ -851,10 +819,6 @@ def update_address_book_v3(
             body["parentType"] = parent_type
         if site_id is not None:
             body["siteId"] = site_id
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:

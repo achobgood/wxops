@@ -12,7 +12,7 @@ app = typer.Typer(help="Manage Webex Messaging: events.")
 
 @app.command("list", short_help="List Events.")
 def cmd_list(
-    resource: str = typer.Option(None, "--resource", help="List events with a specific resource type. (use --help for choices)"),
+    resource: str = typer.Option(None, "--resource", help="List events with a specific resource type. Choices: attachmentActions, businessTexts, call_records, convergedRecordings, file_transcodings, files, meetingMessages, meetings, meetingTranscripts, memberships, messages, rooms, tabs"),
     type_param: str = typer.Option(None, "--type", help="Choices: created, updated, deleted, ended"),
     actor_id: str = typer.Option(None, "--actor-id", help="List events performed by this person, by person ID."),
     from_param: str = typer.Option(None, "--from", help="List events which occurred after a specific date and time."),

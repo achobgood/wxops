@@ -27,6 +27,7 @@ def cmd_list(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Recordings."""
@@ -35,6 +36,9 @@ def cmd_list(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -60,11 +64,11 @@ def cmd_list(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -92,6 +96,7 @@ def create(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Query Recordings.\n\n\b\nExample --json-body: '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","hostEmail":"...","topic":"...","format":"MP4","serviceType":"MeetingCenter","status":"available"}'"""
@@ -100,6 +105,9 @@ def create(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings/query"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -127,7 +135,7 @@ def create(
         if status is not None:
             body["status"] = status
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -160,6 +168,7 @@ def list_recordings_admin(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Recordings For an Admin or Compliance Officer."""
@@ -168,6 +177,9 @@ def list_recordings_admin(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/recordings"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -191,11 +203,11 @@ def list_recordings_admin(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -223,6 +235,7 @@ def create_query(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    header_timezone: str = typer.Option(None, "--header-timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Query Recordings For an Admin or Compliance Officer.\n\n\b\nExample --json-body: '{"max":0,"from":"...","to":"...","meetingId":"...","siteUrl":"...","integrationTag":"...","topic":"...","format":"MP4","serviceType":"MeetingCenter","status":"available","timezone":"..."}'"""
@@ -231,6 +244,9 @@ def create_query(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/admin/recordings/query"
+    headers = {}
+    if header_timezone is not None:
+        headers["timezone"] = header_timezone
     if json_body:
         body = load_json_body(json_body)
     else:
@@ -258,7 +274,7 @@ def create_query(
         if timezone is not None:
             body["timezone"] = timezone
     try:
-        result = api.session.rest_post(url, json=body)
+        result = api.session.rest_post(url, json=body, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -309,16 +325,23 @@ def show(
     host_email: str = typer.Option(None, "--host-email", help="Email address for the meeting host. Only used if the user or application calling the API has required [admin-level meeting scopes](/docs/meetings#adminorganization-level-authentication-and-scopes). If set, the admin may specify the email of a user in a site they manage, and the API will return..."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
+    site_url: str = typer.Option(None, "--site-url", help="e.g. example.webex.com. Sent as the siteUrl request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Recording Details.\n\n\b\nExample: wxcli admin-recordings show RECORDING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordings/{recording_id}"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
+    if site_url is not None:
+        headers["siteUrl"] = site_url
     params = {}
     if host_email is not None:
         params["hostEmail"] = host_email
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -622,6 +645,8 @@ def list_recordings_group(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
+    host_email: str = typer.Option(None, "--host-email", help="Email of the user whose recordings will be retrieved. The `hostEmail` parameter is optional, but one of the `personId` parameter and `hostEmail` header must be specified. Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Group Recordings."""
@@ -630,6 +655,11 @@ def list_recordings_group(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/group/recordings"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     params = {}
     if person_id is not None:
         params["personId"] = person_id
@@ -649,11 +679,11 @@ def list_recordings_group(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -668,16 +698,23 @@ def show_recordings(
     person_id: str = typer.Option(None, "--person-id", help="Person ID of the user whose recordings will be retrieved. The person ID can be retrieved from the [People APIs](/docs/api/v1/people), e.g. [Lit People](/docs/api/v1/people/list-people). Note that a person ID retrieved from the People APIs is a Base64-encoded string, e.g...."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
+    host_email: str = typer.Option(None, "--host-email", help="Email of the user whose recordings will be retrieved. The `hostEmail` parameter is optional, but one of the `personId` parameter and `hostEmail` header must be specified. Sent as the hostEmail request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Group Recording Details.\n\n\b\nExample: wxcli admin-recordings show-recordings RECORDING_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/group/recordings/{recording_id}"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
+    if host_email is not None:
+        headers["hostEmail"] = host_email
     params = {}
     if person_id is not None:
         params["personId"] = person_id
     try:
-        result = api.session.rest_get(url, params=params)
+        result = api.session.rest_get(url, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

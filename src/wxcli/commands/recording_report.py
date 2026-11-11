@@ -21,6 +21,7 @@ def cmd_list(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List of Recording Audit Report Summaries."""
@@ -29,6 +30,9 @@ def cmd_list(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordingReport/accessSummary"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -42,11 +46,11 @@ def cmd_list(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -64,6 +68,7 @@ def list_access_detail(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Recording Audit Report Details.\n\n\b\nExample: wxcli recording-report list-access-detail --recording-id RECORDING_ID"""
@@ -72,6 +77,9 @@ def list_access_detail(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordingReport/accessDetail"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if recording_id is not None:
         params["recordingId"] = recording_id
@@ -81,11 +89,11 @@ def list_access_detail(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -104,6 +112,7 @@ def list_meeting_archive_summaries(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meeting Archive Summaries."""
@@ -112,6 +121,9 @@ def list_meeting_archive_summaries(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordingReport/meetingArchiveSummaries"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if from_param is not None:
         params["from"] = from_param
@@ -123,11 +135,11 @@ def list_meeting_archive_summaries(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -141,13 +153,17 @@ def show(
     archive_id: str = typer.Argument(help="archiveId"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Get Meeting Archive Details.\n\n\b\nExample: wxcli recording-report show ARCHIVE_ID"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/recordingReport/meetingArchives/{archive_id}"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     try:
-        result = api.session.rest_get(url)
+        result = api.session.rest_get(url, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

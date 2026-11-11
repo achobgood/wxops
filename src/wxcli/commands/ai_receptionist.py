@@ -233,17 +233,14 @@ def create(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="(required) Flag to indicate AI receptionist is enabled or not. When disabled, incoming calls to this AI receptionist will not be answered."),
     phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the AI Receptionist. Either phoneNumber or extension is mandatory. At least one is required."),
     extension: str = typer.Option(None, "--extension", help="Extension of the AI Receptionist. Either phoneNumber or extension is mandatory. At least one is required."),
-    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Direct line caller ID name configuration"),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="A dial by name used for AI Receptionist name dialing. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
-    default_action: str = typer.Option(None, "--default-action", help="(required) Default action configuration for the AI Receptionist"),
-    ai_agent: str = typer.Option(None, "--ai-agent", help="(required) AI Agent configuration"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an AI Receptionist.\n\n\b\nExample: wxcli ai-receptionist create LOCATION_ID --name NAME --enabled --default-action DEFAULT_ACTION --ai-agent AI_AGENT\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"defaultAction":{"actionType":"PLAY_MESSAGE_AND_DISCONNECT","audioMessageSelection":"DEFAULT","audioFileId":"...","transferToNumber":"...","transferTo":{"contactType":"PEOPLE","contactId":"...","phoneNumber":"..."}},"aiAgent":{"voice":{"aiEngine":"PRO","displayName":"...","language":"...","languageCode":"..."},"knowledgeBaseId":"...","guidelines":{"welcomeMessage":"...","goal":"...","guideline":"..."},"transparencySettings":{"enabled":true,"message":"...","disableReason":"..."}},"phoneNumber":"...","extension":"...","directLineCallerIdName":{"directLineCallerIdNameSelection":"DISPLAY_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Create an AI Receptionist.\n\n\b\nExample: wxcli ai-receptionist create LOCATION_ID --json-body '{"name":"...","enabled":true,"defaultAction":{"actionType":"PLAY_MESSAGE_AND_DISCONNECT"},"aiAgent":{"voice":{"aiEngine":"PRO","displayName":"...","language":"...","languageCode":"..."},"knowledgeBaseId":"...","guidelines":{"welcomeMessage":"..."}}}'\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"defaultAction":{"actionType":"PLAY_MESSAGE_AND_DISCONNECT","audioMessageSelection":"DEFAULT","audioFileId":"...","transferToNumber":"...","transferTo":{"contactType":"PEOPLE","contactId":"...","phoneNumber":"..."}},"aiAgent":{"voice":{"aiEngine":"PRO","displayName":"...","language":"...","languageCode":"..."},"knowledgeBaseId":"...","guidelines":{"welcomeMessage":"...","goal":"...","guideline":"..."},"transparencySettings":{"enabled":true,"message":"...","disableReason":"..."}},"phoneNumber":"...","extension":"...","directLineCallerIdName":{"directLineCallerIdNameSelection":"DISPLAY_NAME","customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -265,15 +262,9 @@ def create(
             body["phoneNumber"] = phone_number
         if extension is not None:
             body["extension"] = extension
-        if direct_line_caller_id_name is not None:
-            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
-        if default_action is not None:
-            body["defaultAction"] = default_action
-        if ai_agent is not None:
-            body["aiAgent"] = ai_agent
-        _missing = [f for f in ['name', 'enabled', 'defaultAction', 'aiAgent'] if f not in body or body[f] is None]
+        _missing = [f for f in ['name', 'enabled'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -331,10 +322,7 @@ def update(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Flag to indicate AI receptionist is enabled or not. When disabled, incoming calls to this AI receptionist will not be answered."),
     phone_number: str = typer.Option(None, "--phone-number", help="Phone number of the AI Receptionist. Either phoneNumber or extension is mandatory. At least one is required."),
     extension: str = typer.Option(None, "--extension", help="Extension of the AI Receptionist. Either phoneNumber or extension is mandatory. At least one is required."),
-    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Direct line caller ID name configuration"),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="A dial by name used for AI Receptionist name dialing. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
-    default_action: str = typer.Option(None, "--default-action", help="Default action configuration for the AI Receptionist"),
-    ai_agent: str = typer.Option(None, "--ai-agent", help="AI Agent configuration"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -364,14 +352,8 @@ def update(
             body["phoneNumber"] = phone_number
         if extension is not None:
             body["extension"] = extension
-        if direct_line_caller_id_name is not None:
-            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
-        if default_action is not None:
-            body["defaultAction"] = default_action
-        if ai_agent is not None:
-            body["aiAgent"] = ai_agent
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:

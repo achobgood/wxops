@@ -116,7 +116,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-34 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-41 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -383,11 +383,90 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   name the new command.
 - The two halves print as two `[34]` lines (`CHECK_EXAMINED` keys `34i`/`34ii`;
   `print_check_findings(..., heading="[34]")`), each with its own examined count. CI's
-  completion assertion greps `^\[34\]`. Tests: `tests/wxcc/test_drift_check.py`
+  completion assertion greps the highest-numbered check (`^\[41\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
   (`TestLegacyCliCheck`: a planted fixture fires and a clean control does not, for each half).
   Proven on the live tree too: a planted `` `wxcc-flow list --type SUBFLOW` `` in
   `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
   made the gate FAIL with one finding.
+
+- **[35] A query option whose `--help` omits a choice the spec declares** (audit F7,
+  2026-11-10). The parameter's schema is resolved through `$ref` and, for `type: array`,
+  `items` (the gate's own copy, `_param_enum`); every enum value must appear in the option's
+  `help=`, compared case-insensitively. Options with no flag (auto-injected, unified paging)
+  are not in the population; an option a per-operation `param_help` override replaces is
+  skipped and counted, never a finding (the override replaces the help by design). Examined =
+  enum query options (97 on the tree at landing, 5 skipped). **To clear:** fix
+  `openapi_parser._resolve_param_schema` / `command_renderer._enum_help`, regen. No ack key.
+  Tests: `tests/test_drift_check_query_enum.py`.
+- **[36] A write command that offers a `readOnly` body field** (audit F6, 2026-11-10). For each
+  POST/PUT/PATCH block with a spec op, a top-level request property that resolves
+  `readOnly: true` (own schema or `$ref`; every declaring spec must agree) must not be written
+  as `body["<name>"]` and must not be a top-level key of the command's
+  `_BODY_SKELETON_<FUNCTION>`. Top level only. Examined = write commands with a spec op and a
+  body (790 at landing). **To clear:** fix `openapi_parser._without_readonly_properties`,
+  regen. No ack key. Tests: `tests/test_drift_check_readonly.py`.
+- **[37] A composed object/array body property rendered as a text flag** (audit F2,
+  2026-11-10). For every `body["<name>"] = <param>` write whose `<param>` is a scalar
+  `typer.Option` (POST/PUT/PATCH blocks with a spec op), the spec property is resolved through
+  `$ref`, `allOf`, `oneOf` and `anyOf` (`_composed_shape`; a `oneOf`/`anyOf` body is read
+  across its branches); one that resolves to an object or an array fires. Every declaring spec
+  must agree. **ADVISORY, never gated:** a property that resolves to an enum through
+  composition whose option help omits a value (`CHECK_ADVISORIES["37"]`, printed as
+  `[37] ADVISORY`). `field_shape` (checks 13/14) now resolves composition too. Examined =
+  scalar body flags (3,275 at landing). Run against the pre-fix modules it fires 6 (the six
+  object fields of `ai-receptionist create`/`update`) and lists 5 advisories (the five scalar
+  enums). **To clear:** fix `openapi_parser._resolve_property_schema` / `parse_request_body`,
+  regen. No ack key. Tests: `tests/test_drift_check_composed.py`.
+- **[38] A `oneOf`/`anyOf` request body read as `allOf`** (audit F3, 2026-11-10). For a write
+  whose spec body is a top-level `oneOf`/`anyOf`: (a) `kind: required` — the rendered
+  `_missing = [...]` is a subset of the branches' required intersection (plus the body's own);
+  (b) `kind: enum` — every enum that varies by branch is fully listed in that option's help
+  (case-insensitive); (c) `kind: example` / `skeleton` — the minimal `Example: ... --json-body`
+  and the `_BODY_SKELETON_<FUNCTION>` constant equal `_schema_to_example` of the FIRST branch.
+  Examined = write commands with such a body (3 at landing: `cc-agent-summaries create`,
+  `cc-tasks create-tasks`, `create-messages`). Run against the pre-fix modules it fires 10.
+  **To clear:** fix `openapi_parser._merge_alternatives` / `_request_body_schema`, regen. No
+  ack key. Tests: `tests/test_drift_check_oneof.py`.
+- **[39] A flag path that builds a different top-level JSON type than the spec's body**
+  (audit F1, 2026-11-10). For a POST/PUT/PATCH/DELETE block with a spec op whose body is an
+  object or an array: what the flag path builds (`body = {}` an object; `body = [patch_op]`
+  an array; the "JSON array" refusal an array that only `--json-body` supplies) must equal
+  the type of the PARSER's resolved schema (`openapi_parser.request_body_shape`, not the
+  gate's raw `body_schema`, which sees the springfox placeholder). Kind `item`: an array of
+  patch operations (`op_array`) needs a flag for each required item key, and any other array
+  must not wrap `patch_op` elements. Exempt and counted as skipped: `op` (one patch
+  operation, which the wire wraps in an array), `string`, `untyped`, and a block with no
+  recognised flag path. Every declaring spec must agree. Examined = write commands with an
+  object, array or `op_array` body. Run against the pre-fix modules it fires on the five
+  audit commands plus `cc-flow-prefs create/update/delete`. **To clear:**
+  `openapi_parser._classify_body` / the renderer's `wrap_patch` and `_array_body_build`,
+  regen. No ack key. Tests: `tests/test_drift_check_body_shape.py`.
+
+- **[40] A command's positional arguments contradict its URL** (audit F5, 2026-11-10). For
+  every command block with two or more `typer.Argument` parameters that also appear as
+  `{name}` in a `url = f"..."` of the block, the arguments' declaration order must equal the
+  order of their placeholders in that URL. Pure source check, no spec read; an argument the URL
+  does not mention (a body or query value) is not judged, and a block with several URLs (a paged
+  walker) fires when any disagrees. Examined = blocks with two or more such arguments (278 on the
+  tree at landing, 1,780 skipped as having fewer). Run against the pre-fix modules it fires 7:
+  `cc-flow publish`, `create-lock`, `create-unlock`, `cc-legacy-flows export-ui`, `cc-tasks
+  create-accept-preview-task`, `create-skip`, `delete-preview-task`. **To clear:**
+  `command_renderer._order_path_vars_by_url`, regen. No ack key. Tests:
+  `tests/test_drift_check_positional_order.py`.
+
+- **[41] An `in: header` spec parameter the command does not send** (audit F4, 2026-11-10). For
+  every block with a spec op, each header outside the transport set (Authorization, Content-Type,
+  Accept, Content-Length, TrackingId; `openapi_parser.TRANSPORT_HEADERS`, path-level included,
+  `$ref` resolved) must be written as `headers["<Name>"] = …` with every session call in the block
+  passing `headers=` (kinds `dropped`, `not-passed`), or, for a REQUIRED `X-ORGANIZATION-ID`,
+  written from `get_cc_org_id(api.session)` (`not-injected`). An OPTIONAL `X-ORGANIZATION-ID` is
+  exempt only on the two operations `HEADER_OPTIONAL_ORG_EXCEPTIONS` names (with the round-3
+  evidence path); an entry whose operation vanished or whose header became required is
+  `stale-exception`, so the constant cannot rot or quietly cover a third operation. Every declaring
+  spec must fail for a finding. Examined = commands whose op declares a non-transport header (41 at
+  landing, 5 skipped with no spec op). Run against the pre-fix modules it fires 39. **To clear:**
+  `openapi_parser.parse_header_parameters` / `command_renderer._apply_header_params`, regen. No ack
+  key. Tests: `tests/test_drift_check_header_params.py`.
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
@@ -1720,6 +1799,262 @@ run on a spec contradiction.
 refresh that drops a key the live API still accepts fails the gate, and the only way out is
 a human doc edit. The widening rules above soften this; they do not remove it.
 
+### Query-parameter enums through `$ref`/`items`, and `readOnly` body fields (2026-11-10, audit F7 and F6, checks 35-36)
+
+**F7.** `parse_parameters` read `enum` and `type` off the raw query schema. It now calls
+`_resolve_param_schema` (follow `$ref`; for `type: array` return the resolved `items` with
+`"_array": True`) and records `EndpointField.is_array`. `_enum_help` prints `Choices:` (or
+`Choices (comma-separated):` for an array) and, over 12 values, no longer replaces the list with
+"(use --help for choices)": the description may still be cut by `_clean_desc`, the choice list never is.
+That also changed two body-field enums over 12 values (`cc-org-settings update --offer-code`,
+`webhooks create --resource`) and `events list --resource`. Field type is still read from the raw
+schema, so no option changes type. `pstn list --service-types` (array of `$ref` items) gained its one
+choice too; the audit's counter had not followed a `$ref` under `items`.
+Rejected: keeping "(use --help for choices)" for long lists (it sends the reader to the screen it is
+already on); rendering an array parameter as repeated keys (that is U1, a separate decision).
+**Live (2026-11-10, read-only):** the server enforces the set on `cc-tasks list` and
+`cc-agents list-activities` (400 listing allowed values), and answers a wrong `pstn
+list-available-numbers --action` with 500. **Spec only:** that an array option takes
+comma-separated values (the CC descriptions say so; the pstn one is unmeasured).
+
+**F6.** `_request_body_schema` (the one reader behind both the flag list and the skeleton) now drops
+TOP-LEVEL properties whose own or `$ref`'d schema says `readOnly: true`, so `createdTime`,
+`lastUpdatedTime` and `channelName` are neither flags nor skeleton keys on 22 commands. Nested
+`readOnly` properties stay: they belong to an object a caller may echo back. Rejected: dropping
+them at every depth (changes bulk and nested bodies nobody measured); a `field_overrides.yaml`
+per-command list (the spec already says it). **Live (2026-11-10):** one of the 22,
+`cc-work-types create --created-time 1000 --last-updated-time 1000`, returned the server's own clock,
+so the flags did nothing. **Spec only** for the other 21.
+
+**Compile guard.** `generate_tag` now `compile()`s each rendered module before writing it and raises
+`RuntimeError` naming the module, so an uncompilable module (a duplicate argument, say) never reaches disk.
+
+### Composed body properties and `oneOf` request bodies (2026-11-10, audit F2 and F3, checks 37-38)
+
+**F2.** A body property written `allOf: [{$ref: X}]` (Cisco's way to hang a `description` on a
+`$ref`) had no `type` key, so `parse_request_body` typed it "string": `ai-receptionist create`
+offered `--default-action` and `--ai-agent` text flags (the generated `Example:` was that call) and
+`call-recording update-vendor-call-recording` lost its `--failure-behavior` choices. New
+`openapi_parser._resolve_property_schema` follows `$ref` and a single-branch `allOf: [X]`; an
+object resolves to a flagless `object` field (`--json-body`, and the `Example:` switches to the
+minimal skeleton), a scalar keeps its own description and gains the enum. Eleven properties, all
+single-branch, so there is no `oneOf` branch. Modules changed: `ai_receptionist`, `call_recording`,
+`call_controls` (`create-reject*`: `--action` now lists `busy, temporarilyUnavailable, ignore`).
+Rejected: extending `_resolve_schema_node` (list-response item schemas use it; B5).
+Known leftover, not in scope: `_schema_to_example` still reads a scalar `allOf` through
+`_resolve_schema_node`, which merges only `properties`, so a skeleton shows `{}` for such a property
+(`"action":{}`, `"failureBehavior":{}`).
+
+**F3.** A top-level `oneOf` request body is a choice between shapes, but `_resolve_schema_node`
+read it as `allOf`. `_request_body_schema` now sends a top-level `oneOf`/`anyOf` to the new
+`_merge_alternatives`, which returns `(merged_for_flags, first_branch)`: `required` is the
+INTERSECTION of the branches' required lists; an enum is the ordered UNION (a branch with no enum
+means none); a property whose type differs between branches (a fixture-only case) becomes a flagless
+object; when only the description differs the distinct descriptions are joined with " | ", and when
+the enum varies by branch they are dropped (the first branch's text names only its own value).
+`_request_body_schema(op, spec, *, for_example=False)`: `generate_body_example` passes
+`for_example=True` and gets the FIRST branch alone, so an example is one valid body, never a mix;
+`parse_request_body` and `declares_json_body` get the merged shape. `allOf` bodies (`cc-callbacks
+update`) are unchanged. Modules changed: `cc_agent_summaries` (`--interaction-id` and
+`--agent-ci-user-id` no longer required, `--search-type` lists three choices), `cc_tasks`
+(`create-tasks`: `--channel` no longer required, `--channel-type` lists three; `create-messages`:
+`--media-type` lists both; examples now `workItem`). Rejected: reading the union as required (the bug);
+picking the last branch (what `dict.update` did); changing `_resolve_schema_node` (B5: four list
+operations read through it, pinned by `test_response_item_schemas_unchanged`).
+**Live-verified (sandbox, `docs/audit/claude-fable-5-2/live_f2_ai_receptionist.md`):** the old
+`ai-receptionist create --default-action DEFAULT_ACTION --ai-agent AI_AGENT` is rejected with HTTP 400
+(a string where the `DefaultAction` object is expected), so removing those flags removes a call that
+cannot work. F3 (`docs/audit/claude-fable-5-2/live_f5_f3.md`, read-only): the server accepts the
+`ORGANIZATION` shape of `cc-agent-summaries create` (200, empty `summaries`), so the old local refusal
+blocked a request it accepts. **Spec only:** the new `--json-body` create succeeding, F2's enum
+choices, and F3's `cc-tasks create-tasks` and `create-messages` (not probed).
+
+### Request body shape follows the schema, not the media type (2026-11-10, audit F1, check 39)
+
+`parse_operation` took `content_type = "application/json-patch+json"` from the media type
+alone and `_render_update_command` then built `body = [patch_op]` plus a `--value` flag for
+every such operation, whatever the body's schema was. New `Endpoint.body_shape`
+(`openapi_parser._classify_body`, from the resolved top-level schema, every content type):
+
+| `body_shape` | Schema | Flags build |
+|---|---|---|
+| `op` | one object, properties within {op, path, value, from}, including `op` | `[patch_op]` (unchanged: `devices update`, `device-configurations update`, byte-identical) |
+| `op_array` | array whose items are that shape | the ITEM's properties as flags, `[patch_op]`; `--value` stays the one JSON-parsing flag |
+| `object` | any other object | the ordinary object body `{…}`, never wrapped |
+| `array` | any other array (`cc-journey delete-person-id-workspace-id`; the Flow Store `Seq` bodies of `cc-flow-prefs create/update/delete`) | no flags; no `--json-body` exits 1 with `This command's body is a JSON array; pass it with --json-body '[…]'`; the skeleton and the Example are arrays |
+| `string`, `untyped` | `type: string` (`flows:consume`); no type (22 Flow Store `JsonPatch` bodies) | unchanged |
+
+The json-patch content type is kept on an object body: an object body sent with it returned
+200 live. Modules changed: `meetings` (`update-meetings`, `update-group-meetings`),
+`cc_journey` (`update`, `update-person-id-workspace-id`, `delete-person-id-workspace-id`),
+`cc_flow_prefs` (`create`, `update`, `delete`: they built `{}` where the Flow Store takes a
+JSON array, so a bare call was refused by the server and now stops locally).
+**Live-verified (sandbox, `docs/audit/claude-fable-5-2/live_f1_meetings_patch.md`):** an
+object body to `PATCH /meetings/{id}` with the json-patch content type returns 200 and the
+flag form's `[{"title": …}]` returns 400. That covers the `meetings update-meetings` object
+body only. **Spec only, not run live:** the `--title` flag form after the fix,
+`meetings update-group-meetings`, all three `cc-journey` shapes, and `cc-flow-prefs`.
+Rejected: wrapping an object as `[object]` for every json-patch operation (the measured 400);
+dropping the json-patch content type for objects (the object form with that type is the one
+measured to work, and changing a header nobody measured is a second variable); making the
+array command build a one-element array from flags (an array of strings has no field to
+name). Known leftover, not in scope: a top-level `allOf` body that composes an array is read
+by `_resolve_schema_node` as an object with no properties, so it classifies `untyped`;
+no tracked spec has one.
+
+### Positional IDs follow URL order, a BREAKING change on 7 commands (2026-11-10, audit F5, check 40)
+
+A spec lists an operation's path parameters in whatever order its author typed them, and the
+renderer took that order for the positional arguments. `cc-flow publish` therefore read
+`FLOW_ID PROJECT_ID` while its URL is `.../project/{projectId}/flows/{flowId}:publish` and its
+siblings `export`, `show`, `list-validate`, `delete` read `PROJECT_ID FLOW_ID`. An agent that
+learned one built the other backwards and sent a flow id where a project id belongs (`export` with
+the order swapped returns 404 "Flow ... not found", live 2026-10-13).
+
+`command_renderer._order_path_vars_by_url` now sorts each endpoint's `path_vars` by the position of
+`{var}` in `url_path`, right after `_infer_missing_path_vars` (whose second pass already used that
+order for borrowed variables). The sort is stable and keeps a variable the template does not mention
+after the ones it does, so an endpoint whose spec order already matched renders byte-identically.
+Exactly 7 of the 278 multi-argument commands changed; a full regen touched only `cc_flow`,
+`cc_legacy_flows` and `cc_tasks`. Check 22 reports `0 moved`: the lock keys operations, not argument
+order.
+
+**Release note (breaking; the next tag's annotated message carries it).** Old order to new order:
+
+| Command | Old | New |
+|---|---|---|
+| `cc-flow publish` | `FLOW_ID PROJECT_ID` | `PROJECT_ID FLOW_ID` |
+| `cc-flow create-lock` | `FLOW_ID PROJECT_ID` | `PROJECT_ID FLOW_ID` |
+| `cc-flow create-unlock` | `FLOW_ID PROJECT_ID` | `PROJECT_ID FLOW_ID` |
+| `cc-legacy-flows export-ui` (hidden alias `list`) | `FLOW_ID PROJECT_ID` | `PROJECT_ID FLOW_ID` |
+| `cc-tasks create-accept-preview-task` | `TASK_ID CAMPAIGN_ID` | `CAMPAIGN_ID TASK_ID` |
+| `cc-tasks create-skip` | `TASK_ID CAMPAIGN_ID` | `CAMPAIGN_ID TASK_ID` |
+| `cc-tasks delete-preview-task` (hidden alias `create-remove`) | `TASK_ID CAMPAIGN_ID` | `CAMPAIGN_ID TASK_ID` |
+
+A script that passes both IDs to one of these must swap them: the old order sends each id in the other's URL slot.
+One side effect, measured in the regen diff: `cc-tasks delete-preview-task` builds its confirm prompt from the
+LAST path argument, so it now reads "Remove Preview Task for <task id>?" (it used to name the campaign id).
+
+**Rejected:** a hidden alias that keeps the old order (the two orders cannot be told apart by value,
+so an alias would answer the old question wrongly, the failure this wave exists to remove);
+sorting only the 7 commands by an override (the next spec refresh re-introduces the defect on a new
+operation, which is what check 40 now catches); leaving the order and documenting it (the
+"Argument-order trap" note that sat in `contact-center-routing.md`, which an agent only reads after
+the wrong call). **Live-verified:** only the 2026-10-13 `export` 404 above. **Spec only:** the 7 new
+orders were not called live; each follows the URL the command already sends.
+
+### `in: header` parameters become options and are sent (2026-11-10, audit F4, check 41)
+
+`parse_parameters` read `in: path` and `in: query` only, so every header parameter fell through: no
+option, never sent. `meetings list-group-meetings` could not name a host by email,
+`meeting-session-types list-session-types` could not be called by email at all, and
+`cc-agent-wellbeing create`/`create-action` never sent a header the spec marks required.
+
+**What changed.**
+- Runtime (`src/wxcli/auth.py`): `_request` and all ten call methods a generated command can emit
+  (`rest_get/put/post/patch/delete`, `rest_post_multipart`, `follow_pagination`,
+  `follow_page_param`, `follow_scim`, `fetch_from_offset`) take keyword-only `headers=None`, passed
+  to every page a walker requests. In `_request`, before the multipart branch drops `Content-Type`:
+  a key in the transport set (`TRANSPORT_HEADERS`: Authorization, Content-Type, Accept,
+  Content-Length, TrackingId, case-insensitive) raises `ValueError` (a generator bug, never user
+  input); a `None` or non-ASCII value raises `WebexError` with a one-line message. `headers=None`
+  sends exactly the old header set. `common.verify_write(..., headers=None)` re-reads with the
+  same headers (passed only when given, so an older session fake still works).
+- Parser: `parse_header_parameters(op, path_item, spec)` (op- and path-level, `$ref` resolved,
+  op-level wins by case-insensitive name, transport set skipped) fills `Endpoint.header_params`;
+  `parse_parameters` and its 5-tuple are unchanged. A required `X-ORGANIZATION-ID` goes to
+  `Endpoint.auto_inject_headers`; an optional one is dropped (below).
+- Renderer: `_apply_header_params` runs on each rendered command in `render_command_file` (and
+  the multipart path). A command with neither list is returned unchanged, so every module without a
+  header parameter is byte-identical (measured: a full regen changed exactly 10 modules and 39
+  command blocks, every one header-bearing). For the rest: one option per header (kebab case;
+  `--header-` prefix when the name is taken by a path argument, query option, body flag, lifted
+  hidden flag, or an option the renderer injects), `headers = {}` plus one `if <p> is not None:
+  headers["<Name>"] = <p>` after the URL line, `headers["X-ORGANIZATION-ID"] =
+  get_cc_org_id(api.session)` for an injected one, and `headers=headers or None` on every session
+  call and `verify_write`. `needs_cc_org_id` is also true when any endpoint injects a header.
+- Gate: check 41. Commands changed (39): `admin-recordings` ×7, `cc-agent-wellbeing` ×2,
+  `converged-recordings` ×3, `meeting-captions` ×1, `meeting-participants` ×2, `meeting-reports`
+  ×2, `meeting-session-types` ×1, `meeting-tracking-codes` ×1, `meetings` ×16, `recording-report`
+  ×4. The audit baseline (`count_header_params.baseline.json`) listed 38 non-TrackingId commands:
+  its counter treated `admin-recordings create-query` as already exposed because that command has a
+  BODY `--timezone`. That command is the one real collision, so its header is `--header-timezone`
+  (the plan named `create`, whose body has no `timezone`).
+
+**Live-verified (sandbox, `docs/audit/claude-fable-5-2/live_f4_headers_rerun.md`,
+`live_f4_headers_round3.md`):** `timezone` on `GET /meetings/{id}` (`meetings show-meetings`);
+`hostEmail` on `GET /meetings/{id}/breakoutSessions` (`list-breakout-sessions`); `personId` on
+`GET /meetings/{id}/invitationSources` (`list-invitation-sources`); `email` on `GET
+/admin/meeting/userconfig/sessionTypes` (`meeting-session-types list-session-types`, required in
+practice); `X-ORGANIZATION-ID` on `GET /search/v2/meta` (read, but optional). In each, the same name
+sent as a query value was ignored. **Not distinguishable live:** `hostEmail` on `/group/meetings`
+(403 for every variant, token scope) and `password` on `GET /meetings/{id}` (an admin token needs
+none). **Spec only:** `siteUrl`, `timezone` everywhere but `GET /meetings/{id}`, `hostEmail` and
+`email` on every other operation, and both required `X-ORGANIZATION-ID` writes (writes needing a
+webhook URL; not run). The doc rows say which (`> **Unverified:**`).
+
+**`X-ORGANIZATION-ID` decision.** Required on 2 operations → auto-injected, no option. Optional on 2
+(`cc-search-metadata list` = `GET /search/v2/meta`, `external-data-updates update` = `PUT
+/v1/data/updateExternal`) → no option, nothing sent. Round 3 (§ 5 of
+`live_f4_headers_round3.md`) shows the server reads the header (a bogus org → 401) but returns the
+same 200 body without it, so sending or offering it would change nothing a working command does.
+Only `/search/v2/meta` was tested; `external-data-updates update` follows by analogy (same header,
+same optional declaration, same host). Check 41 names exactly those two in
+`HEADER_OPTIONAL_ORG_EXCEPTIONS` with that evidence path, re-validates them every run (a vanished
+op, or a header that became required, is `stale-exception`), and fires `dropped` on an optional
+`X-ORGANIZATION-ID` on any third operation.
+
+**Rejected:** per-operation location overrides (render a header as a query parameter where the
+spec mis-declares it): every probe that could tell found the spec right, so none is built; add one
+with `basis: live` only when a probe finds a mis-declared header. Rendering `TrackingId` (a
+correlation id; 21 commands would gain an option nobody needs). An option for the optional
+`X-ORGANIZATION-ID` (no measured effect on a working call; a partner, multi-org token was not
+tested, and is the case to revisit). Threading headers through each renderer by hand (six render
+paths plus multipart, each a chance to miss a call; a post-pass over the rendered text cannot miss
+one, and it raises if a header-bearing command has no URL line or no session call). Extending
+`parse_parameters`' 5-tuple (every caller would change for a field only the renderer reads).
+
+### `configure` offers a Claude Code auto-mode rule; agents may not run `configure` (2026-11-10, D4)
+
+**Why.** Auto mode paused on the work this project exists to do. It reads `autoMode` only from
+`~/.claude/settings.json`, managed settings or `--settings` (never a project `.claude/`), and Claude's
+own edit of it is refused as self-modification, so the rule can only come from a step the user runs.
+Adam decided the scope: everything wxcli does in the configured org, deletes included.
+
+**What changed.** `src/wxcli/claude_automode.py`: at the end of `configure` (the org read back through
+its own `load_config`, so a previously saved org wins over `_resolve_org`) and after each `switch-org`
+save, `offer_automode` prints two `[wxcli]`-prefixed entries (`environment`, `allow`) naming the org's
+sanitised display name and id, then asks `y/n` with no default. It writes only when stdin AND stdout
+are terminals and none of `CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `AI_AGENT` is set; `n` removes
+another org's `[wxcli]` entries; `clear-org` removes them all (same terminal-only guard). Writes are
+atomic (temp file + `os.replace`), keep the mode and symlink, and keep one `.wxcli-backup`. Invalid
+JSON or shape: nothing written, `configure` still exits 0. All three gate copies refuse any
+`wxcli configure` for every caller, BEFORE the trusted-agent exemption. `tests/conftest.py` sets
+`WXCLI_NO_AUTOMODE_OFFER=1`. Nothing here is live-verified against Claude Code's classifier: the
+copy's effect on auto mode is the documented behaviour, not a measurement.
+
+**Not a security boundary.** Anything that can type into a real terminal can answer the prompt. The
+gate and the CLAUDE.md statement close the ordinary agent paths. **Rejected:** a project-level
+`autoMode` (never read); Claude writing the rule (self-modification); a default answer (deletes are in
+scope); passing the raw org name (a partner's customer names its org: `.`, `:` and quotes could end the
+rule's sentence), or a Unicode `isalnum()` filter (review I1: look-alikes such as U+02BA `ʺ`, U+02D0
+`ː`, U+A4F8 `ꓸ` and U+1427 `ᐧ` passed it), so the name is ASCII `[A-Za-z0-9 _-]` only; an org id that is not id-shaped (refused as `no-org`, it lands unquoted).
+
+**Final-review fixes (2026-11-11).** I1, warn plus ask rule, Adam 2026-11-11: an agent may still run
+`switch-org`/`clear-org`, but (a) the in-agent branches print one stderr line when the `[wxcli]` rule
+names another org (any rule, for `clear-org`), (b) writing the allow rule also adds `permissions.ask`
+`Bash(wxcli switch-org *)` and `Bash(wxcli clear-org *)` (a trailing ` *` matches the bare command too;
+ask rules prompt even in auto mode; removed only with the last `[wxcli]` allow rule), and (c) both shell
+gate copies return `ask` for the trusted agents' switch, catching a full path or `cd x &&` (documented:
+a PreToolUse `ask` goes to the prompt in auto mode). Gate refusal rejected because CLAUDE.md documents
+`switch-org <orgId>` in automation; warn-only rejected because the classifier never sees command output
+or wxcli's target org. The Codex gate is unchanged: Codex 0.147.0 rejects `ask` as unsupported and falls
+open, so there a builder's switch is not prompted (open; needs a Codex release that honours `ask`).
+Also: `n` removes the rule for the offered org too (T6.5); `switch-org <id>` stores no name instead of
+"Unknown" and skips the offer when the id cannot be looked up (`unconfirmed`, T6.8); settings.json is
+re-read after the answer so edits made while the prompt waits survive (T6.3). Live-unverified: the ask
+rules and the hook `ask` follow Claude Code's docs; no live auto-mode session has exercised them.
+
 ## Flow Store spec
 
 *(Plan 2 Task 21, 2026-10-19. Merged from `wxcc/tools/generator/README.md`, which was removed with `wxcc/` in Plan 6;
@@ -1878,6 +2213,29 @@ These were removed from root CLAUDE.md (not needed by the builder agent at runti
     **The fix:** `tag_op_excludes` drops the bogus pairing at its source, so `external-voicemail` cannot be flooded regardless of dedup; per-tag dedup then restores the 3 hot-desking commands; and `parse_tag` derives names primary-tag-first so a secondary-tag op can never take a bare name from an op the tag owns. Verified by a name-level per-group diff (all 184 groups, committed vs regenerated): zero groups changed, so the generator now reproduces the tree exactly instead of dropping 3 commands.
 
     Lesson: the fix for a mis-tagged spec is to fix the tagging, not to loosen dedup. The break shipped because its commit message claimed "drift_check.py runs with no new issues" while the gate was in fact failing — that single unverified claim is the whole reason a command got repurposed. Run the gate, paste the output, and diff command *names* (issue #18), not just counts. Note the trap in how it surfaces: the gate reports "docs cite flags that don't exist", which reads like a docs bug. The docs were right and the CLI was wrong; "fixing" the docs to match would have cemented the break.
+
+23. **A spec-declared `force` query param doubles as the confirm-skip on DELETE.** **FIXED 2026-11-11** (fix at the end of this entry; the sections before it are the record of the bug). Found in the generator-audit live acceptance: an agent deleting a throwaway flow with `cc-flow delete PROJECT_ID FLOW_ID` hit the `Delete …? [y/N]` prompt, found no skip flag in `--help`, and had to pipe `y` in.
+
+    **Cause (read from code, 2026-11-11):** when a DELETE declares a query param named `force`, `_render_delete_command` (`tools/command_renderer.py` ~2413) skips the usual `force: bool … "--force", help="Skip confirmation"` option, but still emits `if not force: typer.confirm(…)`. That `force` is now the spec's **string** (`If 'yes', the flow is deleted even if it is still referenced by other entities. Defaults to 'no'.`), so the prompt is skipped by *any* non-empty value, and the same value is sent to Webex as `params["force"]`:
+    - `--force no` skips the prompt and keeps the reference check. It works, but nothing in `--help` says so.
+    - `--force yes` skips the prompt **and** overrides the reference check. One flag carries two meanings, one of them destructive.
+    - No `--force`: the prompt appears with no documented way past it, and an agent without a terminal is stuck.
+
+    **Scope:** one command today. `src/wxcli/commands/cc_flow.py` `delete` is the only generated command with `force: str` (grep `force: str = typer.Option` over `src/wxcli/commands/`). The same branch applies to any future DELETE whose spec adds a `force` query param. `_emits_force_flag` (~2329) guards create/update/action against the same collision by dropping the confirm gate entirely; the DELETE path has no matching guard.
+
+    **Fix options (as logged before the fix; the first was chosen):**
+    - Keep `--force` as the boolean confirm-skip everywhere, and rename the spec's param on the CLI (e.g. `--force-delete-referenced`, still sent as `force`) through a query-param rename. One meaning per flag. It renames a user-facing option, so check docs and skills that cite `cc-flow delete --force`.
+    - Or add a separate `--yes` confirm-skip only where `force` collides. It is smaller, but the confirm flag then differs by command.
+    - Either way: make the confirm test read the boolean, never the spec string, and add a drift check that fails when a DELETE's confirm gate reads a non-bool `force`.
+
+    **A `param_name_overrides` rename alone does not fix it (read from code, 2026-11-11, untested).** `_apply_param_name_overrides` (~155) changes only `qp.python_name`; `qp.name` stays `force`. The DELETE path tests `qp.name == "force"` (~2413), so it would still withhold the boolean `--force`, while the spec param's Python variable becomes `force_delete_referenced`. That leaves `if not force:` naming a variable that no longer exists. The collision test must read the CLI name (`python_name`), not the wire name.
+
+    **The fix (Adam, 2026-11-11):**
+    - `_check_delete_force_collision` (`tools/command_renderer.py`, called first in `_render_delete_command`) raises `ReservedParamCollisionError` when any query param or scalar body flag would render as `--force`, judged on the CLI name. The error names the `param_name_overrides` entry to add (body fields: a renderer change, since that key renames query params only). The DELETE path then always emits the boolean `--force`, so the prompt can only read the bool.
+    - `field_overrides.yaml`, CC `Flows` tag: `param_name_overrides: {delete: {force: force-delete-referenced}}`. Regen changed only `cc_flow.py`: `--force` skips the prompt and sends nothing; `--force-delete-referenced yes` sends `force=yes` and still prompts.
+    - Tests: `tests/wxcc/test_generator.py::TestRenderer::test_delete_force_rename` and `test_delete_spec_force_without_rename_is_refused`; `tests/wxcc/test_doc_consistency.py::test_rewritten_flow_commands_keep_wxcc_defaults` now fails on a doc that still writes `cc-flow delete … --force yes|no`. Drift check 10 also caught the old doc example (`--force no` became an extra positional).
+
+    **History, so nobody restores it.** wxcc-agent-builder had it right: `--server-force` for the spec param and `--force` for the prompt. Plan 2's fate table (row 3) found `cc-flow delete` EQUAL to wxcc's delete and kept wxcli's single `--force`, recording the double meaning rather than arguing for it; `test_delete_force_rename` then pinned that. The name `--force-delete-referenced` was chosen over wxcc's `--server-force` because it says what it does, which matters most to an agent reading `--help`. **Rejected:** a separate `--yes` only on colliding commands (the prompt-skip flag would differ by command), and a drift check on generated files (the generator refusal makes the bad shape unrenderable; a regen is the only writer of `src/wxcli/commands/`). **Breaking:** `cc-flow delete … --force yes|no` now fails with an extra-argument error; use `--force --force-delete-referenced yes`. Not run live.
 
 ## Templates, Examples & Plans
 

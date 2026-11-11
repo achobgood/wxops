@@ -211,3 +211,39 @@ def test_load_json_body_malformed_exits_2(capsys):
     assert exc.value.exit_code == 2
     assert "not valid JSON" in capsys.readouterr().err
 
+
+class _ReadBackSession:
+    """Records the read-back verify_write makes; no network."""
+
+    def __init__(self):
+        self.calls = []
+
+    def rest_get(self, url, params=None, **kw):
+        self.calls.append({"url": url, "params": params, **kw})
+        return {"name": "Sales"}
+
+
+class _Api:
+    def __init__(self):
+        self.session = _ReadBackSession()
+
+
+def test_verify_write_forwards_headers():
+    """The re-read carries the same caller headers as the write (audit F4):
+    a read scoped by `hostEmail` must not re-read as the token's own user."""
+    from wxcli.common import verify_write
+    api = _Api()
+    verify_write(api, "https://x/m", {"a": 1}, {"name": "Sales"},
+                 headers={"hostEmail": "h@example.com"})
+    assert api.session.calls == [{"url": "https://x/m", "params": {"a": 1},
+                                  "headers": {"hostEmail": "h@example.com"}}]
+
+
+def test_verify_write_without_headers_reads_as_before():
+    """No headers: the read-back call is unchanged (no headers keyword), so a
+    session that predates the keyword still works."""
+    from wxcli.common import verify_write
+    api = _Api()
+    verify_write(api, "https://x/m", None, {"name": "Sales"})
+    assert api.session.calls == [{"url": "https://x/m", "params": None}]
+

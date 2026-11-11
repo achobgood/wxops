@@ -38,7 +38,7 @@ def test_known_issues_keep_their_numbers():
 #   gen:N  -> reads "the generator's known issue #N"
 #   unv    -> the unverified-limit callout
 PINNED = [
-    (".claude/skills/configure-features/SKILL.md", r"an object \(", "wb:2"),
+    (".claude/skills/configure-features/SKILL.md", "only way to supply it (", "wb:2"),
     (".claude/skills/manage-call-settings/SKILL.md", "Every `mode-management` command is a `/people/me/` endpoint", "wb:3"),
     (".claude/skills/manage-call-settings/SKILL.md", "Do NOT confuse with `guestCalling`", "wb:4"),
     (".claude/skills/manage-call-settings/SKILL.md", "404 (error 4008) on any `mode-management` command", "wb:3"),

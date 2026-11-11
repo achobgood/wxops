@@ -177,7 +177,7 @@ WXCLI_READ = {
     ("flows", "list"): ["cc-flow", "list", "P"],  # 4
     ("flows", "search"): ["cc-flow", "list", "P", "--partial-name-search", "a"],  # 5
     ("flows", "check"): ["cc-flow-store", "list-usages", "P", "--search", "a"],  # 16
-    ("flows", "export"): ["cc-legacy-flows", "export-ui", "F", "P"],  # 17
+    ("flows", "export"): ["cc-legacy-flows", "export-ui", "P", "F"],  # 17
     ("flows", "global-variables"): ["cc-flow-store", "list-global-variables", "P"],  # 18
     ("flows-v2", "get-draft"): ["cc-flow", "show", "P", "F"],  # 21
     ("flows-v2", "validate-id"): [

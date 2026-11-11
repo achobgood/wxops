@@ -265,7 +265,7 @@ Session types define meeting capabilities (MeetingCenter, EventCenter, TrainingC
 |--------|-------------|
 | `--site-url URL` | URL of the Webex site |
 | `--person-id ID` | Unique identifier for the user |
-| `--email EMAIL` | Email of the user (passed as header) |
+| `--email EMAIL` | Email of the user, sent as the `email` request header (option added 2026-11-10; it did not exist before). Verified live 2026-11-10: with the header the call returned 200 and the user's session types; with no header, or `email` as a query parameter, it returned 400 "'email' or 'personId' is required." |
 
 #### `meeting-session-types update` (Update User Session Types)
 
@@ -373,7 +373,9 @@ Create body example:
 |--------|-------------|
 | `--site-url URL` | URL of the Webex site |
 | `--person-id ID` | User's person ID (at least one of personId or email required) |
-| `--email EMAIL` | User's email (passed as header) |
+| `--email EMAIL` | User's email, sent as the `email` request header (option added 2026-11-10; it did not exist before) |
+
+> **Unverified:** `--email` on `list-tracking-codes` follows the spec's `in: header` declaration; only its session-types twin was measured live.
 
 #### `meeting-tracking-codes update-tracking-codes` (Update User Tracking Codes)
 
@@ -685,6 +687,10 @@ Meeting usage and attendee reports for site administrators. Returns meeting stat
 | `--to DATETIME` | End date/time (ISO 8601). Default: current time |
 | `--limit N` | Max results (0 = all pages) |
 
+**Header options.** `meeting-reports list --timezone` and `meeting-reports list-attendees --timezone` send the `timezone` request header, as the spec declares it (the rule: [wxcli-behavior.md](wxcli-behavior.md) § 1, Header options; added 2026-11-10).
+
+> **Unverified:** neither has been called live with the header.
+
 **Date range constraints:** The interval between `from` and `to` cannot exceed 30 days. `from` cannot be earlier than 90 days ago.
 
 ### Raw HTTP
@@ -844,7 +850,7 @@ All 34 endpoints across the 8 CLI groups, for quick reference.
 
 10. **Tracking codes can be mapped (one-way migration).** Admins can switch a site from classic tracking codes to mapped tracking codes in Control Hub. This is a one-time irreversible operation. After mapping, the tracking codes API returns mapped attributes, and create/update operations are blocked during or after the mapping process.
 
-11. **User session types and tracking codes use `email` as a header, not a query parameter.** The `email` parameter for `/admin/meeting/userconfig/sessionTypes` and `/admin/meeting/userconfig/trackingCodes` is passed as a request header, not a query string parameter. The CLI handles this correctly, but when making raw HTTP calls, set the `email` header explicitly.
+11. **User session types and tracking codes use `email` as a header, not a query parameter.** The `email` parameter for `/admin/meeting/userconfig/sessionTypes` and `/admin/meeting/userconfig/trackingCodes` is passed as a request header, not a query string parameter. Since 2026-11-10 the CLI sends `--email` as that header (before then it had no such option, so only `--person-id` worked); in raw HTTP calls, set the `email` header explicitly. Verified live 2026-11-10 on `sessionTypes`: `email` as a query parameter returns 400 "'email' or 'personId' is required."; as a header it returns the user's session types.
 
 12. **`meetingId` for polls, Q&A, and attendee reports must be an ended meeting instance ID.** Meeting series IDs, scheduled meeting IDs, and personal room meeting IDs are not supported. Only IDs of completed (ended) meeting instances work.
 

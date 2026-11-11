@@ -25,6 +25,7 @@ def cmd_list(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meeting Participants.\n\n\b\nExample: wxcli meeting-participants list --meeting-id MEETING_ID"""
@@ -33,6 +34,9 @@ def cmd_list(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingParticipants"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if meeting_id is not None:
         params["meetingId"] = meeting_id
@@ -53,9 +57,9 @@ def cmd_list(
     result = None
     try:
         if all_pages:
-            result = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            result = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
         else:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -80,6 +84,7 @@ def create(
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. UTC. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """Query Meeting Participants with Email.\n\n\b\nExample: wxcli meeting-participants create --meeting-id MEETING_ID\n\n\b\nExample --json-body: '{"emails":["..."],"joinTimeFrom":"...","joinTimeTo":"..."}'"""
@@ -88,6 +93,9 @@ def create(
         raise typer.Exit(0)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingParticipants/query"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if meeting_id is not None:
         params["meetingId"] = meeting_id
@@ -106,7 +114,7 @@ def create(
         if join_time_to is not None:
             body["joinTimeTo"] = join_time_to
     try:
-        result = api.session.rest_post(url, json=body, params=params)
+        result = api.session.rest_post(url, json=body, params=params, headers=headers or None)
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

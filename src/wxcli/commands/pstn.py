@@ -15,7 +15,7 @@ app = typer.Typer(help="Manage Webex Calling: pstn.")
 @app.command("list", short_help="Retrieve PSTN Connection Options for a Location.")
 def cmd_list(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
-    service_types: str = typer.Option(None, "--service-types", help="Use the `serviceTypes` parameter to fetch connections for the following services * `MOBILE_NUMBERS`"),
+    service_types: str = typer.Option(None, "--service-types", help="Choices (comma-separated): MOBILE_NUMBERS"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -232,7 +232,7 @@ def create(
 @app.command("list-available-numbers", short_help="Get Modifiable Numbers.")
 def list_available_numbers(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
-    action: str = typer.Option(..., "--action", help="Action type for modifiable numbers."),
+    action: str = typer.Option(..., "--action", help="Choices: modifyElin, modifyStandard, modifyService"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -240,7 +240,7 @@ def list_available_numbers(
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Get Modifiable Numbers.\n\n\b\nExample: wxcli pstn list-available-numbers LOCATION_ID --action ACTION"""
+    """Get Modifiable Numbers.\n\n\b\nExample: wxcli pstn list-available-numbers LOCATION_ID --action modifyElin"""
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/telephony/pstn/locations/{location_id}/numbers/availableNumbers"
     params = {}
@@ -271,14 +271,14 @@ _BODY_SKELETON_CREATE_NUMBERS = '{"numbers":["..."]}'
 @app.command("create-numbers", short_help="Perform Numbers Action.")
 def create_numbers(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli locations list"),
-    action: str = typer.Option(..., "--action", help="Action to execute."),
+    action: str = typer.Option(..., "--action", help="Choices: modifyElin, modifyStandard, modifyService"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Perform Numbers Action.\n\n\b\nExample: wxcli pstn create-numbers LOCATION_ID --action ACTION --json-body '{"numbers":["..."]}'"""
+    """Perform Numbers Action.\n\n\b\nExample: wxcli pstn create-numbers LOCATION_ID --action modifyElin --json-body '{"numbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_NUMBERS), indent=2))
         raise typer.Exit(0)

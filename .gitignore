@@ -99,6 +99,13 @@ tests/*
 !tests/test_drift_check_list_siblings.py
 !tests/test_inert_list_flags.py
 !tests/test_drift_check_query_body.py
+!tests/test_drift_check_query_enum.py
+!tests/test_drift_check_readonly.py
+!tests/test_drift_check_composed.py
+!tests/test_drift_check_oneof.py
+!tests/test_drift_check_body_shape.py
+!tests/test_drift_check_positional_order.py
+!tests/test_drift_check_header_params.py
 !tests/test_drift_check_paging_advice.py
 !tests/test_paging_remedies.py
 !tests/test_query_body_param.py
@@ -140,6 +147,11 @@ tests/*
 # calls). Same contract — an untracked test on a safety gate has no way to
 # tell anyone when it goes red. Stdlib + pytest only, no network.
 !tests/test_codex_gate.py
+# Task 6 (2026-11-10): the opt-in that writes the user's Claude Code auto-mode
+# rule into ~/.claude/settings.json, and the configure/switch-org/clear-org
+# wiring. Every test uses tmp_path; it relies on the tracked tests/conftest.py
+# switch (WXCLI_NO_AUTOMODE_OFFER=1). No network.
+!tests/test_claude_automode.py
 # The shared runtime's retry contract — the only executable proof of it. Every
 # HTTP call from ~1,887 generated commands goes through `WebexSession._request`,
 # and `auth.py`'s policy was deliberately widened on 2026-07-24 (`bcb1330`, no

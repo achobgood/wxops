@@ -130,7 +130,7 @@ Spot-check that key properties survived the import: queue IDs, TTS connector nam
 Ask the user if they want to publish:
 
 ```bash
-wxcli cc-flow publish {flow-id} PROJECT_ID
+wxcli cc-flow publish PROJECT_ID {flow-id}
 ```
 
 `wxcli cc-flow publish` validates the flow first (wxcc-flow publish did not, unless asked); add `--skip-validation true` to publish without that check.

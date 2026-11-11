@@ -142,8 +142,8 @@ class TestRenderOptionWithEnumChoices:
         help_text = _enum_help(field)
         assert "Choices: red, blue, green" in help_text
 
-    def test_long_enum_shows_help_hint(self):
-        many = [f"VAL_{i}" for i in range(13)]  # renderer shows <=12 inline
+    def test_long_enum_lists_every_choice(self):
+        many = [f"VAL_{i}" for i in range(13)]  # audit F7: over 12 lists all too
         field = _make_field(
             name="region",
             python_name="region",
@@ -151,7 +151,8 @@ class TestRenderOptionWithEnumChoices:
             description="Region code",
         )
         help_text = _enum_help(field)
-        assert "use --help for choices" in help_text
+        assert "use --help for choices" not in help_text
+        assert all(v in help_text for v in many)
         assert "Region code" in help_text
 
     def test_no_enum_shows_description(self):

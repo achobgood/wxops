@@ -103,13 +103,15 @@ lookup and merge matching.
 |-------------|------|-------------|
 | `show` | GET `.../person/workspace-id/{workspaceId}` | List all persons (or one via `--person-id`) |
 | `create` | POST `.../person/workspace-id/{workspaceId}` | Create a person |
-| `update` | PATCH `.../person/workspace-id/{wId}/person-id/{pId}` | Update person |
+| `update` | PATCH `.../person/workspace-id/{wId}/person-id/{pId}` | Update person. The body is an array of JSON Patch operations; `--op`, `--path`, `--value` build one (repeat via `--json-body '[…]'` for several). *Unverified: body shape from the spec, see the note below* |
 | `delete-person-id` | DELETE `.../person/workspace-id/{wId}/person-id/{pId}` | Delete person |
-| `update-person-id-workspace-id` | PATCH `.../person/add-identities/workspace-id/{wId}/person-id/{pId}` | Add identities |
-| `delete-person-id-workspace-id` | PATCH `.../person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities |
+| `update-person-id-workspace-id` | PATCH `.../person/add-identities/workspace-id/{wId}/person-id/{pId}` | Add identities. The body is one object (`customerId`, `email`, `phone`, `temporaryId`), sent as an object, not wrapped in an array. *Unverified: body shape from the spec, see the note below* |
+| `delete-person-id-workspace-id` | PATCH `.../person/remove-identities/workspace-id/{wId}/person-id/{pId}` | Remove identities. The body is a JSON array of strings, so `--json-body '["id1","id2"]'` is required; without it the command exits 1. *Unverified: body shape from the spec, see the note below* |
 | `show-aliases` | GET `.../person/workspace-id/{wId}/aliases/{aliases}` | Search by alias |
 | `create-workspace-id-merge-identities` | POST `.../person/merge-identities/workspace-id/{wId}` | Merge aliases |
 | `create-primary-person-id` | POST `.../person/merge/workspace-id/{wId}/primary-person-id/{pId}` | Merge to primary |
+
+> **Unverified:** the request body shapes in the `update`, `update-person-id-workspace-id` and `delete-person-id-workspace-id` rows (an array of JSON Patch operations; one object; an array of strings) come from the OpenAPI spec, not a live call (2026-11-10). The CLI behaviour stated there (which flags build the body, the local exit 1) is true by code.
 
 Admin paths are prefixed with `/admin/v1/api`.
 

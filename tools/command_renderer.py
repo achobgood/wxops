@@ -305,6 +305,151 @@ from wxcli.common import emit, load_json_body
     return lines
 
 
+# ── in: header parameters (audit F4) ─────────────────────────────────────────
+
+# Options the renderer may add to a command, by Python parameter name. A header
+# whose name matches one of these, or any name the rendered command already
+# declares (path arguments, query options, body flags, lifted hidden flags),
+# is renamed `--header-<name>`. `headers` is the local the build lines use.
+_HEADER_RESERVED_NAMES = frozenset({
+    "output", "fields", "all", "all_pages", "limit", "offset", "debug", "force",
+    "verify", "value", "file", "json_body", "generate_json_body", "headers"})
+
+# Every WebexSession method a rendered command calls; the drift gate's
+# _BLOCK_CALL names the same ten.
+_SESSION_CALL_RE = re.compile(
+    r"api\.session\.(?:rest_(?:get|post|put|patch|delete)(?:_multipart)?"
+    r"|follow_pagination|follow_page_param|fetch_from_offset|follow_scim)\(")
+_VERIFY_CALL_RE = re.compile(r"\bverify_write\(")
+_SIGNATURE_PARAM_RE = re.compile(r'^    (\w+)\s*:.*?=\s*typer\.(?:Option|Argument)\((.*)$')
+_SIGNATURE_FLAG_RE = re.compile(r'"--([a-z0-9][a-z0-9-]*)')
+
+
+class HeaderParamRenderError(Exception):
+    """A header option could not be given a free name, or the command has no
+    URL line / session call to attach the headers to."""
+
+
+def _close_paren(text: str, open_idx: int) -> int:
+    """Index of the `)` matching the `(` at open_idx, skipping string literals."""
+    depth, i, quote = 0, open_idx, None
+    while i < len(text):
+        ch = text[i]
+        if quote:
+            if ch == "\\":
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+        elif ch in "\"'":
+            quote = ch
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    raise HeaderParamRenderError(f"unbalanced call at offset {open_idx}")
+
+
+def _pass_headers(text: str, pattern: re.Pattern) -> tuple[str, int]:
+    """Append `headers=headers or None` to every call `pattern` matches."""
+    out, pos, n = [], 0, 0
+    for m in pattern.finditer(text):
+        if m.start() < pos:
+            continue
+        close = _close_paren(text, m.end() - 1)
+        out.append(text[pos:close])
+        out.append(", headers=headers or None")
+        pos = close
+        n += 1
+    out.append(text[pos:])
+    return "".join(out), n
+
+
+def _header_option_names(ep: Endpoint, rendered: str) -> dict[str, tuple[str, str]]:
+    """{header name: (python name, flag name)}: kebab of the header, or
+    `header-<kebab>` when that collides with a name the command has."""
+    taken = set(_HEADER_RESERVED_NAMES)
+    in_signature = rendered.split("\n):", 1)[0]
+    for line in in_signature.splitlines():
+        m = _SIGNATURE_PARAM_RE.match(line)
+        if m:
+            taken.add(m.group(1))
+            decl = m.group(2).split("help=", 1)[0]   # flags, never help text
+            taken.update(f.replace("-", "_") for f in _SIGNATURE_FLAG_RE.findall(decl))
+    names: dict[str, tuple[str, str]] = {}
+    for hf in ep.header_params:
+        flag = hf.python_name
+        param = _safe_param_name(flag)
+        if param in taken or flag.replace("-", "_") in taken:
+            flag = f"header-{hf.python_name}"
+            param = _safe_param_name(flag)
+        if param in taken:
+            raise HeaderParamRenderError(
+                f"{ep.method} /{ep.url_path} (command {ep.command_name!r}): header "
+                f"{hf.name!r} has no free option name ({param!r} is taken).")
+        taken.add(param)
+        names[hf.name] = (param, flag)
+    return names
+
+
+def _apply_header_params(ep: Endpoint, rendered: str) -> str:
+    """Give a rendered command its `in: header` parameters (audit F4).
+
+    One option per header param, `headers = {}` plus one `if <p> is not None:
+    headers["<Name>"] = <p>` per header (and a fixed line per auto-injected
+    header) right after the URL line, and `headers=headers or None` on every
+    session call and on `verify_write`. A command with neither header params
+    nor auto-injected headers is returned unchanged, byte for byte."""
+    header_params = getattr(ep, "header_params", None) or []
+    injected = getattr(ep, "auto_inject_headers", None) or []
+    if not header_params and not injected:
+        return rendered
+    names = _header_option_names(ep, rendered)
+
+    option_lines = []
+    for hf in header_params:
+        param, flag = names[hf.name]
+        help_text = _enum_help(hf)
+        sent_as = f"Sent as the {hf.name} request header."
+        if help_text and not help_text.endswith((".", "!", "?")):
+            help_text += "."
+        help_text = f"{help_text} {sent_as}" if help_text else sent_as
+        default = "..." if hf.required else "None"
+        option_lines.append(f'    {param}: str = typer.Option({default}, "--{flag}", help="{help_text}"),')
+
+    lines = rendered.split("\n")
+    sig_end = lines.index("):")
+    debug_line = '    debug: bool = typer.Option(False, "--debug"),'
+    at = lines.index(debug_line) if debug_line in lines[:sig_end] else sig_end
+    lines[at:at] = option_lines
+
+    url_idx = next((i for i, ln in enumerate(lines) if ln.startswith('    url = f"')), None)
+    if url_idx is None:
+        raise HeaderParamRenderError(
+            f"{ep.method} /{ep.url_path} (command {ep.command_name!r}) has no URL line "
+            f"to build its headers after.")
+    build = ["    headers = {}"]
+    for name in injected:
+        # Only X-ORGANIZATION-ID is ever injected (openapi_parser.ORG_HEADER).
+        build.append(f'    headers["{name}"] = get_cc_org_id(api.session)')
+    for hf in header_params:
+        param, _ = names[hf.name]
+        build.append(f'    if {param} is not None:\n        headers["{hf.name}"] = {param}')
+    lines[url_idx + 1:url_idx + 1] = build
+
+    text = "\n".join(lines)
+    text, calls = _pass_headers(text, _SESSION_CALL_RE)
+    if not calls:
+        raise HeaderParamRenderError(
+            f"{ep.method} /{ep.url_path} (command {ep.command_name!r}) makes no "
+            f"session call to send its headers on.")
+    text, _ = _pass_headers(text, _VERIFY_CALL_RE)
+    return text
+
+
 def _render_url_expr(url_path: str, path_vars: list[str], method: str | None = None,
                      spec_v1: bool = False) -> str:
     # Module-level override takes precedence (set by render_command_file for CC spec)
@@ -665,9 +810,16 @@ def _enum_help(field: EndpointField, max_desc: int = 300) -> str:
         return _escape_help(_clean_desc(field.help_override, max_desc))
     if field.enum_values:
         deduped = _dedup_enum_values(field.enum_values)
+        label = ("Choices (comma-separated):" if getattr(field, "is_array", False)
+                 else "Choices:")
+        choices = f"{label} {', '.join(deduped)}"
         if len(deduped) <= 12:
-            return _escape_help(f"Choices: {', '.join(deduped)}")
-        return _escape_help(f"{_clean_desc(field.description, max_desc)} (use --help for choices)")
+            return _escape_help(choices)
+        # Over 12 the description stays (and may be cut by _clean_desc); the
+        # choice list never is. It used to be replaced by "(use --help for
+        # choices)", which sends the reader to the very screen it is on.
+        desc = _clean_desc(field.description, max_desc)
+        return _escape_help(f"{desc} {choices}" if desc else choices)
     return _escape_help(_clean_desc(field.description, max_desc))
 
 
@@ -1092,6 +1244,25 @@ def _flagless_required_body_fields(ep: Endpoint) -> list[EndpointField]:
     ]
 
 
+# The message a command prints, and the exit code it ends with, when its body is
+# a JSON array and --json-body was not given (audit F1). The generated flags
+# can only build an object, so building `{}` here would send the wrong shape.
+_ARRAY_BODY_MSG = "This command's body is a JSON array; pass it with --json-body '[…]'"
+
+
+def _array_body_build() -> list[str]:
+    """The body-building lines of a command whose request body is a JSON array
+    that no flag can express (`body_shape == "array"`): --json-body is the only
+    way to supply it."""
+    return [
+        "    if json_body:",
+        "        body = load_json_body(json_body)",
+        "    else:",
+        f'        typer.echo("{_ARRAY_BODY_MSG}", err=True)',
+        "        raise typer.Exit(1)",
+    ]
+
+
 def _example_json_body(ep: Endpoint) -> str | None:
     """The body the runnable example must carry, or None if flags suffice.
 
@@ -1100,7 +1271,8 @@ def _example_json_body(ep: Endpoint) -> str | None:
     and on a create it includes server-assigned fields (`id`, `version`,
     `createdTime`) that an agent pasting the example would send back.
     """
-    if not _flagless_required_body_fields(ep):
+    if (ep.body_shape != "array"
+            and not _flagless_required_body_fields(ep)):
         return None
     return (getattr(ep, "json_body_minimal_example", None)
             or ep.json_body_example)
@@ -1850,6 +2022,8 @@ def _render_create_command(ep: Endpoint, folder_overrides: dict | None = None) -
         ]
 
     body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
+    if ep.body_shape == "array":
+        body_build = _array_body_build()
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array"):
@@ -1912,6 +2086,11 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
     is_json_patch = ep.content_type == "application/json-patch+json"
+    # The content type says how the body is labelled, not what it is (audit F1):
+    # only a body whose schema is one patch operation, or an array of them,
+    # is built as `[patch_op]`. An object or any other array is built as its
+    # schema says, and still goes out with the json-patch content type.
+    wrap_patch = is_json_patch and ep.body_shape not in ("object", "array")
     params = []
     params.extend(_render_path_arguments(ep))
 
@@ -1919,12 +2098,14 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
     params.extend(qp_defs)
     used_names = _used_param_names(ep)
 
-    if is_json_patch:
+    if wrap_patch:
         # JSON Patch endpoints: --op, --path, --value flags that build a patch array
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
                 continue
+            if bf.name == "value":
+                continue   # the explicit, JSON-parsing --value below
             help_text = _enum_help(bf)
             params.append(f'    {param}: str = typer.Option(None, "--{bf.python_name}", help="{help_text}"),')
         params.append('    value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),')
@@ -1964,7 +2145,7 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
             "        raise typer.Exit(0)",
         ]
 
-    if is_json_patch:
+    if wrap_patch:
         # JSON Patch: --json-body passes through as-is; flags build [{op, path, value}]
         body_build = [
             "    if json_body:",
@@ -1975,6 +2156,8 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
+                continue
+            if bf.name == "value":
                 continue
             body_build.append(f'        if {param} is not None:\n            patch_op["{bf.name}"] = {param}')
         body_build.extend([
@@ -1987,6 +2170,8 @@ def _render_update_command(ep: Endpoint, folder_overrides: dict | None = None) -
         ])
     else:
         body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
+        if ep.body_shape == "array":
+            body_build = _array_body_build()
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
@@ -2156,6 +2341,38 @@ def _emits_force_flag(ep: Endpoint) -> bool:
     return not any(bf.name == "force" for bf in getattr(ep, "body_fields", []) or [])
 
 
+def _check_delete_force_collision(ep: Endpoint) -> None:
+    """Refuse a DELETE whose spec parameter would render as `--force`.
+
+    Every delete carries `--force` as its yes/no prompt-skip. A spec param of
+    that CLI name used to replace it, and the prompt then tested the spec's
+    string, so any value skipped the prompt and was also sent to the server
+    (`cc-flow delete --force yes` skipped the prompt AND deleted a still-
+    referenced flow; tools/CLAUDE.md known issue #23). Checked on the CLI
+    name, not the wire name, so a param_name_overrides rename clears it.
+    """
+    used_names = _used_param_names(ep)
+    named = [("query parameter", qp.name, qp.python_name) for qp in ep.query_params]
+    named += [("body field", bf.name, bf.python_name) for bf in ep.body_fields
+              if bf.field_type not in ("object", "array")
+              and _safe_param_name(bf.python_name) not in used_names]
+    for kind, spec_name, cli_name in named:
+        if _safe_param_name(cli_name) != "force":
+            continue
+        fix = (f"Rename it in field_overrides.yaml: param_name_overrides: "
+               f"{{{ep.command_name}: {{{spec_name}: <new-kebab-name>}}}} "
+               f"(the wire name is unchanged), then regenerate."
+               if kind == "query parameter" else
+               "param_name_overrides renames query parameters only; a body "
+               "field needs a renderer change before this can regenerate.")
+        raise ReservedParamCollisionError(
+            f"{ep.method} {ep.url_path} (command {ep.command_name!r}) "
+            f"declares {kind} {spec_name!r}, which would render as --force "
+            f"and take over the --force every delete uses to skip its "
+            f"confirmation prompt (known issue #23). {fix}"
+        )
+
+
 def _delete_confirm_subject(ep: Endpoint, id_var: str) -> str:
     """The f-string body for a delete command's confirmation prompt.
 
@@ -2186,6 +2403,7 @@ def _delete_confirm_subject(ep: Endpoint, id_var: str) -> str:
 
 def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     _check_reserved_collisions(ep)
+    _check_delete_force_collision(ep)
     func_name = _safe_func_name(ep.command_name)
     params = []
     params.extend(_render_path_arguments(ep))
@@ -2225,9 +2443,9 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
             params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
         params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
 
-    has_spec_force = any(qp.name == "force" for qp in ep.query_params)
-    if not has_spec_force:
-        params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
+    # _check_delete_force_collision (top of this function) guarantees no spec
+    # param renders as --force, so the prompt below always tests this bool.
+    params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 
@@ -2260,6 +2478,8 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
     if has_body:
         body_build = ["    if json_body:", "        body = load_json_body(json_body)",
                       "    else:", "        body = {}"]
+        if ep.body_shape == "array":
+            body_build = _array_body_build()
         for bf in ep.body_fields:
             param = _safe_param_name(bf.python_name)
             if bf.field_type in ("object", "array") or param in used_names:
@@ -2354,6 +2574,8 @@ def _render_action_command(ep: Endpoint, folder_overrides: dict | None = None) -
         ]
 
     body_build = ["    if json_body:", "        body = load_json_body(json_body)", "    else:", "        body = {}"]
+    if ep.body_shape == "array":
+        body_build = _array_body_build()
     for bf in ep.body_fields:
         param = _safe_param_name(bf.python_name)
         if bf.field_type in ("object", "array") or param in used_names:
@@ -2652,6 +2874,25 @@ def _infer_missing_path_vars(endpoints: list[Endpoint]) -> None:
                         + [n for n in ep.path_vars if n not in template])
 
 
+def _order_path_vars_by_url(endpoints: list[Endpoint]) -> None:
+    """Make each endpoint's positional path arguments follow the URL.
+
+    A spec lists an operation's path parameters in whatever order its author
+    typed them, so `cc-flow publish` took `FLOW_ID PROJECT_ID` while its own
+    URL reads `.../project/{projectId}/flows/{flowId}:publish` and its sibling
+    `export` took `PROJECT_ID FLOW_ID` (audit F5, 2026-11-10). Sorted by the
+    position of `{var}` in `url_path`; a var the template does not mention
+    keeps its relative order after the ones it does. Stable, so an endpoint
+    whose spec order already matches renders byte-identically.
+    """
+    for ep in endpoints:
+        template = _URL_PLACEHOLDER_RE.findall(ep.url_path)
+        ep.path_vars = sorted(
+            ep.path_vars,
+            key=lambda n: template.index(n) if n in template else len(template),
+        )
+
+
 class CommandHelpNoteError(Exception):
     """A `command_help_notes` entry names a command this tag does not render.
 
@@ -2732,6 +2973,7 @@ def render_command_file(
     base_url_override: str | None = None, spec_filename: str | None = None,
 ) -> str:
     _infer_missing_path_vars(endpoints)
+    _order_path_vars_by_url(endpoints)
     _apply_command_help_notes(endpoints, folder_overrides)
     _apply_command_confirms(endpoints, folder_overrides)
     _, cli_name = folder_name_to_module(folder_name)
@@ -2752,7 +2994,10 @@ def render_command_file(
     needs_verify = any(_can_verify(e) for e in endpoints)
     needs_cc_url = base_url_override == BASE_URL_CC
     needs_fs_url = base_url_override == BASE_URL_FS
-    needs_cc_org_id = base_url_override in _CC_HOST_BASES and needs_org_id
+    # A required X-ORGANIZATION-ID header is filled with get_cc_org_id too
+    # (audit F4), so a module whose only org use is that header imports it.
+    needs_cc_org_id = ((base_url_override in _CC_HOST_BASES and needs_org_id)
+                       or any(getattr(ep, "auto_inject_headers", None) for ep in endpoints))
     # The group-help label names the product of the SPEC the group comes from.
     # It used to be guessed from the CLI-name prefix ("cc-" -> Contact Center,
     # "meeting" -> Meetings, everything else -> Calling), which labelled every
@@ -2785,7 +3030,8 @@ def render_command_file(
             sections.append("")
             continue
         if _multipart_part(ep):
-            sections.append(_render_multipart_command(ep, folder_overrides))
+            sections.append(_apply_header_params(
+                ep, _render_multipart_command(ep, folder_overrides)))
             sections.append("")
             continue
         renderer = RENDERERS.get(ep.command_type)
@@ -2795,7 +3041,7 @@ def render_command_file(
         if ep.json_body_example:
             func_name = _safe_func_name(ep.command_name)
             sections.append(f"_BODY_SKELETON_{func_name.upper()} = {ep.json_body_example!r}")
-        sections.append(renderer(ep, folder_overrides))
+        sections.append(_apply_header_params(ep, renderer(ep, folder_overrides)))
         sections.append("")
 
     return "\n\n".join(sections) + "\n"

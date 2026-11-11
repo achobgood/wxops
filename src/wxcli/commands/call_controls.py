@@ -124,7 +124,7 @@ _BODY_SKELETON_CREATE_REJECT = '{"callId":"...","action":{},"lineOwnerId":"..."}
 @app.command("create-reject", short_help="Reject.")
 def create_reject(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be rejected."),
-    action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action is applied if no specific action is provided."),
+    action: str = typer.Option(None, "--action", help="Choices: busy, temporarilyUnavailable, ignore"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -2047,7 +2047,7 @@ _BODY_SKELETON_CREATE_REJECT_MEMBERS = '{"callId":"...","action":{}}'
 def create_reject_members(
     member_id: str = typer.Argument(help="Webex PEOPLE id"),
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be rejected."),
-    action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action is applied if no specific action is provided."),
+    action: str = typer.Option(None, "--action", help="Choices: busy, temporarilyUnavailable, ignore"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -2745,7 +2745,7 @@ _BODY_SKELETON_CREATE_REJECT_ME = '{"callId":"...","action":{},"lineOwnerId":"..
 @app.command("create-reject-me", short_help="Reject.")
 def create_reject_me(
     call_id: str = typer.Option(None, "--call-id", help="(required) The call identifier of the call to be rejected."),
-    action: str = typer.Option(None, "--action", help="The rejection action to apply to the call. The busy action is applied if no specific action is provided."),
+    action: str = typer.Option(None, "--action", help="Choices: busy, temporarilyUnavailable, ignore"),
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, or virtual line for which there is a secondary line on a device owned by the user invoking the API."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),

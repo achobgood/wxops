@@ -11,21 +11,21 @@ from wxcli.config import get_cc_base_url
 app = typer.Typer(help="Manage Webex Contact Center: cc-agent-summaries.")
 
 
-_BODY_SKELETON_CREATE = '{"orgId":"...","searchType":"AGENT","interactionId":"...","agentCiUserId":"..."}'
+_BODY_SKELETON_CREATE = '{"orgId":"...","searchType":"ORGANIZATION"}'
 
 @app.command("create", short_help="List summaries.")
 def create(
     org_id: str = typer.Option(None, "--org-id", help="(required) The unique identifier of the organization to which the summarized interactions belong."),
-    search_type: str = typer.Option(None, "--search-type", help="(required) Choices: AGENT"),
-    interaction_id: str = typer.Option(None, "--interaction-id", help="(required) The unique identifier of a specific interaction."),
-    agent_ci_user_id: str = typer.Option(None, "--agent-ci-user-id", help="(required) The CI (Common Identity) user ID of the agent associated with the summaries."),
+    search_type: str = typer.Option(None, "--search-type", help="(required) Choices: ORGANIZATION, INTERACTION, AGENT"),
+    interaction_id: str = typer.Option(None, "--interaction-id", help="The unique identifier of a specific interaction."),
+    agent_ci_user_id: str = typer.Option(None, "--agent-ci-user-id", help="The CI (Common Identity) user ID of the agent associated with the summaries."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """List summaries.\n\n\b\nExample: wxcli cc-agent-summaries create --org-id ORG_ID --search-type AGENT --interaction-id INTERACTION_ID --agent-ci-user-id AGENT_CI_USER_ID\n\n\b\nExample --json-body: '{"orgId":"...","searchType":"AGENT","interactionId":"...","agentCiUserId":"..."}'"""
+    """List summaries.\n\n\b\nExample: wxcli cc-agent-summaries create --org-id ORG_ID --search-type ORGANIZATION\n\n\b\nExample --json-body: '{"orgId":"...","searchType":"ORGANIZATION"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -44,7 +44,7 @@ def create(
             body["interactionId"] = interaction_id
         if agent_ci_user_id is not None:
             body["agentCiUserId"] = agent_ci_user_id
-        _missing = [f for f in ['orgId', 'searchType', 'interactionId', 'agentCiUserId'] if f not in body or body[f] is None]
+        _missing = [f for f in ['orgId', 'searchType'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)

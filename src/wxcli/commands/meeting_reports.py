@@ -21,6 +21,7 @@ def cmd_list(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. Asia/Shanghai. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meeting Usage Reports.\n\n\b\nExample: wxcli meeting-reports list --site-url SITE_URL"""
@@ -29,6 +30,9 @@ def cmd_list(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingReports/usage"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if site_url is not None:
         params["siteUrl"] = site_url
@@ -42,11 +46,11 @@ def cmd_list(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:
@@ -68,6 +72,7 @@ def list_attendees(
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, inferred from its spec, which declares no offset parameter. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    timezone: str = typer.Option(None, "--timezone", help="e.g. Asia/Shanghai. Sent as the timezone request header."),
     debug: bool = typer.Option(False, "--debug"),
 ):
     """List Meeting Attendee Reports.\n\n\b\nExample: wxcli meeting-reports list-attendees --site-url SITE_URL"""
@@ -76,6 +81,9 @@ def list_attendees(
         raise typer.Exit(2)
     api = get_api(debug=debug)
     url = f"https://webexapis.com/v1/meetingReports/attendees"
+    headers = {}
+    if timezone is not None:
+        headers["timezone"] = timezone
     params = {}
     if site_url is not None:
         params["siteUrl"] = site_url
@@ -93,11 +101,11 @@ def list_attendees(
         params["max"] = limit
     try:
         if limit > 0 and not all_pages:
-            result = api.session.rest_get(url, params=params, remedies=("all",))
+            result = api.session.rest_get(url, params=params, remedies=("all",), headers=headers or None)
             result = result or {}
             items = result.get("items", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
         else:
-            items = list(api.session.follow_pagination(url=url, params=params, item_key="items"))
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="items", headers=headers or None))
     except WebexError as e:
         handle_rest_error(e)
     except httpx.HTTPError as e:

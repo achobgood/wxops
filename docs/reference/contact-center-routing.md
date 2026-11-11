@@ -726,10 +726,7 @@ commands were added 2026-10-13).
 | `wxcli cc-flow create-lock` | POST /{orgId}/project/{projectId}/flows/{flowId}:lock | Lock a Flow or Subflow |
 | `wxcli cc-flow create-unlock` | POST /{orgId}/project/{projectId}/flows/{flowId}:unlock | Unlock a Flow or Subflow |
 
-> **Argument-order trap:** `publish`, `create-lock`, and `create-unlock` take `FLOW_ID` **before**
-> `PROJECT_ID`. Every other `cc-flow` command (`show`, `export`, `list-validate`, `delete`, ...)
-> takes `PROJECT_ID` first. Always check `--help`. Verified live 2026-10-13: `export PROJECT_ID FLOW_ID`
-> returns 200; `export FLOW_ID PROJECT_ID` returns 404 "Flow ... not found".
+> Argument order fixed 2026-11-10: `publish`, `create-lock` and `create-unlock` now take `PROJECT_ID FLOW_ID`, like `cc-flow export` (they used to take `FLOW_ID PROJECT_ID`).
 
 > **Verified live, 2026-10-13** (org "CC Bootcamp Sandbox", full-admin PAT):
 > - **Finding the project ID.** No `cc-*` command lists projects. Get a flow id from
@@ -815,8 +812,8 @@ wxcli cc-flow export <project-id> <flow-id> --version latest -o json
 # 409 FLOW_ALREADY_EXISTS if the name is taken; add --overwrite true to replace it.
 wxcli cc-flow create-import <project-id> --json-body file://flow.json
 
-# Publish a flow -- NOTE: flow-id comes BEFORE project-id here
-wxcli cc-flow publish <flow-id> <project-id>
+# Publish a flow
+wxcli cc-flow publish <project-id> <flow-id>
 ```
 
 `cc-flow publish` runs the pre-publish validation; add `--skip-validation true` to publish without it.
@@ -1021,12 +1018,12 @@ Custom Functions API is in `custom-functions.md`.
 - `cc-flow-store` — flow metadata, copy, revert, consume from JSON or a template, name check (exit 1 when taken), variable mapping, where-used (`list-usages`), expression test, service health, build info and current user. Flow Store host.
 - `cc-flow-versions` — a flow's published versions, one version, latest, draft, and every flow's versions (`list-all`; `list-all-latest` can 500 org-wide). Flow Store host.
 - `cc-flow-tracing` — a flow's interactions, one interaction, its traces (`list-traces-decrypted` needs `--process-id`) and per-version analytics. Flow Store host.
-- `cc-flow-prefs` — per-flow preferences (list, create, update, delete), tags and tag history. Flow Store host.
+- `cc-flow-prefs` — per-flow preferences (list, create, update, delete), tags and tag history. Flow Store host. `create`, `update` and `delete` take a JSON array body (`--json-body '[…]'`; `delete` takes an array of names); without `--json-body` they exit 1.
 - `cc-flow-projects` — user preferences (the `projectId` source), projects, one project and resource collections. `list` and `show` see user-created projects only: the system project answers 404. Flow Store host.
 - `cc-flow-connectors` — connectors of a user-created project; the system project answers 404. Flow Store host.
 - `cc-flow-templates` — the flow/subflow template catalog (`list` walks with `--all`, `show ID`). CC API host (`GET /templates` routes on the gateway).
 - `cc-functions` — Custom Functions: `list` (server-side column selection is `--function-fields`, not `--fields`), `show`, `create`, `update`, `delete`, `publish`, `export`, `import --file`, `lock`, `unlock`, and the hand-written `test ID --json-body '{"inputs":{…}}'` (the operation left the spec; it can return a 400 on some orgs, see its `--help`).
-- `cc-legacy-flows` — the v1 UI-format flow: `export-ui FLOW_ID PROJECT_ID [--version draft]` (old name `list` is a hidden alias) and `import-ui PROJECT_ID --file PATH` (multipart; the gateway accepted it, HTTP 201, measured live 2026-10-19). Use it for the `export-ui` → remap → `import-ui` workaround; clear `id`/`flowId` and set a unique `name` in the file first.
+- `cc-legacy-flows` — the v1 UI-format flow: `export-ui PROJECT_ID FLOW_ID [--version draft]` (old name `list` is a hidden alias) and `import-ui PROJECT_ID --file PATH` (multipart; the gateway accepted it, HTTP 201, measured live 2026-10-19). Use it for the `export-ui` → remap → `import-ui` workaround; clear `id`/`flowId` and set a unique `name` in the file first.
 
 History: these groups and `cc-flow` replace wxcc's `wxcc-flow` CLI (66 commands over the
 93-operation Flow Store contract, verified against live prod 2026-07-24), which had itself
@@ -1039,10 +1036,11 @@ Defaults that differ from `wxcc-flow` (the command map's "pass the old defaults 
   gave the draft. Pass `--version draft` for the draft: `wxcli cc-flow export PROJECT_ID FLOW_ID --version draft -o json`.
 - `cc-flow publish` validates first; wxcc-flow's `publish` skipped validation unless asked. Add
   `--skip-validation true` to publish without it (see CLI Examples above).
-- `cc-flow delete` sends `--force` to the server: `--force yes` also deletes a flow that is
-  still referenced, `--force no` is the server default; any value also skips the confirmation
-  prompt (`wxcli cc-flow delete PROJECT_ID FLOW_ID --force no`; read from the command source, not run live). wxcc's bare `--force` only
-  skipped the prompt.
+- `cc-flow delete`: bare `--force` only skips the confirmation prompt, as wxcc's did:
+  `wxcli cc-flow delete PROJECT_ID FLOW_ID --force`. The server's own `force` query param
+  (`yes` also deletes a flow that is still referenced; the server default is `no`) is
+  `--force-delete-referenced`. It never skips the prompt.
+  Until 2026-11-11 one `--force` did both jobs, and any value skipped the prompt.
 - `cc-flow create-flows` and `cc-flow update` do not fill `--expected-version`; `wxcc-flow`
   read the draft's version and sent it. See `--expected-version` under § 11 Key Parameters.
 - `cc-flow-store test-expression` takes the expression and its bindings in `--json-body`;

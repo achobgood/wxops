@@ -2,6 +2,7 @@ import typer
 from datetime import datetime, timedelta, timezone
 
 from wxcli.auth import WebexApi, WebexSession
+from wxcli.claude_automode import offer_automode
 from wxcli.config import DEFAULT_CONFIG_PATH, load_config, save_config, save_org
 from wxcli.output import plain_mode
 
@@ -93,3 +94,10 @@ def configure():
             save_org(resolved, org_name)
 
     typer.echo(f"Token saved to {DEFAULT_CONFIG_PATH}")
+
+    # Offer the Claude Code auto-mode rule for the org commands will actually
+    # target: read back through this module's load_config (a previously saved
+    # org is kept above, so _resolve_org's answer may not be it). The token is
+    # saved either way, so no outcome of the offer changes the exit code.
+    target = load_config().get("profiles", {}).get("default", {})
+    offer_automode(target.get("org_name"), target.get("org_id"), token_org_id=me_org_id or None)

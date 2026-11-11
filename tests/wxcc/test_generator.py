@@ -45,6 +45,13 @@ WIDGETS = "/{orgId}/project/{projectId}/widgets"
 FS_BASE = "https://fs.test/flow-store"
 
 
+# The fixture's deleteWidget declares a `force` query param, which would take
+# the --force a delete uses to skip its prompt; the generator refuses that
+# unless it is renamed (tools/CLAUDE.md known issue #23). Every override set
+# that renders the Widgets tag carries this rename.
+FORCE_RENAME = {"delete": {"force": "force-delete-referenced"}}
+
+
 def mini_overrides() -> dict:
     """wxcc's mini overrides, in wxops form (carry-over table row per key).
 
@@ -71,10 +78,13 @@ def mini_overrides() -> dict:
             "refreshWidgets": {"warn": "may be slow on big orgs"},
             "importWidget": {"multipart": True},
         }},
-        "tag_overrides": {SPEC_NAME: {"Widgets": {"command_name_overrides": {
-            "show-widgets": "get", "update": "merge-patch",
-            "create-import": "import", "create-refresh": "refresh",
-        }}}},
+        "tag_overrides": {SPEC_NAME: {"Widgets": {
+            "command_name_overrides": {
+                "show-widgets": "get", "update": "merge-patch",
+                "create-import": "import", "create-refresh": "refresh",
+            },
+            "param_name_overrides": dict(FORCE_RENAME),
+        }}},
     }
 
 
@@ -372,7 +382,7 @@ class TestGenerate:
         assert visible_commands(widgets(tmp_path)) == {
             "show", "create", "get", "merge-patch", "delete", "import", "refresh"}
         ovr = mini_overrides()
-        del ovr["tag_overrides"]
+        del _tag(ovr)["command_name_overrides"]
         assert visible_commands(widgets(tmp_path, ovr)) == {
             "show", "create", "show-widgets", "update", "delete", "create-import",
             "create-refresh"}
@@ -498,7 +508,10 @@ class TestRenderer:
         `pagination`, VERIFY Task 14): a findWidgets that answers a page of
         records renders `list`, whose --all walks page by page with the size
         name the spec declares; the default stays one request."""
-        code = widgets(tmp_path, {"auto_inject_from_config": ["orgId"]}, paged_spec())
+        code = widgets(tmp_path, {"auto_inject_from_config": ["orgId"],
+                                  "tag_overrides": {SPEC_NAME: {"Widgets": {
+                                      "param_name_overrides": dict(FORCE_RENAME)}}}},
+                       paged_spec())
         listing = fn(code, "list")
         assert ('follow_page_param(url=url, params=params, item_key="widgets", '
                 'size_param="size")') in listing
@@ -513,22 +526,37 @@ class TestRenderer:
         assert [c[0] for c in calls] == ["rest_get"]
 
     def test_delete_force_rename(self, tmp_path, monkeypatch):
-        """wxcc renamed the spec's `force` to --server-force and kept --force
-        for the prompt. wxcli has one --force (fate table row 3, as on
-        `cc-flow delete`): any value skips the prompt and is sent as `force`;
-        without it, the delete asks first."""
+        """Known issue #23: the spec's `force` is renamed on the CLI
+        (--force-delete-referenced, still sent as `force`), and --force is
+        the yes/no prompt-skip every delete carries. Each flag does one job:
+        --force sends nothing to the server, and the server's force never
+        skips the prompt."""
+        from typer.testing import CliRunner
         code = widgets(tmp_path)
         body = fn(code, "delete")
-        assert body.count('"--force"') == 1 and "--server-force" not in code
+        assert 'force: bool = typer.Option(False, "--force", help="Skip confirmation")' in body
+        assert '"--force-delete-referenced"' in body
+        url = f"{FS_BASE}/org-uuid/project/P/widgets/W1"
         app, calls, _ = load_app(code, monkeypatch, response={})
-        r = invoke(app, "delete", "P", "W1", "--force", "yes")
+        r = invoke(app, "delete", "P", "W1", "--force")
         assert r.exit_code == 0, r.output
-        assert calls == [("rest_delete", f"{FS_BASE}/org-uuid/project/P/widgets/W1",
-                          {"params": {"force": "yes"}})]
-        from typer.testing import CliRunner
-        r = CliRunner().invoke(app, ["delete", "P", "W1"], input="n\n")
+        assert calls == [("rest_delete", url, {"params": {}})]
+        r = invoke(app, "delete", "P", "W1", "--force", "--force-delete-referenced", "yes")
+        assert r.exit_code == 0, r.output
+        assert calls[1] == ("rest_delete", url, {"params": {"force": "yes"}})
+        r = CliRunner().invoke(app, ["delete", "P", "W1", "--force-delete-referenced", "yes"],
+                               input="n\n")
         assert r.exit_code == 1 and "Delete W1?" in r.output
-        assert len(calls) == 1
+        assert len(calls) == 2
+
+    def test_delete_spec_force_without_rename_is_refused(self, tmp_path):
+        """Without a rename, a DELETE whose spec declares `force` fails the
+        build, naming the fix, instead of rendering one flag with two jobs."""
+        from tools.command_renderer import ReservedParamCollisionError
+        ovr = mini_overrides()
+        del _tag(ovr)["param_name_overrides"]
+        with pytest.raises(ReservedParamCollisionError, match="param_name_overrides"):
+            widgets(tmp_path, ovr)
 
     def test_enum_help(self, tmp_path):
         assert '"--kind", help="Choices: A, B"' in widgets(tmp_path)
@@ -621,7 +649,7 @@ class TestPhaseBFeatures:
         """A per-command flag rename: param_name_overrides (keyed on the
         command name) changes the flag and leaves the wire name."""
         ovr = mini_overrides()
-        _tag(ovr)["param_name_overrides"] = {"import": {"Flow Type": "zzz"}}
+        _tag(ovr)["param_name_overrides"]["import"] = {"Flow Type": "zzz"}
         code = widgets(tmp_path, ovr)
         assert '"--zzz"' in fn(code, "import") and '"--flow-type"' not in fn(code, "import")
         app, calls, _ = load_app(code, monkeypatch)
@@ -633,9 +661,9 @@ class TestPhaseBFeatures:
         """EXISTS: an empty-body mutation prints the renderer's own message —
         prose for table output, a structured result for JSON."""
         app, _calls, emitted = load_app(widgets(tmp_path), monkeypatch, response={})
-        r = invoke(app, "delete", "P", "W1", "--force", "yes", "-o", "table")
+        r = invoke(app, "delete", "P", "W1", "--force", "-o", "table")
         assert r.exit_code == 0 and "Deleted: W1" in r.output
-        r = invoke(app, "delete", "P", "W1", "--force", "yes", "-o", "json")
+        r = invoke(app, "delete", "P", "W1", "--force", "-o", "json")
         assert r.exit_code == 0 and emitted == [{"status": "deleted", "id": "W1"}]
 
     def test_promote_to_argument(self, real, tmp_path):

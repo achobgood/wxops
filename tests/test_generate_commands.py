@@ -542,10 +542,17 @@ class TestOperationOverrides:
         spec_path.write_text(json.dumps(spec) if spec is not None
                              else self.FS_FIXTURE.read_text())
         ovr_path = tmp_path / "overrides.yaml"
-        ovr_path.write_text(yaml.safe_dump({
+        overrides = {
             "auto_inject_from_config": ["orgId"],
             "operation_overrides": {self.SPEC_NAME: op_overrides},
-        }))
+        }
+        # deleteWidget's spec `force` would take the delete's prompt-skip
+        # --force; the generator refuses it unrenamed (known issue #23). A
+        # rename naming a skipped command is itself refused as stale.
+        if "skip" not in op_overrides.get("deleteWidget", {}):
+            overrides["tag_overrides"] = {self.SPEC_NAME: {"Widgets": {
+                "param_name_overrides": {"delete": {"force": "force-delete-referenced"}}}}}
+        ovr_path.write_text(yaml.safe_dump(overrides))
         out = tmp_path / "out"
         monkeypatch.setattr(sys, "argv", [
             "generate_commands", "--spec", str(spec_path), "--overrides",
@@ -893,10 +900,13 @@ class TestOperationOverridesRender:
             r = self._invoke(app, ["P", "W1", "--json-body", '["a", "b"]', "--force"])
             assert r.exit_code == 0, r.output
             assert calls[0][0] == "rest_delete" and calls[0][2]["json"] == ["a", "b"]
-            # No --json-body, no body on the wire.
+            # No --json-body: the body is a JSON array no flag can build, so
+            # the command stops before the wire (audit F1; it used to send
+            # nothing and let the server answer 400).
             r = self._invoke(app, ["P", "W1", "--force"])
-            assert r.exit_code == 0, r.output
-            assert calls[1][2].get("json") is None
+            assert r.exit_code == 1, r.output
+            assert "body is a JSON array; pass it with --json-body" in r.output
+            assert len(calls) == 1
 
 # =============================================================================
 # Plan 2 Task 14 generator settings
@@ -1184,3 +1194,22 @@ class TestScalaSeqRequestBody:
             fn = TestFlowStoreSingleReads._fn(src, name)
             assert '"--json-body"' in fn and '"--generate-json-body"' in fn
             assert "JSON array" in fn, name
+
+
+class TestCompileGuard:
+    """A rendered module that does not compile is never written (audit F6/F7
+    follow-up: a duplicate-argument SyntaxError once shipped on disk)."""
+
+    def test_generation_fails_on_uncompilable_module(self, spec, overrides,
+                                                      tmp_path, monkeypatch):
+        import tools.generate_commands as gc
+        monkeypatch.setattr(gc, "render_command_file",
+                            lambda *a, **k: "def f(a, a): pass")
+        with pytest.raises(Exception) as excinfo:
+            generate_tag("Things", spec, overrides, tmp_path, False, set())
+        assert "things" in str(excinfo.value)
+        assert list(tmp_path.glob("*.py")) == []
+
+    def test_compilable_module_is_still_written(self, spec, overrides, tmp_path):
+        generate_tag("Things", spec, overrides, tmp_path, False, set())
+        compile((tmp_path / "things.py").read_text(), "things.py", "exec")

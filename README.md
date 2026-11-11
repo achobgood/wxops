@@ -154,6 +154,8 @@ wxcli configure
 # prompts: "Webex API token:"  → paste token, press Enter
 ```
 
+When you run it in your own terminal, at the end it asks once whether Claude Code may create, change and delete things in your org without stopping to ask. Answer y for hands-free use; change it later in Claude Code with /permissions → Auto mode. Claude can still switch which org wxcli targets (`wxcli switch-org`, `wxcli clear-org`), and Claude Code asks you each time it does.
+
 The token is your secret, so this step stays yours. When it expires, or Claude reports a 401 or 403, paste a new one: in Claude Code type `! wxcli configure` in the prompt (the `!` runs it in the session); in a terminal run `wxcli configure`. A partner token that reaches several customer orgs: `wxcli configure` asks which org to target.
 
 Prefer a per-session environment variable to a saved token? Set `WEBEX_ACCESS_TOKEN` instead — `export WEBEX_ACCESS_TOKEN="YOUR_TOKEN"` (macOS / Linux), `$env:WEBEX_ACCESS_TOKEN="YOUR_TOKEN"` (PowerShell), `set WEBEX_ACCESS_TOKEN=YOUR_TOKEN` (cmd). Claude checks the token with `wxcli whoami` before it starts.

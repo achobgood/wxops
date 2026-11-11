@@ -12,7 +12,7 @@ from wxcli.common import verify_write
 app = typer.Typer(help="Manage Webex Contact Center: cc-contact-number.")
 
 
-_BODY_SKELETON_CREATE = '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"number":"...","organizationId":"...","id":"...","version":0}'
 
 @app.command("create", short_help="Create a new Contact Number.")
 def create(
@@ -20,15 +20,13 @@ def create(
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     number: str = typer.Option(None, "--number", help="(required) The customized ani number."),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Contact Number.\n\n\b\nExample: wxcli cc-contact-number create --number NUMBER\n\n\b\nExample --json-body: '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Contact Number.\n\n\b\nExample: wxcli cc-contact-number create --number NUMBER\n\n\b\nExample --json-body: '{"number":"...","organizationId":"...","id":"...","version":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -48,10 +46,6 @@ def create(
             body["version"] = version
         if number is not None:
             body["number"] = number
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
         _missing = [f for f in ['number'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -209,7 +203,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE = '{"number":"...","organizationId":"...","id":"...","version":0}'
 
 @app.command("update", short_help="Update specific Contact Number by ID.")
 def update(
@@ -218,8 +212,6 @@ def update(
     id_param: str = typer.Option(None, "--id", help="ID of this contact center resource. It should not be specified when creating a new resource. However, it is mandatory when updating a resource."),
     version: str = typer.Option(None, "--version", help="The version of this resource. For a newly created resource, it will be 0 unless specified otherwise."),
     number: str = typer.Option(None, "--number", help="The customized ani number."),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -227,7 +219,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Contact Number by ID.\n\n\b\nExample: wxcli cc-contact-number update ID --number NUMBER\n\n\b\nExample --json-body: '{"number":"...","organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Contact Number by ID.\n\n\b\nExample: wxcli cc-contact-number update ID --number NUMBER\n\n\b\nExample --json-body: '{"number":"...","organizationId":"...","id":"...","version":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -247,10 +239,6 @@ def update(
             body["version"] = version
         if number is not None:
             body["number"] = number
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:

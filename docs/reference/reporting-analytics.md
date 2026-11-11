@@ -957,6 +957,16 @@ wxcli converged-recordings export \
   --include-audio -d /data/recording-export
 ```
 
+#### Header options
+
+| Command | Option | Header sent | Status |
+|---|---|---|---|
+| `converged-recordings list` | `--timezone` | `timezone` | spec only |
+| `converged-recordings list-converged-recordings` | `--timezone` | `timezone` | spec only |
+| `converged-recordings show` | `--timezone` | `timezone` | spec only |
+
+`--timezone` is sent as an HTTP request header, as the spec declares it (the rule: [wxcli-behavior.md](wxcli-behavior.md) § 1, Header options; added 2026-11-10). > **Unverified:** rows marked *spec only* follow the spec's `in: header` declaration; the option and the header it sends are generated from it (2026-11-10), but no live call has shown the server acting on that header for that operation.
+
 #### List Recordings (User)
 
 ```
@@ -1137,6 +1147,17 @@ wxcli recording-report list-meeting-archive-summaries
 # Get meeting archive details
 wxcli recording-report show "Y2lz...YXJj"
 ```
+
+#### Header options
+
+| Command | Option | Header sent | Status |
+|---|---|---|---|
+| `recording-report list` | `--timezone` | `timezone` | spec only |
+| `recording-report list-access-detail` | `--timezone` | `timezone` | spec only |
+| `recording-report list-meeting-archive-summaries` | `--timezone` | `timezone` | spec only |
+| `recording-report show` | `--timezone` | `timezone` | spec only |
+
+`--timezone` is sent as an HTTP request header, as the spec declares it (the rule: [wxcli-behavior.md](wxcli-behavior.md) § 1, Header options; added 2026-11-10). > **Unverified:** rows marked *spec only* follow the spec's `in: header` declaration; the option and the header it sends are generated from it (2026-11-10), but no live call has shown the server acting on that header for that operation.
 
 #### Access Summary
 

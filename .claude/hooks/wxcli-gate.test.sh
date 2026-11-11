@@ -395,6 +395,46 @@ else
   check_reason 'not its name' "" 'wxcli people delete X'
 fi
 
+# Task 6 (2026-11-10): `wxcli configure` is what may write the user's Claude
+# Code auto-mode rule, so it is the user's own step. Refused for EVERY caller,
+# the trusted agents included: the refusal comes before their exemption.
+echo "== configure is the user's own step, refused for every caller =="
+check deny  ""                  'wxcli configure'
+check deny  wxops               'wxcli configure'
+check deny  wxops               'wxcli configure' a0123456789abcdef0
+check deny  migration-advisor   '/opt/homebrew/bin/wxcli --no-update-check configure'
+check deny  wxops               'wxcli people list && wxcli configure'
+check deny  wxops               'bash -c "wxcli configure"'
+check deny  wxops               'wxcli configure && git status'
+check_reason "the user's own step" wxops 'wxcli configure'
+check_reason "the user's own step" "" 'wxcli configure'
+check_reason "the user's own step" general-purpose 'wxcli configure' a1
+check allow wxops               'wxcli configure --help'
+
+# Final review I1 (Adam, 2026-11-11): the builder may switch or clear the target
+# org, but the user approves each one: `ask` (Claude Code documents that a
+# PreToolUse `ask` reaches the prompt in auto mode). Anyone else is still denied
+# (not a read). Codex rejects `ask` as an unsupported decision and falls open
+# (codex_gate.py docstring, 0.147.0), so there the builder's call stays silent.
+echo "== the builder's switch-org / clear-org ask the user =="
+if [ "$KIND" != codex ]; then
+  check ask   wxops             'wxcli switch-org Y2lz'
+  check ask   wxops             'wxcli switch-org'
+  check ask   migration-advisor 'wxcli clear-org'
+  check ask   wxops             'wxcli clear-org' a0123456789abcdef0
+  check ask   wxops             '/opt/homebrew/bin/wxcli --no-update-check switch-org Y2lz'
+  check ask   wxops             'cd /tmp && wxcli switch-org Y2lz'
+  check ask   wxops             'bash -c "wxcli clear-org"'
+  check ask   wxops             'wxcli people list && wxcli switch-org Y2lz'
+  check ask   wxops             'wxcli switch-org Y2lz && git status'
+else
+  check allow wxops             'wxcli switch-org Y2lz'
+  check allow migration-advisor 'wxcli clear-org'
+fi
+check allow wxops               'wxcli switch-org --help'
+check deny  ""                  'wxcli switch-org Y2lz'
+check deny  general-purpose     'wxcli clear-org' a1
+
 # Plan 5 (P5-17): with agent teams on, a NAMED spawn becomes an in-process
 # teammate whose hook agent_type is its spawn name, so a general-purpose
 # teammate named like the builder passed as the builder (measured, interactive,
