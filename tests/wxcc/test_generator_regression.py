@@ -34,10 +34,14 @@ _OVERRIDES = {
         "refreshWidgets": {"warn": "may be slow on big orgs"},
         "importWidget": {"multipart": True},
     }},
-    "tag_overrides": {SPEC_NAME: {"Widgets": {"command_name_overrides": {
-        "show-widgets": "get", "update": "merge-patch",
-        "create-import": "import", "create-refresh": "refresh",
-    }}}},
+    "tag_overrides": {SPEC_NAME: {"Widgets": {
+        "command_name_overrides": {
+            "show-widgets": "get", "update": "merge-patch",
+            "create-import": "import", "create-refresh": "refresh",
+        },
+        # Known issue #23: the spec's `force` must not render as --force.
+        "param_name_overrides": {"delete": {"force": "force-delete-referenced"}},
+    }}},
 }
 
 

@@ -131,7 +131,8 @@ def merge_patch(ctx: typer.Context):
 def delete(
     project_id: str = typer.Argument(help="projectId"),
     widget_id: str = typer.Argument(help="widgetId"),
-    force: str = typer.Option(None, "--force", help=""),
+    force_delete_referenced: str = typer.Option(None, "--force-delete-referenced", help=""),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -144,8 +145,8 @@ def delete(
         typer.confirm(f"Delete {widget_id}?", abort=True)
     url = f"{fs_base_url}/{org_id}/project/{project_id}/widgets/{widget_id}"
     params = {}
-    if force is not None:
-        params["force"] = force
+    if force_delete_referenced is not None:
+        params["force"] = force_delete_referenced
     try:
         result = api.session.rest_delete(url, params=params)
     except WebexError as e:

@@ -792,7 +792,12 @@ def _cc_render(tag: str) -> tuple[list, str]:
     # auto_inject_params as generate_commands passes it by default.
     endpoints, _ = parse_tag(tag, spec, auto_inject_params={"orgId"})
     assert endpoints, f"{tag} produced no endpoints"
-    return endpoints, render_command_file(tag, endpoints, {},
+    # The Flows delete's spec `force` must be renamed or the renderer refuses
+    # it (tools/CLAUDE.md known issue #23); field_overrides.yaml carries the
+    # same rename on the real Flows tag.
+    folder = ({"param_name_overrides": {"delete": {"force": "force-delete-referenced"}}}
+              if tag == "Flows" else {})
+    return endpoints, render_command_file(tag, endpoints, folder,
                                           base_url_override="{cc_base_url}")
 
 
