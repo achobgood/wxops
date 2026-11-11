@@ -55,8 +55,8 @@ def _create_from(project_id: str, body: dict, tmp: Path, name: str) -> str:
 
 def _delete(project_id: str, fid: str):
     # Map row 3: wxcc's `delete F --force` (skip the prompt, server default) is
-    # `cc-flow delete P F --force no`.
-    return run_cli("cc-flow", "delete", project_id, fid, "--force", "no", "-o", "json")
+    # `cc-flow delete P F --force` again since known issue #23 (2026-11-11).
+    return run_cli("cc-flow", "delete", project_id, fid, "--force", "-o", "json")
 
 
 def _node_activity(node: dict) -> str:

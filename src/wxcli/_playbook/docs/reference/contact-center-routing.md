@@ -1036,10 +1036,11 @@ Defaults that differ from `wxcc-flow` (the command map's "pass the old defaults 
   gave the draft. Pass `--version draft` for the draft: `wxcli cc-flow export PROJECT_ID FLOW_ID --version draft -o json`.
 - `cc-flow publish` validates first; wxcc-flow's `publish` skipped validation unless asked. Add
   `--skip-validation true` to publish without it (see CLI Examples above).
-- `cc-flow delete` sends `--force` to the server: `--force yes` also deletes a flow that is
-  still referenced, `--force no` is the server default; any value also skips the confirmation
-  prompt (`wxcli cc-flow delete PROJECT_ID FLOW_ID --force no`; read from the command source, not run live). wxcc's bare `--force` only
-  skipped the prompt.
+- `cc-flow delete`: bare `--force` only skips the confirmation prompt, as wxcc's did:
+  `wxcli cc-flow delete PROJECT_ID FLOW_ID --force`. The server's own `force` query param
+  (`yes` also deletes a flow that is still referenced; the server default is `no`) is
+  `--force-delete-referenced`. It never skips the prompt.
+  Until 2026-11-11 one `--force` did both jobs, and any value skipped the prompt.
 - `cc-flow create-flows` and `cc-flow update` do not fill `--expected-version`; `wxcc-flow`
   read the draft's version and sent it. See `--expected-version` under § 11 Key Parameters.
 - `cc-flow-store test-expression` takes the expression and its bindings in `--json-body`;

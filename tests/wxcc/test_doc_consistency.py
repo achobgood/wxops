@@ -125,8 +125,10 @@ def test_moved_docs_keep_ref_tags():
 def test_rewritten_flow_commands_keep_wxcc_defaults():
     """Review Focus 1: a rewritten flow command must keep what wxcc's did.
     cc-flow export gives the published version unless --version is passed;
-    cc-flow publish validates unless --skip-validation; cc-flow delete takes
-    the server's --force unless told."""
+    cc-flow publish validates unless --skip-validation. cc-flow delete's
+    --force is a bare prompt-skip again (known issue #23), so a doc that still
+    passes it a value (`--force yes|no`) is stale: the value now reads as an
+    extra argument."""
     import subprocess
 
     mod = _load_drift_check()
@@ -161,10 +163,10 @@ def test_rewritten_flow_commands_keep_wxcc_defaults():
                 near = " ".join(lines[max(lineno - 1, 0):lineno + 3]).lower()
                 if "validat" not in near:
                     publish.append(where)
-            if ("cc-flow delete " in span and "--force yes" not in span
-                    and "--force no" not in span):
+            if ("cc-flow delete " in span
+                    and re.search(r"--force\s+(yes|no)\b", span)):
                 delete.append(where)
     assert not legacy, legacy[:20]
     assert not export, ("cc-flow export without --version", export[:20])
     assert not publish, ("cc-flow publish without --skip-validation", publish[:20])
-    assert not delete, ("cc-flow delete without --force yes|no", delete[:20])
+    assert not delete, ("cc-flow delete with a stale --force yes|no", delete[:20])

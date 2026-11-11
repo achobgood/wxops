@@ -2341,6 +2341,38 @@ def _emits_force_flag(ep: Endpoint) -> bool:
     return not any(bf.name == "force" for bf in getattr(ep, "body_fields", []) or [])
 
 
+def _check_delete_force_collision(ep: Endpoint) -> None:
+    """Refuse a DELETE whose spec parameter would render as `--force`.
+
+    Every delete carries `--force` as its yes/no prompt-skip. A spec param of
+    that CLI name used to replace it, and the prompt then tested the spec's
+    string, so any value skipped the prompt and was also sent to the server
+    (`cc-flow delete --force yes` skipped the prompt AND deleted a still-
+    referenced flow; tools/CLAUDE.md known issue #23). Checked on the CLI
+    name, not the wire name, so a param_name_overrides rename clears it.
+    """
+    used_names = _used_param_names(ep)
+    named = [("query parameter", qp.name, qp.python_name) for qp in ep.query_params]
+    named += [("body field", bf.name, bf.python_name) for bf in ep.body_fields
+              if bf.field_type not in ("object", "array")
+              and _safe_param_name(bf.python_name) not in used_names]
+    for kind, spec_name, cli_name in named:
+        if _safe_param_name(cli_name) != "force":
+            continue
+        fix = (f"Rename it in field_overrides.yaml: param_name_overrides: "
+               f"{{{ep.command_name}: {{{spec_name}: <new-kebab-name>}}}} "
+               f"(the wire name is unchanged), then regenerate."
+               if kind == "query parameter" else
+               "param_name_overrides renames query parameters only; a body "
+               "field needs a renderer change before this can regenerate.")
+        raise ReservedParamCollisionError(
+            f"{ep.method} {ep.url_path} (command {ep.command_name!r}) "
+            f"declares {kind} {spec_name!r}, which would render as --force "
+            f"and take over the --force every delete uses to skip its "
+            f"confirmation prompt (known issue #23). {fix}"
+        )
+
+
 def _delete_confirm_subject(ep: Endpoint, id_var: str) -> str:
     """The f-string body for a delete command's confirmation prompt.
 
@@ -2371,6 +2403,7 @@ def _delete_confirm_subject(ep: Endpoint, id_var: str) -> str:
 
 def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -> str:
     _check_reserved_collisions(ep)
+    _check_delete_force_collision(ep)
     func_name = _safe_func_name(ep.command_name)
     params = []
     params.extend(_render_path_arguments(ep))
@@ -2410,9 +2443,9 @@ def _render_delete_command(ep: Endpoint, folder_overrides: dict | None = None) -
             params.append('    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),')
         params.append('    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),')
 
-    has_spec_force = any(qp.name == "force" for qp in ep.query_params)
-    if not has_spec_force:
-        params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
+    # _check_delete_force_collision (top of this function) guarantees no spec
+    # param renders as --force, so the prompt below always tests this bool.
+    params.append('    force: bool = typer.Option(False, "--force", help="Skip confirmation"),')
     params.extend(_render_output_options("json"))
     params.append('    debug: bool = typer.Option(False, "--debug"),')
 

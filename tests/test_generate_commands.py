@@ -542,10 +542,17 @@ class TestOperationOverrides:
         spec_path.write_text(json.dumps(spec) if spec is not None
                              else self.FS_FIXTURE.read_text())
         ovr_path = tmp_path / "overrides.yaml"
-        ovr_path.write_text(yaml.safe_dump({
+        overrides = {
             "auto_inject_from_config": ["orgId"],
             "operation_overrides": {self.SPEC_NAME: op_overrides},
-        }))
+        }
+        # deleteWidget's spec `force` would take the delete's prompt-skip
+        # --force; the generator refuses it unrenamed (known issue #23). A
+        # rename naming a skipped command is itself refused as stale.
+        if "skip" not in op_overrides.get("deleteWidget", {}):
+            overrides["tag_overrides"] = {self.SPEC_NAME: {"Widgets": {
+                "param_name_overrides": {"delete": {"force": "force-delete-referenced"}}}}}
+        ovr_path.write_text(yaml.safe_dump(overrides))
         out = tmp_path / "out"
         monkeypatch.setattr(sys, "argv", [
             "generate_commands", "--spec", str(spec_path), "--overrides",

@@ -266,9 +266,10 @@ def list_search(
 def delete(
     project_id: str = typer.Argument(help="24-char hex id"),
     flow_id: str = typer.Argument(help="24-char hex id, from: wxcli cc-flow list"),
-    force: str = typer.Option(None, "--force", help="If 'yes', the flow is deleted even if it is still referenced by other entities. Defaults to 'no'."),
+    force_delete_referenced: str = typer.Option(None, "--force-delete-referenced", help="If 'yes', the flow is deleted even if it is still referenced by other entities. Defaults to 'no'."),
     skip_rs_ep_check: str = typer.Option(None, "--skip-rs-ep-check", help="If true, skips the check for routing strategy and entry point associations before deleting the flow."),
     flow_type: str = typer.Option(None, "--flow-type", help="Either of 'FLOW' or 'SUBFLOW'."),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation"),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
@@ -281,8 +282,8 @@ def delete(
         typer.confirm(f"Delete {flow_id}?", abort=True)
     url = f"{cc_base_url}/{org_id}/project/{project_id}/flows/{flow_id}"
     params = {}
-    if force is not None:
-        params["force"] = force
+    if force_delete_referenced is not None:
+        params["force"] = force_delete_referenced
     if skip_rs_ep_check is not None:
         params["skipRsEPCheck"] = skip_rs_ep_check
     if flow_type is not None:

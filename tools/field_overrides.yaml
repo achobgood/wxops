@@ -2050,6 +2050,16 @@ tag_overrides:
           /flow-store/...:search all 404 the same way. To find flows by name,
           use 'cc-flow list --all' with --fields, e.g. --fields
           "[?contains(name, 'Test')]".
+      # Known issue #23 (tools/CLAUDE.md), 2026-11-11. The spec's DELETE
+      # `force` query param ("If 'yes', the flow is deleted even if it is
+      # still referenced by other entities") rendered as --force, replacing
+      # the yes/no prompt-skip every delete carries, and any value skipped the
+      # prompt. Renamed on the CLI only; `force` is still the wire name. The
+      # renderer now refuses a delete whose param would render as --force.
+      # (wxcc called this --server-force; the longer name says what it does.)
+      param_name_overrides:
+        delete:
+          force: force-delete-referenced
     "Users":
       command_name_overrides:
         "update-update-dynamic-skill": "update-dynamic-skill"
