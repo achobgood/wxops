@@ -249,7 +249,7 @@ def create_buddy_list(
 def list_activities(
     agent_ids: str = typer.Option(None, "--agent-ids", help="Filter agent activities by agent ids separated with commas if more than one value (max 100). By default, there is no agent filtering."),
     team_ids: str = typer.Option(None, "--team-ids", help="Filter agent activities by team ids separated with commas if more than one value (max 100). By default, there is no team filtering."),
-    channel_types: str = typer.Option(None, "--channel-types", help="Channel type(s) permitted in response. Separate values with commas. Must be lowercase. By default, there is no channelType filtering."),
+    channel_types: str = typer.Option(None, "--channel-types", help="Choices (comma-separated): email, chat, telephony, social, customMessaging"),
     from_param: str = typer.Option(..., "--from", help="Filter agent activities created after given epoch timestamp in UTC (in milliseconds)."),
     to: str = typer.Option(None, "--to", help="Filter agent activities created before given epoch timestamp in UTC (in milliseconds). If unspecified, queries up to the present. The difference between to and from timestamps must be less than 24 hours (86400000 milli seconds)"),
     page_size: str = typer.Option(None, "--page-size", help="Maximum page size in response. Maximum allowed value is 1000. Defaults to 100 items per page."),

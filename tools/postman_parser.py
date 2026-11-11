@@ -24,6 +24,10 @@ class EndpointField:
     # used in place of the description and enum choices. Set by
     # command_renderer._apply_param_help.
     help_override: str | None = None
+    # A query parameter declared `type: array`: `enum_values` then come from
+    # `items`, and the option takes the values comma-separated. Set from
+    # openapi_parser._resolve_param_schema's `_array` marker (audit F7).
+    is_array: bool = False
 
 
 @dataclass

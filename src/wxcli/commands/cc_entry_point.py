@@ -65,7 +65,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}]}'
 
 @app.command("create", short_help="Create a new Entry Point.")
 def create(
@@ -96,15 +96,13 @@ def create(
     callback_enabled: bool = typer.Option(None, "--callback-enabled/--no-callback-enabled", help="Indicates whether the created resource is call back enabled or not"),
     outdial_transfer_to_queue_enabled: bool = typer.Option(None, "--outdial-transfer-to-queue-enabled/--no-outdial-transfer-to-queue-enabled", help="Indicates whether the resource is Default Outdial Transfer to Queue."),
     dn_ep_mapping_count: str = typer.Option(None, "--dn-ep-mapping-count", help=""),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Entry Point.\n\n\b\nExample: wxcli cc-entry-point create --name NAME --entry-point-type INBOUND --channel-type TELEPHONY --social-channel-type MESSAGEBIRD --active --service-level-threshold SERVICE_LEVEL_THRESHOLD --maximum-active-contacts MAXIMUM_ACTIVE_CONTACTS --control-flow-script-url CONTROL_FLOW_SCRIPT_URL --overflow-number OVERFLOW_NUMBER --imi-org-type MIXED_MODE --asset-id ASSET_ID\n\n\b\nExample --json-body: '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Entry Point.\n\n\b\nExample: wxcli cc-entry-point create --name NAME --entry-point-type INBOUND --channel-type TELEPHONY --social-channel-type MESSAGEBIRD --active --service-level-threshold SERVICE_LEVEL_THRESHOLD --maximum-active-contacts MAXIMUM_ACTIVE_CONTACTS --control-flow-script-url CONTROL_FLOW_SCRIPT_URL --overflow-number OVERFLOW_NUMBER --imi-org-type MIXED_MODE --asset-id ASSET_ID\n\n\b\nExample --json-body: '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -170,10 +168,6 @@ def create(
             body["outdialTransferToQueueEnabled"] = outdial_transfer_to_queue_enabled
         if dn_ep_mapping_count is not None:
             body["dnEpMappingCount"] = dn_ep_mapping_count
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
         _missing = [f for f in ['name', 'entryPointType', 'channelType', 'socialChannelType', 'active', 'serviceLevelThreshold', 'maximumActiveContacts', 'controlFlowScriptUrl', 'overflowNumber', 'imiOrgType', 'assetId'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -343,7 +337,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}]}'
 
 @app.command("update", short_help="Update specific Entry Point by ID.")
 def update(
@@ -375,8 +369,6 @@ def update(
     callback_enabled: bool = typer.Option(None, "--callback-enabled/--no-callback-enabled", help="Indicates whether the created resource is call back enabled or not"),
     outdial_transfer_to_queue_enabled: bool = typer.Option(None, "--outdial-transfer-to-queue-enabled/--no-outdial-transfer-to-queue-enabled", help="Indicates whether the resource is Default Outdial Transfer to Queue."),
     dn_ep_mapping_count: str = typer.Option(None, "--dn-ep-mapping-count", help=""),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -384,7 +376,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Entry Point by ID.\n\n\b\nExample: wxcli cc-entry-point update ID --name NAME --entry-point-type INBOUND --channel-type TELEPHONY --social-channel-type MESSAGEBIRD --active --service-level-threshold SERVICE_LEVEL_THRESHOLD --maximum-active-contacts MAXIMUM_ACTIVE_CONTACTS --control-flow-script-url CONTROL_FLOW_SCRIPT_URL --overflow-number OVERFLOW_NUMBER --imi-org-type MIXED_MODE --asset-id ASSET_ID\n\n\b\nExample --json-body: '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}],"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Entry Point by ID.\n\n\b\nExample: wxcli cc-entry-point update ID --name NAME --entry-point-type INBOUND --channel-type TELEPHONY --social-channel-type MESSAGEBIRD --active --service-level-threshold SERVICE_LEVEL_THRESHOLD --maximum-active-contacts MAXIMUM_ACTIVE_CONTACTS --control-flow-script-url CONTROL_FLOW_SCRIPT_URL --overflow-number OVERFLOW_NUMBER --imi-org-type MIXED_MODE --asset-id ASSET_ID\n\n\b\nExample --json-body: '{"name":"...","entryPointType":"INBOUND","channelType":"TELEPHONY","socialChannelType":"MESSAGEBIRD","active":true,"serviceLevelThreshold":0,"maximumActiveContacts":0,"controlFlowScriptUrl":"...","overflowNumber":"...","imiOrgType":"MIXED_MODE","assetId":"...","organizationId":"...","id":"...","version":0,"description":"...","timezone":"...","xspVersion":"...","subscriptionId":"...","routePointId":"...","flowId":"...","flowTagId":"...","musicOnHoldId":"...","outdialQueueId":"...","systemDefault":true,"callbackEnabled":true,"outdialTransferToQueueEnabled":true,"dnEpMappingCount":0,"flowOverrideSettings":[{"name":"...","type":"...","entityType":"...","entityId":"...","value":"..."}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -450,10 +442,6 @@ def update(
             body["outdialTransferToQueueEnabled"] = outdial_transfer_to_queue_enabled
         if dn_ep_mapping_count is not None:
             body["dnEpMappingCount"] = dn_ep_mapping_count
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:

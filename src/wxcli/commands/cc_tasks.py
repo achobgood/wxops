@@ -13,7 +13,7 @@ app = typer.Typer(help="Manage Webex Contact Center: cc-tasks.")
 
 @app.command("list", short_help="Get Tasks.")
 def cmd_list(
-    channel_types: str = typer.Option(None, "--channel-types", help="Task channel type(s) permitted in response. Separate values with commas. Use lowercase. By default, there is no channelType filtering."),
+    channel_types: str = typer.Option(None, "--channel-types", help="Choices (comma-separated): email, chat, telephony, social, customMessaging"),
     from_param: str = typer.Option(..., "--from", help="Filters tasks created after the given epoch timestamp (in milliseconds)."),
     to: str = typer.Option(None, "--to", help="Filters tasks created before the given epoch timestamp (in milliseconds); queries up to the present if timestamp is not specified."),
     page_size: str = typer.Option(None, "--page-size", help="Maximum page size in the response. Maximum allowed value is 1000. Defaults to 100 items per page."),

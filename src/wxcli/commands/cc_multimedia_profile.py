@@ -59,7 +59,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}}'
 
 @app.command("create", short_help="Create a new Multimedia Profile.")
 def create(
@@ -76,15 +76,13 @@ def create(
     blending_mode_enabled: bool = typer.Option(None, "--blending-mode-enabled/--no-blending-mode-enabled", help="(required) Specify whether the blending mode is enabled or not for a multimedia profile."),
     blending_mode: str = typer.Option(None, "--blending-mode", help="(required) Blending mode can be one the following: BLENDED: This mode allows agents to handle multiple contacts of different channel types simultaneously. Number of contacts that you can set for Voice: 0â€“1 and for Chat, Email, and Social Channel: 0â€“5 BLENDED_REALTIME: This allows agents to handle a..."),
     system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Multimedia Profile.\n\n\b\nExample: wxcli cc-multimedia-profile create --name NAME --chat CHAT --email EMAIL --telephony TELEPHONY --social SOCIAL --active --blending-mode-enabled --blending-mode BLENDING_MODE\n\n\b\nExample --json-body: '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Multimedia Profile.\n\n\b\nExample: wxcli cc-multimedia-profile create --name NAME --chat CHAT --email EMAIL --telephony TELEPHONY --social SOCIAL --active --blending-mode-enabled --blending-mode BLENDING_MODE\n\n\b\nExample --json-body: '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -122,10 +120,6 @@ def create(
             body["blendingMode"] = blending_mode
         if system_default is not None:
             body["systemDefault"] = system_default
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
         _missing = [f for f in ['name', 'chat', 'email', 'telephony', 'social', 'active', 'blendingModeEnabled', 'blendingMode'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -288,7 +282,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}}'
 
 @app.command("update", short_help="Update specific Multimedia Profile by ID.")
 def update(
@@ -306,8 +300,6 @@ def update(
     blending_mode_enabled: bool = typer.Option(None, "--blending-mode-enabled/--no-blending-mode-enabled", help="Specify whether the blending mode is enabled or not for a multimedia profile."),
     blending_mode: str = typer.Option(None, "--blending-mode", help="Blending mode can be one the following: BLENDED: This mode allows agents to handle multiple contacts of different channel types simultaneously. Number of contacts that you can set for Voice: 0â€“1 and for Chat, Email, and Social Channel: 0â€“5 BLENDED_REALTIME: This allows agents to handle a..."),
     system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -315,7 +307,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Multimedia Profile by ID.\n\n\b\nExample: wxcli cc-multimedia-profile update ID --name NAME --chat CHAT --email EMAIL --telephony TELEPHONY --social SOCIAL --active --blending-mode-enabled --blending-mode BLENDING_MODE\n\n\b\nExample --json-body: '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0},"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Multimedia Profile by ID.\n\n\b\nExample: wxcli cc-multimedia-profile update ID --name NAME --chat CHAT --email EMAIL --telephony TELEPHONY --social SOCIAL --active --blending-mode-enabled --blending-mode BLENDING_MODE\n\n\b\nExample --json-body: '{"name":"...","chat":0,"email":0,"telephony":0,"social":0,"active":true,"blendingModeEnabled":true,"blendingMode":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"manuallyAssignable":{"telephony":0,"chat":0,"email":0,"social":0,"organizationId":"...","id":"...","version":0,"createdTime":0,"lastUpdatedTime":0}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -353,10 +345,6 @@ def update(
             body["blendingMode"] = blending_mode
         if system_default is not None:
             body["systemDefault"] = system_default
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:

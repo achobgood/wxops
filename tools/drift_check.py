@@ -342,6 +342,23 @@ Checks (docs/arch/target-architecture.md §A6):
       count; a missing map is BLIND. wxcc's check 2 (every emitted URL maps to
       a spec operation) needed no port: check 1's CLI-ahead-of-spec fires on a
       planted invented URL (docs/merge/plan-2-decisions.md, Task 18).
+  35. Query-parameter enum missing from --help: a query option whose spec
+      schema resolves (through `$ref`, and `items` for an array) to an enum
+      must list every value in its `help=`, compared case-insensitively.
+      `parse_parameters` read `enum` off the raw schema, so `pstn
+      list-available-numbers --action` (`$ref`) and `cc-tasks list
+      --channel-types` (`items`) lost their choices, and a list of more than 12
+      values said "(use --help for choices)" (audit F7; live 2026-11-10 a wrong
+      guess cost a 400, and a 500 on the pstn command). An option a
+      per-operation `param_help` override replaces is skipped and counted, never
+      a finding. Examined = enum query options.
+  36. readOnly request property rendered as a flag: a POST/PUT/PATCH command
+      must not write `body["<name>"]`, and its `--generate-json-body` skeleton
+      must not carry the top-level key, for a request property that resolves
+      `readOnly: true` (own schema or `$ref`). `createdTime` and
+      `lastUpdatedTime` of the shared Contact Center DTOs were flags on 22
+      commands; the server ignores them (audit F6, live 2026-11-10). Top level
+      only. Examined = write commands with a spec op and a body.
 
 Note: checks 13 and 14 share one pass (check_generated_help) over the same
 join of shipped source to declaring spec, and both index specs PER FILE. They
@@ -5493,6 +5510,249 @@ CHECK_PRINT["34ii"] = (
                + f": {f['problem']}"))
 
 
+
+# ----------------------------------------------------------------- check 35
+
+# One rendered option per line: `name: str = typer.Option(None, "--flag", help="…")`.
+_OPTION_LINE = re.compile(
+    r'typer\.Option\(\s*(?:\.\.\.|None|True|False|"[^"]*")\s*,\s*'
+    r'"--(?P<flag>[^"/\s]+)(?:/--[^"\s]+)?"(?P<rest>[^\n]*)')
+_HELP_ARG = re.compile(r'help="((?:[^"\\]|\\.)*)"')
+
+
+def _kebab(name: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "-", str(name)).lower()
+
+
+def _squash(name: str) -> str:
+    """A flag or wire name with everything but letters and digits dropped, so
+    `--channel-types` and `channelTypes` compare equal."""
+    return re.sub(r"[^a-z0-9]", "", str(name).lower())
+
+
+def _param_enum(spec: dict, schema) -> tuple[list, bool]:
+    """(enum values, is_array) for one parameter schema: `$ref` followed, and
+    for `type: array` the resolved `items`. The gate's own copy of
+    `openapi_parser._resolve_param_schema` (audit F7), kept independent so the
+    check is an oracle for the generator rather than a restatement of it."""
+    node = _resolve_ref(spec, schema)
+    is_array = node.get("type") == "array"
+    if is_array:
+        node = _resolve_ref(spec, node.get("items"))
+    values = node.get("enum")
+    return (list(values) if isinstance(values, list) else []), is_array
+
+
+def _option_helps(text: str) -> dict[str, str]:
+    """{squashed flag: unescaped help text} for each option line of a block.
+    An option with no `help=` string maps to ''."""
+    out: dict[str, str] = {}
+    for m in _OPTION_LINE.finditer(text):
+        h = _HELP_ARG.search(m.group("rest"))
+        help_text = (h.group(1).replace('\\"', '"').replace("\\\\", "\\")
+                     if h else "")
+        out.setdefault(_squash(m.group("flag")), help_text)
+    return out
+
+
+def check_query_enum_help(commands_dir: Path = COMMANDS_DIR,
+                          specs_dir: Path = SPECS_DIR,
+                          operation_overrides: dict | None = None) -> list[dict]:
+    """A query option whose spec declares an enum must list every value in its
+    `help=` (audit F7).
+
+    `parse_parameters` read `enum` off the raw schema, so a choice list behind
+    a `$ref` (`pstn list-available-numbers --action`) or under `items`
+    (`cc-tasks list --channel-types`) never reached `--help`, and a list of
+    more than 12 values was replaced by "(use --help for choices)". Live
+    2026-11-10: a wrong guess at the missing choices cost a failed call
+    (400, and 500 on the pstn command).
+
+    For each command block with a spec op, every query parameter whose schema
+    resolves (through `$ref`, and `items` for an array) to an enum is looked up
+    among the block's options; each enum value must appear in that option's
+    help, compared case-insensitively (the renderer folds case variants into
+    one). A parameter with no option (auto-injected, or the unified paging
+    flags) is not part of the population. An option a per-operation
+    `param_help` override replaces is skipped and counted — that override
+    replaces the help by design. A path several specs declare passes if any
+    spec's reading is satisfied. No ack key (ADR-13 rules).
+
+    Examined = options examined; blocks with no spec op and overridden options
+    are skipped and counted.
+    """
+    if operation_overrides is None:
+        operation_overrides = load_operation_overrides()
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    for block in blocks:
+        sops = index.get((block.method, block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        helps = _option_helps(block.text)
+        per_param: dict[str, list[tuple]] = {}
+        for sop in sops:
+            resolved = _resolved_op_overrides(
+                operation_overrides, sop.spec, sop.spec_file).get(
+                    (sop.method, sop.path), {})
+            overridden = set((resolved.get("param_help") or {}))
+            for name, schema in _query_params(sop.op, sop.spec).items():
+                if _squash(name) not in helps:
+                    continue
+                values, is_array = _param_enum(sop.spec, schema)
+                if not values:
+                    continue
+                per_param.setdefault(name, []).append(
+                    (sop, values, is_array, name in overridden))
+        for name, readings in per_param.items():
+            if all(r[3] for r in readings):
+                skipped += 1
+                continue
+            examined += 1
+            help_text = helps[_squash(name)].lower()
+            missing_by_spec = []
+            for sop, values, is_array, overridden in readings:
+                if overridden:
+                    continue
+                missing = [str(v) for v in values if str(v).lower() not in help_text]
+                if not missing:
+                    missing_by_spec = []
+                    break
+                missing_by_spec.append((sop, missing, is_array))
+            if not missing_by_spec:
+                continue
+            sop, missing, is_array = missing_by_spec[0]
+            findings.append({
+                "group": block.group,
+                "command": block.command,
+                "op": f"{block.method} {sop.path}",
+                "param": name,
+                "array": is_array,
+                "missing": missing,
+                "spec": ", ".join(sorted({s.spec_file for s, _, _ in missing_by_spec})),
+            })
+    return record_examined(
+        "35", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "enum query options")
+
+
+CHECK_PRINT["35"] = (
+    "query options whose --help omits a choice the spec declares",
+    "enum query options",
+    lambda f: (f"wxcli {f['group']} {f['command']} --{_kebab(f['param'])}"
+               f"{' (array)' if f['array'] else ''}  missing: "
+               f"{', '.join(f['missing'][:8])}"
+               f"{' ...' if len(f['missing']) > 8 else ''}  {f['op']}  ({f['spec']})"))
+
+
+# ----------------------------------------------------------------- check 36
+
+def _readonly_props(spec: dict, op: dict) -> list[str]:
+    """Top-level request-body properties of `op` that resolve `readOnly: true`
+    (their own schema, or the one they `$ref`)."""
+    props = _object_props(spec, body_schema(op, spec))
+    return [name for name, prop in props.items()
+            if isinstance(prop, dict)
+            and (prop.get("readOnly") is True
+                 or _resolve_ref(spec, prop).get("readOnly") is True)]
+
+
+def check_readonly_flags(commands_dir: Path = COMMANDS_DIR,
+                         specs_dir: Path = SPECS_DIR) -> list[dict]:
+    """A write command that offers a server-assigned (`readOnly`) body field
+    (audit F6).
+
+    `parse_request_body` ignored `readOnly: true`, so `createdTime` and
+    `lastUpdatedTime` of a shared Contact Center DTO became flags on 22
+    commands and keys of every `--generate-json-body` skeleton. The server
+    ignores them (live 2026-11-10, `cc-work-types create --created-time 1000`
+    returned the server's own clock): extra flags that at best do nothing.
+
+    For each POST/PUT/PATCH block with a spec op, the top-level request
+    properties that resolve `readOnly: true` (every declaring spec must agree)
+    are compared with what the block does. Defects: `flag write` (a
+    `body["<name>"] = …` line) and `skeleton key` (the command's
+    `_BODY_SKELETON_<FUNCTION>` constant has the name as a top-level key).
+    Top level only: a nested readOnly property is part of a nested object the
+    caller may be echoing back. No ack key (ADR-13 rules).
+
+    Examined = every write block with a spec op that declares a body with
+    properties, so a spec that drops its readOnly markers reads a clean 0.
+    Blocks with no spec op are skipped and counted.
+    """
+    findings: list[dict] = []
+    examined = skipped = 0
+    blocks = iter_command_blocks(commands_dir)
+    index = spec_ops_by_key(specs_dir)
+    sources: dict[str, str] = {}
+    for block in blocks:
+        if block.method not in _WRITE_METHODS:
+            continue
+        sops = index.get((block.method, block.npath))
+        if not sops:
+            skipped += 1
+            continue
+        if not any(_object_props(sop.spec, body_schema(sop.op, sop.spec))
+                   for sop in sops):
+            continue
+        examined += 1
+        names = set.intersection(*(set(_readonly_props(sop.spec, sop.op))
+                                   for sop in sops))
+        if not names:
+            continue
+        text = block.text
+        writes = sorted(n for n in names if re.search(
+            rf'body\[\s*["\']{re.escape(n)}["\']\s*\]\s*=', text))
+        skeleton_keys: list[str] = []
+        fn = re.search(r"^def (\w+)\(", text, re.M)
+        if fn:
+            if block.module not in sources:
+                try:
+                    sources[block.module] = (
+                        Path(commands_dir) / f"{block.module}.py").read_text()
+                except (OSError, UnicodeDecodeError):
+                    sources[block.module] = ""
+            m = re.search(rf"^_BODY_SKELETON_{re.escape(fn.group(1).upper())}"
+                          r"\s*=\s*('.*?'|\".*?\")\s*$", sources[block.module], re.M)
+            if m:
+                try:
+                    skel = json.loads(ast.literal_eval(m.group(1)))
+                except (ValueError, SyntaxError):
+                    skel = None
+                if isinstance(skel, dict):
+                    skeleton_keys = sorted(n for n in names if n in skel)
+        if not (writes or skeleton_keys):
+            continue
+        defects = []
+        if writes:
+            defects.append("flag write")
+        if skeleton_keys:
+            defects.append("skeleton key")
+        findings.append({
+            "group": block.group,
+            "command": block.command,
+            "op": f"{block.method} {sops[0].path}",
+            "props": sorted(set(writes) | set(skeleton_keys)),
+            "defects": defects,
+            "spec": ", ".join(sorted({s.spec_file for s in sops})),
+        })
+    return record_examined(
+        "36", findings, examined,
+        skipped + helper_skip_count("modules", "blocks", "specs"),
+        "write commands with a request body")
+
+
+CHECK_PRINT["36"] = (
+    "write commands that offer a readOnly (server-assigned) body field",
+    "write commands",
+    lambda f: (f"wxcli {f['group']} {f['command']}  {', '.join(f['props'])}: "
+               f"{', '.join(f['defects'])}  {f['op']}  ({f['spec']})"))
+
+
 # ----------------------------------------------------------------- check 18
 
 REFERENCE_DIR = REPO / "docs" / "reference"
@@ -6472,6 +6732,8 @@ def main() -> int:
     command_map_present = (REPO / COMMAND_MAP).is_file()
     command_map_unresolved = (check_command_map(surface, top_level)
                               if command_map_present else [])
+    query_enum_help = check_query_enum_help()
+    readonly_flags = check_readonly_flags()
 
     results = {
         "1_spec_cli_parity": parity,
@@ -6530,6 +6792,8 @@ def main() -> int:
         "33_paging_advice": paging_advice,
         "34_legacy_cli_tokens": legacy_cli_tokens,
         "34_command_map_unresolved": command_map_unresolved,
+        "35_query_enum_help": query_enum_help,
+        "36_readonly_flags": readonly_flags,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -6551,7 +6815,8 @@ def main() -> int:
                   or doc_value_types or doc_body_keys
                   or list_drops_object_fields or query_body_findings
                   or paging_advice
-                  or legacy_cli_tokens or command_map_unresolved)
+                  or legacy_cli_tokens or command_map_unresolved
+                  or query_enum_help or readonly_flags)
     # kind_advisories is deliberately NOT in `failed` — tier 2 is a heuristic
     # about English, and a gate that fails on one gets switched off. spec_prose
     # (check 19 tier 3) is out for the same reason and was measured, not
@@ -6803,6 +7068,8 @@ def main() -> int:
         else:
             print(f"[34] (ii) command-map rows: not checked "
                   f"({COMMAND_MAP.as_posix()} is not in this tree)")
+        print_check_findings("35", query_enum_help)
+        print_check_findings("36", readonly_flags)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

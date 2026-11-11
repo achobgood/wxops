@@ -50,7 +50,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","active":true,"multimediaProfileId":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","active":true,"multimediaProfileId":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true}'
 
 @app.command("create", short_help="Create a new Site.")
 def create(
@@ -62,15 +62,13 @@ def create(
     multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="(required) Indicates the multimedia profile for the site. It is required only during a create or an update operation."),
     description: str = typer.Option(None, "--description", help=""),
     system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Site.\n\n\b\nExample: wxcli cc-site create --name NAME --active --multimedia-profile-id MULTIMEDIA_PROFILE_ID\n\n\b\nExample --json-body: '{"name":"...","active":true,"multimediaProfileId":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Site.\n\n\b\nExample: wxcli cc-site create --name NAME --active --multimedia-profile-id MULTIMEDIA_PROFILE_ID\n\n\b\nExample --json-body: '{"name":"...","active":true,"multimediaProfileId":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -98,10 +96,6 @@ def create(
             body["description"] = description
         if system_default is not None:
             body["systemDefault"] = system_default
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
         _missing = [f for f in ['name', 'active', 'multimediaProfileId'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -264,7 +258,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","active":true,"multimediaProfileId":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","active":true,"multimediaProfileId":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true}'
 
 @app.command("update", short_help="Update specific Site by ID.")
 def update(
@@ -277,8 +271,6 @@ def update(
     multimedia_profile_id: str = typer.Option(None, "--multimedia-profile-id", help="Indicates the multimedia profile for the site. It is required only during a create or an update operation."),
     description: str = typer.Option(None, "--description", help=""),
     system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -286,7 +278,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Site by ID.\n\n\b\nExample: wxcli cc-site update ID --name NAME --active --multimedia-profile-id MULTIMEDIA_PROFILE_ID\n\n\b\nExample --json-body: '{"name":"...","active":true,"multimediaProfileId":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Site by ID.\n\n\b\nExample: wxcli cc-site update ID --name NAME --active --multimedia-profile-id MULTIMEDIA_PROFILE_ID\n\n\b\nExample --json-body: '{"name":"...","active":true,"multimediaProfileId":"...","organizationId":"...","id":"...","version":0,"description":"...","systemDefault":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -314,10 +306,6 @@ def update(
             body["description"] = description
         if system_default is not None:
             body["systemDefault"] = system_default
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:

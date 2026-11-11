@@ -1184,3 +1184,22 @@ class TestScalaSeqRequestBody:
             fn = TestFlowStoreSingleReads._fn(src, name)
             assert '"--json-body"' in fn and '"--generate-json-body"' in fn
             assert "JSON array" in fn, name
+
+
+class TestCompileGuard:
+    """A rendered module that does not compile is never written (audit F6/F7
+    follow-up: a duplicate-argument SyntaxError once shipped on disk)."""
+
+    def test_generation_fails_on_uncompilable_module(self, spec, overrides,
+                                                      tmp_path, monkeypatch):
+        import tools.generate_commands as gc
+        monkeypatch.setattr(gc, "render_command_file",
+                            lambda *a, **k: "def f(a, a): pass")
+        with pytest.raises(Exception) as excinfo:
+            generate_tag("Things", spec, overrides, tmp_path, False, set())
+        assert "things" in str(excinfo.value)
+        assert list(tmp_path.glob("*.py")) == []
+
+    def test_compilable_module_is_still_written(self, spec, overrides, tmp_path):
+        generate_tag("Things", spec, overrides, tmp_path, False, set())
+        compile((tmp_path / "things.py").read_text(), "things.py", "exec")

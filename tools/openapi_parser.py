@@ -92,6 +92,31 @@ def get_tags(spec: dict) -> list[str]:
     return sorted(tags)
 
 
+def _follow_ref(spec: dict, schema: dict) -> dict:
+    """`schema` with any `$ref` chain followed (bounded; a cycle stops it)."""
+    seen = 0
+    while isinstance(schema, dict) and "$ref" in schema and seen < 8:
+        schema = resolve_ref(spec, schema["$ref"])
+        seen += 1
+    return schema if isinstance(schema, dict) else {}
+
+
+def _resolve_param_schema(spec: dict, schema: dict) -> dict:
+    """The schema that carries a parameter's enum: `$ref` followed, and for
+    `type: array` the (resolved) `items` schema with `"_array": True` added.
+
+    A query parameter's choices used to be read off the raw schema, so an enum
+    behind a `$ref` (`pstn list-available-numbers --action`) or under `items`
+    (`cc-tasks list --channel-types`) never reached `--help` (audit F7). Always
+    returns a copy; the spec is never mutated."""
+    resolved = dict(_follow_ref(spec, schema))
+    if resolved.get("type") == "array":
+        items = dict(_follow_ref(spec, resolved.get("items") or {}))
+        items["_array"] = True
+        return items
+    return resolved
+
+
 def parse_parameters(
     params: list[dict], spec: dict, omit_query_params: list[str] | None = None,
     auto_inject_params: set[str] | None = None,
@@ -145,7 +170,8 @@ def parse_parameters(
                 auto_inject_names.append(name)
                 continue
             field_type = _openapi_type_to_field_type(schema)
-            enum_values = schema.get("enum")
+            resolved = _resolve_param_schema(spec, schema)
+            enum_values = resolved.get("enum")
             desc = param.get("description", "")
             required = param.get("required", False)
             query_params.append(
@@ -159,6 +185,7 @@ def parse_parameters(
                     description=desc,
                     required=required,
                     enum_values=enum_values,
+                    is_array=bool(resolved.get("_array")),
                 )
             )
 
@@ -331,7 +358,37 @@ def _request_body_schema(op: dict, spec: dict) -> dict | None:
         # without touching real array bodies (Plan 2 Task 14, review B2).
         items = {"type": "string"} if ref_name == "SeqString" else {"type": "object"}
         return {"type": "array", "items": items, _SCALA_SEQ_MARKER: True}
-    return schema
+    return _without_readonly_properties(schema, spec)
+
+
+def _is_readonly(prop, spec: dict) -> bool:
+    """True when a property's own or `$ref`'d schema says `readOnly: true`."""
+    if not isinstance(prop, dict):
+        return False
+    if prop.get("readOnly") is True:
+        return True
+    try:
+        return _follow_ref(spec, prop).get("readOnly") is True
+    except (KeyError, TypeError):
+        return False
+
+
+def _without_readonly_properties(schema: dict, spec: dict) -> dict:
+    """`schema` minus its TOP-LEVEL `readOnly: true` properties (audit F6).
+
+    A server-assigned property of a shared DTO (`createdTime`,
+    `lastUpdatedTime`) is not something a create or update can set: the server
+    ignored `--created-time 1000` live (2026-11-10, `cc-work-types create`).
+    Done here, in the one reader behind both the flag list and the skeleton, so
+    the two cannot disagree. Nested objects are left whole: this is the top
+    level only. The spec's own schema is never mutated."""
+    props = schema.get("properties")
+    if not isinstance(props, dict):
+        return schema
+    kept = {k: v for k, v in props.items() if not _is_readonly(v, spec)}
+    if len(kept) == len(props):
+        return schema
+    return {**schema, "properties": kept}
 
 
 def generate_body_example(

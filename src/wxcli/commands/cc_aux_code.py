@@ -59,7 +59,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true}'
 
 @app.command("create", short_help="Create a new Auxiliary Code.")
 def create(
@@ -75,15 +75,13 @@ def create(
     work_type_code: str = typer.Option(None, "--work-type-code", help="(required) Choices: IDLE_CODE, WRAP_UP_CODE"),
     burnout_inclusion: str = typer.Option(None, "--burnout-inclusion", help="Choices: NOT_APPLICABLE, EXCLUDED, INCLUDED"),
     system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Auxiliary Code.\n\n\b\nExample: wxcli cc-aux-code create --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Auxiliary Code.\n\n\b\nExample: wxcli cc-aux-code create --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -119,10 +117,6 @@ def create(
             body["burnoutInclusion"] = burnout_inclusion
         if system_default is not None:
             body["systemDefault"] = system_default
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
         _missing = [f for f in ['name', 'defaultCode', 'active', 'workTypeId', 'workTypeCode'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -322,7 +316,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE_AUXILIARY_CODE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE_AUXILIARY_CODE = '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true}'
 
 @app.command("update-auxiliary-code", short_help="Update specific Auxiliary Code by ID.")
 def update_auxiliary_code(
@@ -339,8 +333,6 @@ def update_auxiliary_code(
     work_type_code: str = typer.Option(None, "--work-type-code", help="Choices: IDLE_CODE, WRAP_UP_CODE"),
     burnout_inclusion: str = typer.Option(None, "--burnout-inclusion", help="Choices: NOT_APPLICABLE, EXCLUDED, INCLUDED"),
     system_default: bool = typer.Option(None, "--system-default/--no-system-default", help="Indicates whether the created resource is system created or not"),
-    created_time: str = typer.Option(None, "--created-time", help="Creation time(in epoch millis) of this resource."),
-    last_updated_time: str = typer.Option(None, "--last-updated-time", help="Time(in epoch millis) when this resource was last updated."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -348,7 +340,7 @@ def update_auxiliary_code(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Auxiliary Code by ID.\n\n\b\nExample: wxcli cc-aux-code update-auxiliary-code ID --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true,"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Auxiliary Code by ID.\n\n\b\nExample: wxcli cc-aux-code update-auxiliary-code ID --name NAME --default-code --active --work-type-id WORK_TYPE_ID --work-type-code IDLE_CODE\n\n\b\nExample --json-body: '{"name":"...","defaultCode":true,"active":true,"workTypeId":"...","workTypeCode":"IDLE_CODE","organizationId":"...","id":"...","version":0,"description":"...","isSystemCode":true,"burnoutInclusion":"NOT_APPLICABLE","systemDefault":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_AUXILIARY_CODE), indent=2))
         raise typer.Exit(0)
@@ -384,10 +376,6 @@ def update_auxiliary_code(
             body["burnoutInclusion"] = burnout_inclusion
         if system_default is not None:
             body["systemDefault"] = system_default
-        if created_time is not None:
-            body["createdTime"] = created_time
-        if last_updated_time is not None:
-            body["lastUpdatedTime"] = last_updated_time
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:

@@ -2135,3 +2135,38 @@ class TestMakeRequired:
                 "'regionId'] if f not in body") in src
         assert 'help="(required) The ID of the location' in src
         assert 'help="(required) Specify the telephony region id' in src
+
+
+# ── Audit F7 (2026-11-10): choices over 12, array choices ────────────────────
+
+class TestEnumHelpChoices:
+    def _field(self, values, desc="", is_array=False):
+        return EndpointField(name="x", python_name="x", field_type="string",
+                             description=desc, enum_values=values,
+                             is_array=is_array)
+
+    def test_enum_help_over_twelve_lists_all(self):
+        from tools.command_renderer import _enum_help
+        values = [f"value{i}" for i in range(13)]
+        help_text = _enum_help(self._field(values, desc="Pick one."))
+        for v in values:
+            assert v in help_text
+        assert "use --help for choices" not in help_text
+        assert help_text.startswith("Pick one.")
+
+    def test_over_twelve_long_description_never_truncates_the_choices(self):
+        from tools.command_renderer import _enum_help
+        values = [f"value{i}" for i in range(20)]
+        help_text = _enum_help(self._field(values, desc="word " * 200))
+        assert help_text.endswith(", ".join(values))
+        assert "..." in help_text          # the description was cut, not the list
+
+    def test_twelve_or_fewer_unchanged(self):
+        from tools.command_renderer import _enum_help
+        assert _enum_help(self._field(["a", "b"], desc="ignored")) == "Choices: a, b"
+
+    def test_array_enum_help_says_comma_separated(self):
+        from tools.command_renderer import _enum_help
+        help_text = _enum_help(self._field(["email", "chat"], is_array=True))
+        assert help_text == "Choices (comma-separated): email, chat"
+        assert help_text.startswith("Choices (comma-separated):")

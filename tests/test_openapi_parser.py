@@ -693,3 +693,120 @@ def test_no_request_body_yields_none():
 def test_empty_properties_yields_none():
     op = {"requestBody": {"content": {"application/json": {"schema": {"type": "object"}}}}}
     assert generate_body_example(op, {}) is None
+
+
+# ── Audit F7 / F6 (2026-11-10): query enums through $ref/items; readOnly ─────
+
+class TestQueryEnumResolution:
+    """`parse_parameters` read `enum`/`type` off the raw schema, so a query
+    parameter whose enum sat behind a `$ref` or under `items` lost its
+    choices (audit F7)."""
+
+    def _spec(self):
+        return {"components": {"schemas": {"Action": {
+            "type": "string",
+            "enum": ["modifyElin", "modifyStandard", "modifyService"]}}}}
+
+    def test_query_enum_through_ref(self):
+        spec = self._spec()
+        params = [{"name": "action", "in": "query", "required": True,
+                   "schema": {"$ref": "#/components/schemas/Action"}}]
+        _, qps, _, _, _ = parse_parameters(params, spec)
+        assert qps[0].enum_values == ["modifyElin", "modifyStandard",
+                                      "modifyService"]
+        assert qps[0].is_array is False
+
+    def test_query_enum_through_items(self):
+        params = [{"name": "channelTypes", "in": "query",
+                   "schema": {"type": "array",
+                              "items": {"enum": ["email", "chat"]}}}]
+        _, qps, _, _, _ = parse_parameters(params, {})
+        assert qps[0].enum_values == ["email", "chat"]
+        assert qps[0].is_array is True
+
+    def test_query_enum_through_items_ref(self):
+        spec = self._spec()
+        params = [{"name": "actions", "in": "query",
+                   "schema": {"type": "array",
+                              "items": {"$ref": "#/components/schemas/Action"}}}]
+        _, qps, _, _, _ = parse_parameters(params, spec)
+        assert qps[0].enum_values == ["modifyElin", "modifyStandard",
+                                      "modifyService"]
+        assert qps[0].is_array is True
+
+    def test_plain_array_without_enum_is_still_array(self):
+        params = [{"name": "ids", "in": "query",
+                   "schema": {"type": "array", "items": {"type": "string"}}}]
+        _, qps, _, _, _ = parse_parameters(params, {})
+        assert qps[0].enum_values is None
+        assert qps[0].is_array is True
+
+    def test_inline_enum_unchanged(self):
+        params = [{"name": "status", "in": "query",
+                   "schema": {"type": "string", "enum": ["a", "b"]}}]
+        _, qps, _, _, _ = parse_parameters(params, {})
+        assert qps[0].enum_values == ["a", "b"]
+        assert qps[0].is_array is False
+
+    def test_resolve_param_schema_contract(self):
+        from tools.openapi_parser import _resolve_param_schema
+        spec = self._spec()
+        ref = _resolve_param_schema(spec, {"$ref": "#/components/schemas/Action"})
+        assert ref["enum"][0] == "modifyElin" and "_array" not in ref
+        arr = _resolve_param_schema(
+            spec, {"type": "array", "items": {"enum": ["x"]}})
+        assert arr["enum"] == ["x"] and arr["_array"] is True
+        # the spec itself is never mutated
+        assert "_array" not in spec["components"]["schemas"]["Action"]
+        assert _resolve_param_schema(spec, {}) == {}
+
+
+class TestReadOnlyBodyProperties:
+    """A top-level `readOnly: true` request property is server-assigned: it is
+    neither a flag nor a skeleton key (audit F6). Top level only."""
+
+    def _op(self):
+        return _body_op({"type": "object", "properties": {
+            "name": {"type": "string"},
+            "createdTime": {"type": "integer", "readOnly": True},
+            "viaRef": {"$ref": "#/components/schemas/Stamp"},
+            "nested": {"type": "object", "properties": {
+                "inner": {"type": "string", "readOnly": True}}},
+        }})
+
+    def _spec(self):
+        return {"components": {"schemas": {"Stamp": {
+            "type": "integer", "readOnly": True}}}}
+
+    def test_readonly_body_property_dropped(self):
+        op = {"requestBody": {"content": {"application/json": {"schema": {
+            "type": "object", "properties": {
+                "name": {"type": "string"},
+                "createdTime": {"type": "integer", "readOnly": True}}}}}}}
+        fields = parse_request_body(op, {})
+        assert [f.name for f in fields] == ["name"]
+        assert "createdTime" not in json.loads(generate_body_example(op, {}))
+
+    def test_readonly_through_ref_dropped(self):
+        spec = self._spec()
+        op = self._op()
+        assert "viaRef" not in [f.name for f in parse_request_body(op, spec)]
+        assert "viaRef" not in json.loads(generate_body_example(op, spec))
+
+    def test_nested_readonly_is_kept(self):
+        spec = self._spec()
+        skeleton = json.loads(generate_body_example(self._op(), spec))
+        assert skeleton["nested"] == {"inner": "..."}
+        assert set(skeleton) == {"name", "nested"}
+
+    def test_readonly_false_is_kept(self):
+        op = _body_op({"type": "object", "properties": {
+            "a": {"type": "string", "readOnly": False}}})
+        assert [f.name for f in parse_request_body(op, {})] == ["a"]
+
+    def test_spec_is_not_mutated(self):
+        spec = self._spec()
+        op = self._op()
+        parse_request_body(op, spec)
+        assert "createdTime" in op["requestBody"]["content"][
+            "application/json"]["schema"]["properties"]

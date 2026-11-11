@@ -665,9 +665,16 @@ def _enum_help(field: EndpointField, max_desc: int = 300) -> str:
         return _escape_help(_clean_desc(field.help_override, max_desc))
     if field.enum_values:
         deduped = _dedup_enum_values(field.enum_values)
+        label = ("Choices (comma-separated):" if getattr(field, "is_array", False)
+                 else "Choices:")
+        choices = f"{label} {', '.join(deduped)}"
         if len(deduped) <= 12:
-            return _escape_help(f"Choices: {', '.join(deduped)}")
-        return _escape_help(f"{_clean_desc(field.description, max_desc)} (use --help for choices)")
+            return _escape_help(choices)
+        # Over 12 the description stays (and may be cut by _clean_desc); the
+        # choice list never is. It used to be replaced by "(use --help for
+        # choices)", which sends the reader to the very screen it is on.
+        desc = _clean_desc(field.description, max_desc)
+        return _escape_help(f"{desc} {choices}" if desc else choices)
     return _escape_help(_clean_desc(field.description, max_desc))
 
 

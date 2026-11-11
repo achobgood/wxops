@@ -116,7 +116,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-34 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-36 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -383,11 +383,28 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   name the new command.
 - The two halves print as two `[34]` lines (`CHECK_EXAMINED` keys `34i`/`34ii`;
   `print_check_findings(..., heading="[34]")`), each with its own examined count. CI's
-  completion assertion greps `^\[34\]`. Tests: `tests/wxcc/test_drift_check.py`
+  completion assertion greps the highest-numbered check (`^\[36\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
   (`TestLegacyCliCheck`: a planted fixture fires and a clean control does not, for each half).
   Proven on the live tree too: a planted `` `wxcc-flow list --type SUBFLOW` `` in
   `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
   made the gate FAIL with one finding.
+
+- **[35] A query option whose `--help` omits a choice the spec declares** (audit F7,
+  2026-11-10). The parameter's schema is resolved through `$ref` and, for `type: array`,
+  `items` (the gate's own copy, `_param_enum`); every enum value must appear in the option's
+  `help=`, compared case-insensitively. Options with no flag (auto-injected, unified paging)
+  are not in the population; an option a per-operation `param_help` override replaces is
+  skipped and counted, never a finding (the override replaces the help by design). Examined =
+  enum query options (97 on the tree at landing, 5 skipped). **To clear:** fix
+  `openapi_parser._resolve_param_schema` / `command_renderer._enum_help`, regen. No ack key.
+  Tests: `tests/test_drift_check_query_enum.py`.
+- **[36] A write command that offers a `readOnly` body field** (audit F6, 2026-11-10). For each
+  POST/PUT/PATCH block with a spec op, a top-level request property that resolves
+  `readOnly: true` (own schema or `$ref`; every declaring spec must agree) must not be written
+  as `body["<name>"]` and must not be a top-level key of the command's
+  `_BODY_SKELETON_<FUNCTION>`. Top level only. Examined = write commands with a spec op and a
+  body (790 at landing). **To clear:** fix `openapi_parser._without_readonly_properties`,
+  regen. No ack key. Tests: `tests/test_drift_check_readonly.py`.
 
 **Reviewing a regen diff — what to actually look at:**
 - **Renames, not just additions.** Known issue #18: a new operation can win a name race
@@ -1719,6 +1736,36 @@ run on a spec contradiction.
 **The trade-off left open.** The oracle is the spec and there is no ack key. So an upstream
 refresh that drops a key the live API still accepts fails the gate, and the only way out is
 a human doc edit. The widening rules above soften this; they do not remove it.
+
+### Query-parameter enums through `$ref`/`items`, and `readOnly` body fields (2026-11-10, audit F7 and F6, checks 35-36)
+
+**F7.** `parse_parameters` read `enum` and `type` off the raw query schema. It now calls
+`_resolve_param_schema` (follow `$ref`; for `type: array` return the resolved `items` with
+`"_array": True`) and records `EndpointField.is_array`. `_enum_help` prints `Choices:` (or
+`Choices (comma-separated):` for an array) and, over 12 values, no longer replaces the list with
+"(use --help for choices)": the description may still be cut by `_clean_desc`, the choice list never is.
+That also changed two body-field enums over 12 values (`cc-org-settings update --offer-code`,
+`webhooks create --resource`) and `events list --resource`. Field type is still read from the raw
+schema, so no option changes type. `pstn list --service-types` (array of `$ref` items) gained its one
+choice too; the audit's counter had not followed a `$ref` under `items`.
+Rejected: keeping "(use --help for choices)" for long lists (it sends the reader to the screen it is
+already on); rendering an array parameter as repeated keys (that is U1, a separate decision).
+**Live (2026-11-10, read-only):** the server enforces the set on `cc-tasks list` and
+`cc-agents list-activities` (400 listing allowed values), and answers a wrong `pstn
+list-available-numbers --action` with 500. **Spec only:** that an array option takes
+comma-separated values (the CC descriptions say so; the pstn one is unmeasured).
+
+**F6.** `_request_body_schema` (the one reader behind both the flag list and the skeleton) now drops
+TOP-LEVEL properties whose own or `$ref`'d schema says `readOnly: true`, so `createdTime`,
+`lastUpdatedTime` and `channelName` are neither flags nor skeleton keys on 22 commands. Nested
+`readOnly` properties stay: they belong to an object a caller may echo back. Rejected: dropping
+them at every depth (changes bulk and nested bodies nobody measured); a `field_overrides.yaml`
+per-command list (the spec already says it). **Live (2026-11-10):** one of the 22,
+`cc-work-types create --created-time 1000 --last-updated-time 1000`, returned the server's own clock,
+so the flags did nothing. **Spec only** for the other 21.
+
+**Compile guard.** `generate_tag` now `compile()`s each rendered module before writing it and raises
+`RuntimeError` naming the module, so an uncompilable module (a duplicate argument, say) never reaches disk.
 
 ## Flow Store spec
 

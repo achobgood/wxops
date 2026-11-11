@@ -12,7 +12,7 @@ from wxcli.common import verify_write
 app = typer.Typer(help="Manage Webex Contact Center: asset.")
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_CREATE = '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("create", short_help="Create a new Asset.")
 def create(
@@ -22,7 +22,6 @@ def create(
     name: str = typer.Option(None, "--name", help="(required) Enter a name for the agent profile."),
     description: str = typer.Option(None, "--description", help="Asset description"),
     channel_type: str = typer.Option(None, "--channel-type", help="(required) Choices: TELEPHONY, EMAIL, FAX, CHAT, VIDEO, OTHERS, SOCIAL_CHANNEL, WORK_ITEM, CUSTOM_MESSAGING"),
-    channel_name: str = typer.Option(None, "--channel-name", help="Channel name (read-only, included when includeChannelName=true)"),
     channel_id: str = typer.Option(None, "--channel-id", help="(required) Channel ID reference"),
     business_address: str = typer.Option(None, "--business-address", help="(required) Business address (immutable after creation, max 200 chars, no special JSON chars)"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
@@ -33,7 +32,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Asset.\n\n\b\nExample: wxcli asset create --name NAME --channel-type TELEPHONY --channel-id CHANNEL_ID --business-address BUSINESS_ADDRESS\n\n\b\nExample --json-body: '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'"""
+    """Create a new Asset.\n\n\b\nExample: wxcli asset create --name NAME --channel-type TELEPHONY --channel-id CHANNEL_ID --business-address BUSINESS_ADDRESS\n\n\b\nExample --json-body: '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -57,8 +56,6 @@ def create(
             body["description"] = description
         if channel_type is not None:
             body["channelType"] = channel_type
-        if channel_name is not None:
-            body["channelName"] = channel_name
         if channel_id is not None:
             body["channelId"] = channel_id
         if business_address is not None:
@@ -155,7 +152,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'
+_BODY_SKELETON_UPDATE = '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'
 
 @app.command("update", short_help="Update specific Asset by ID.")
 def update(
@@ -166,7 +163,6 @@ def update(
     name: str = typer.Option(None, "--name", help="Enter a name for the agent profile."),
     description: str = typer.Option(None, "--description", help="Asset description"),
     channel_type: str = typer.Option(None, "--channel-type", help="Choices: TELEPHONY, EMAIL, FAX, CHAT, VIDEO, OTHERS, SOCIAL_CHANNEL, WORK_ITEM, CUSTOM_MESSAGING"),
-    channel_name: str = typer.Option(None, "--channel-name", help="Channel name (read-only, included when includeChannelName=true)"),
     channel_id: str = typer.Option(None, "--channel-id", help="Channel ID reference"),
     business_address: str = typer.Option(None, "--business-address", help="Business address (immutable after creation, max 200 chars, no special JSON chars)"),
     created_time: str = typer.Option(None, "--created-time", help="This is the created time of the entity."),
@@ -178,7 +174,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update specific Asset by ID.\n\n\b\nExample: wxcli asset update ID --name NAME --channel-type TELEPHONY --channel-id CHANNEL_ID --business-address BUSINESS_ADDRESS\n\n\b\nExample --json-body: '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","channelName":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'"""
+    """Update specific Asset by ID.\n\n\b\nExample: wxcli asset update ID --name NAME --channel-type TELEPHONY --channel-id CHANNEL_ID --business-address BUSINESS_ADDRESS\n\n\b\nExample --json-body: '{"name":"...","channelType":"TELEPHONY","channelId":"...","businessAddress":"...","organizationId":"...","id":"...","version":0,"description":"...","dataSchema":[{"fieldKey":"...","displayName":"...","id":"...","isViewable":true,"isRequired":true}],"webhookConfig":{"webhookUrl":"...","webhookSecret":"..."},"createdTime":0,"lastUpdatedTime":0}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -202,8 +198,6 @@ def update(
             body["description"] = description
         if channel_type is not None:
             body["channelType"] = channel_type
-        if channel_name is not None:
-            body["channelName"] = channel_name
         if channel_id is not None:
             body["channelId"] = channel_id
         if business_address is not None:

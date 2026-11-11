@@ -656,6 +656,14 @@ def generate_tag(
             # A human fix (ADR-18, spec-sync contract §6): never auto-repaired.
             print(f"\nERROR: {e} (tag {tag_name!r})", file=sys.stderr)
             sys.exit(1)
+        # Compile before writing: a module that does not compile must never
+        # reach disk, where it would break at runtime on first load.
+        try:
+            compile(code, f"{module_name}.py", "exec")
+        except SyntaxError as e:
+            raise RuntimeError(
+                f"generator emitted an uncompilable module {module_name}.py "
+                f"(tag {tag_name!r}): {e}") from e
         out_path = output_dir / f"{module_name}.py"
         out_path.write_text(code)
         print(
