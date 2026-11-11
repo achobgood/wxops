@@ -2040,6 +2040,21 @@ scope); passing the raw org name (a partner's customer names its org: `.`, `:` a
 rule's sentence), or a Unicode `isalnum()` filter (review I1: look-alikes such as U+02BA `ʺ`, U+02D0
 `ː`, U+A4F8 `ꓸ` and U+1427 `ᐧ` passed it), so the name is ASCII `[A-Za-z0-9 _-]` only; an org id that is not id-shaped (refused as `no-org`, it lands unquoted).
 
+**Final-review fixes (2026-11-11).** I1, warn plus ask rule, Adam 2026-11-11: an agent may still run
+`switch-org`/`clear-org`, but (a) the in-agent branches print one stderr line when the `[wxcli]` rule
+names another org (any rule, for `clear-org`), (b) writing the allow rule also adds `permissions.ask`
+`Bash(wxcli switch-org *)` and `Bash(wxcli clear-org *)` (a trailing ` *` matches the bare command too;
+ask rules prompt even in auto mode; removed only with the last `[wxcli]` allow rule), and (c) both shell
+gate copies return `ask` for the trusted agents' switch, catching a full path or `cd x &&` (documented:
+a PreToolUse `ask` goes to the prompt in auto mode). Gate refusal rejected because CLAUDE.md documents
+`switch-org <orgId>` in automation; warn-only rejected because the classifier never sees command output
+or wxcli's target org. The Codex gate is unchanged: Codex 0.147.0 rejects `ask` as unsupported and falls
+open, so there a builder's switch is not prompted (open; needs a Codex release that honours `ask`).
+Also: `n` removes the rule for the offered org too (T6.5); `switch-org <id>` stores no name instead of
+"Unknown" and skips the offer when the id cannot be looked up (`unconfirmed`, T6.8); settings.json is
+re-read after the answer so edits made while the prompt waits survive (T6.3). Live-unverified: the ask
+rules and the hook `ask` follow Claude Code's docs; no live auto-mode session has exercised them.
+
 ## Flow Store spec
 
 *(Plan 2 Task 21, 2026-10-19. Merged from `wxcc/tools/generator/README.md`, which was removed with `wxcc/` in Plan 6;
