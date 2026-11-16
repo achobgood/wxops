@@ -12,12 +12,12 @@ from wxcli.common import verify_write
 app = typer.Typer(help="Manage Webex Calling: call-routing.")
 
 
-_BODY_SKELETON_TEST_CALL_ROUTING = '{"originatorId":"...","originatorType":"PEOPLE","destination":"...","originatorNumber":"...","includeAppliedServices":true}'
+_BODY_SKELETON_TEST_CALL_ROUTING = '{"originatorId":"...","originatorType":{},"destination":"...","originatorNumber":"...","includeAppliedServices":true}'
 
 @app.command("test-call-routing", short_help="Test Call Routing.")
 def test_call_routing(
     originator_id: str = typer.Option(None, "--originator-id", help="This element is used to identify the originating party. It can be a person ID or a trunk ID."),
-    originator_type: str = typer.Option(None, "--originator-type", help="Choices: PEOPLE, TRUNK"),
+    originator_type: str = typer.Option(None, "--originator-type", help="This element is used to identify if the `originatorId` is of type `PEOPLE` or `TRUNK`."),
     originator_number: str = typer.Option(None, "--originator-number", help="Only used when `originatorType` is `TRUNK`. The `originatorNumber` can be a phone number or URI."),
     destination: str = typer.Option(None, "--destination", help="This element specifies the called party. It can be any dialable string, for example, an ESN number, E.164 number, hosted user DN, extension, extension with location code, URL, or FAC code."),
     include_applied_services: str = typer.Option(None, "--include-applied-services", help="This element is used to retrieve if any translation pattern, call intercept, permission by type or permission by digit pattern is present for the called party."),
@@ -27,7 +27,7 @@ def test_call_routing(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Test Call Routing.\n\n\b\nExample: wxcli call-routing test-call-routing --originator-id ORIGINATOR_ID --originator-type PEOPLE --destination DESTINATION\n\n\b\nExample --json-body: '{"originatorId":"...","originatorType":"PEOPLE","destination":"...","originatorNumber":"...","includeAppliedServices":true}'"""
+    """Test Call Routing.\n\n\b\nExample: wxcli call-routing test-call-routing --originator-id ORIGINATOR_ID --originator-type ORIGINATOR_TYPE --destination DESTINATION\n\n\b\nExample --json-body: '{"originatorId":"...","originatorType":{},"destination":"...","originatorNumber":"...","includeAppliedServices":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_TEST_CALL_ROUTING), indent=2))
         raise typer.Exit(0)
@@ -196,7 +196,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"dialPatterns":[{"dialPattern":"...","action":"ADD"}],"deleteAllDialPatterns":true}'
+_BODY_SKELETON_UPDATE = '{"dialPatterns":[{"dialPattern":"...","action":{}}],"deleteAllDialPatterns":true}'
 
 @app.command("update", short_help="Modify Dial Patterns.")
 def update(
@@ -208,7 +208,7 @@ def update(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Dial Patterns.\n\n\b\nExample: wxcli call-routing update DIAL_PLAN_ID\n\n\b\nExample --json-body: '{"dialPatterns":[{"dialPattern":"...","action":"ADD"}],"deleteAllDialPatterns":true}'"""
+    """Modify Dial Patterns.\n\n\b\nExample: wxcli call-routing update DIAL_PLAN_ID\n\n\b\nExample --json-body: '{"dialPatterns":[{"dialPattern":"...","action":{}}],"deleteAllDialPatterns":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -317,24 +317,24 @@ def list_dial_plans(
         handle_network_error(e)
     result = result or []
     items = result.get("dialPlans", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route ID', 'routeId'), ('Route Name', 'routeName'), ('Route Type', 'routeType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Route ID', 'routeId'), ('Route Name', 'routeName')], limit=limit)
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP","dialPatterns":["..."]}'
+_BODY_SKELETON_CREATE = '{"name":"...","routeId":"...","routeType":{},"dialPatterns":["..."]}'
 
 @app.command("create", short_help="Create a Dial Plan.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) A unique name for the dial plan."),
     route_id: str = typer.Option(None, "--route-id", help="(required) ID of route type associated with the dial plan."),
-    route_type: str = typer.Option(None, "--route-type", help="(required) Choices: ROUTE_GROUP, TRUNK"),
+    route_type: str = typer.Option(None, "--route-type", help="(required) Route Type associated with the dial plan."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Dial Plan.\n\n\b\nExample: wxcli call-routing create --name NAME --route-id ROUTE_ID --route-type ROUTE_GROUP\n\n\b\nExample --json-body: '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP","dialPatterns":["..."]}'"""
+    """Create a Dial Plan.\n\n\b\nExample: wxcli call-routing create --name NAME --route-id ROUTE_ID --route-type ROUTE_TYPE\n\n\b\nExample --json-body: '{"name":"...","routeId":"...","routeType":{},"dialPatterns":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -400,14 +400,14 @@ def show_dial_plans(
 
 
 
-_BODY_SKELETON_UPDATE_DIAL_PLANS = '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP"}'
+_BODY_SKELETON_UPDATE_DIAL_PLANS = '{"name":"...","routeId":"...","routeType":{}}'
 
 @app.command("update-dial-plans", short_help="Modify a Dial Plan.")
 def update_dial_plans(
     dial_plan_id: str = typer.Argument(help="Webex DIAL_PLAN id, from: wxcli call-routing list-dial-plans"),
     name: str = typer.Option(None, "--name", help="A unique name for the dial plan."),
     route_id: str = typer.Option(None, "--route-id", help="ID of route type associated with the dial plan."),
-    route_type: str = typer.Option(None, "--route-type", help="Choices: ROUTE_GROUP, TRUNK"),
+    route_type: str = typer.Option(None, "--route-type", help="Route Type associated with the dial plan."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -415,7 +415,7 @@ def update_dial_plans(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Dial Plan.\n\n\b\nExample: wxcli call-routing update-dial-plans DIAL_PLAN_ID --name NAME --route-id ROUTE_ID --route-type ROUTE_GROUP\n\n\b\nExample --json-body: '{"name":"...","routeId":"...","routeType":"ROUTE_GROUP"}'"""
+    """Modify a Dial Plan.\n\n\b\nExample: wxcli call-routing update-dial-plans DIAL_PLAN_ID --name NAME --route-id ROUTE_ID --route-type ROUTE_TYPE\n\n\b\nExample --json-body: '{"name":"...","routeId":"...","routeType":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DIAL_PLANS), indent=2))
         raise typer.Exit(0)
@@ -484,14 +484,14 @@ def delete(
 
 
 
-_BODY_SKELETON_VALIDATE_A_TRUNK = '{"fqdnAddress":"...","fqdnDomain":"...","fqdnPort":0,"trunkType":"REGISTERING","isRestrictedToDedicatedInstance":true,"peerIdentity":"..."}'
+_BODY_SKELETON_VALIDATE_A_TRUNK = '{"fqdnAddress":"...","fqdnDomain":"...","fqdnPort":0,"trunkType":{},"isRestrictedToDedicatedInstance":true,"peerIdentity":"..."}'
 
 @app.command("validate-a-trunk", short_help="Validate a Trunk.")
 def validate_a_trunk(
     fqdn_address: str = typer.Option(None, "--fqdn-address", help="FQDN or SRV address of the trunk."),
     fqdn_domain: str = typer.Option(None, "--fqdn-domain", help="Domain name of the trunk."),
     fqdn_port: str = typer.Option(None, "--fqdn-port", help="FQDN port of the trunk."),
-    trunk_type: str = typer.Option(None, "--trunk-type", help="Choices: REGISTERING, CERTIFICATE_BASED"),
+    trunk_type: str = typer.Option(None, "--trunk-type", help="Trunk Type associated with the trunk."),
     is_restricted_to_dedicated_instance: str = typer.Option(None, "--is-restricted-to-dedicated-instance", help="Flag to indicate if the trunk is restricted to a dedicated instance."),
     peer_identity: str = typer.Option(None, "--peer-identity", help="Peer identity for certificate-based trunks. Used for TLS peer verification."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -500,7 +500,7 @@ def validate_a_trunk(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Validate a Trunk.\n\n\b\nExample --json-body: '{"fqdnAddress":"...","fqdnDomain":"...","fqdnPort":0,"trunkType":"REGISTERING","isRestrictedToDedicatedInstance":true,"peerIdentity":"..."}'"""
+    """Validate a Trunk.\n\n\b\nExample --json-body: '{"fqdnAddress":"...","fqdnDomain":"...","fqdnPort":0,"trunkType":{},"isRestrictedToDedicatedInstance":true,"peerIdentity":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_A_TRUNK), indent=2))
         raise typer.Exit(0)
@@ -627,7 +627,7 @@ def list_trunks(
 
 
 
-_BODY_SKELETON_CREATE_TRUNKS = '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"peerIdentity":"...","pChargeInfoSupportPolicy":"DISABLED"}'
+_BODY_SKELETON_CREATE_TRUNKS = '{"name":"...","locationId":"...","password":"...","trunkType":{},"dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"peerIdentity":"...","pChargeInfoSupportPolicy":"DISABLED"}'
 
 @app.command("create-trunks", short_help="Create a Trunk.")
 def create_trunks(
@@ -635,7 +635,7 @@ def create_trunks(
     location_id: str = typer.Option(None, "--location-id", help="(required) ID of location associated with the trunk."),
     password: str = typer.Option(None, "--password", help="(required) A password to use on the trunk."),
     dual_identity_support_enabled: bool = typer.Option(None, "--dual-identity-support-enabled/--no-dual-identity-support-enabled", help="Dual Identity Support setting impacts the handling of the From header and P-Asserted-Identity header when sending an initial SIP `INVITE` to the trunk for an outbound call."),
-    trunk_type: str = typer.Option(None, "--trunk-type", help="(required) Choices: REGISTERING, CERTIFICATE_BASED"),
+    trunk_type: str = typer.Option(None, "--trunk-type", help="(required) Trunk Type associated with the trunk."),
     device_type: str = typer.Option(None, "--device-type", help="Device type assosiated with trunk."),
     address: str = typer.Option(None, "--address", help="FQDN or SRV address. Required to create a static certificate-based trunk."),
     domain: str = typer.Option(None, "--domain", help="Domain name. Required to create a static certificate based trunk."),
@@ -649,7 +649,7 @@ def create_trunks(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Trunk.\n\n\b\nExample: wxcli call-routing create-trunks --name NAME --location-id LOCATION_ID --password PASSWORD --trunk-type REGISTERING\n\n\b\nExample --json-body: '{"name":"...","locationId":"...","password":"...","trunkType":"REGISTERING","dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"peerIdentity":"...","pChargeInfoSupportPolicy":"DISABLED"}'"""
+    """Create a Trunk.\n\n\b\nExample: wxcli call-routing create-trunks --name NAME --location-id LOCATION_ID --password PASSWORD --trunk-type TRUNK_TYPE\n\n\b\nExample --json-body: '{"name":"...","locationId":"...","password":"...","trunkType":{},"dualIdentitySupportEnabled":true,"deviceType":"...","address":"...","domain":"...","port":0,"maxConcurrentCalls":0,"peerIdentity":"...","pChargeInfoSupportPolicy":"DISABLED"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_TRUNKS), indent=2))
         raise typer.Exit(0)
@@ -1493,7 +1493,7 @@ def list_numbers(
 
 
 
-_BODY_SKELETON_UPDATE_NUMBERS = '{"numbers":[{"number":"...","action":"ADD"}],"deleteAllNumbers":true}'
+_BODY_SKELETON_UPDATE_NUMBERS = '{"numbers":[{"number":"...","action":{}}],"deleteAllNumbers":true}'
 
 @app.command("update-numbers", short_help="Modify Numbers for Route List.")
 def update_numbers(
@@ -1506,7 +1506,7 @@ def update_numbers(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Numbers for Route List.\n\n\b\nExample: wxcli call-routing update-numbers ROUTE_LIST_ID\n\n\b\nExample --json-body: '{"numbers":[{"number":"...","action":"ADD"}],"deleteAllNumbers":true}'"""
+    """Modify Numbers for Route List.\n\n\b\nExample: wxcli call-routing update-numbers ROUTE_LIST_ID\n\n\b\nExample --json-body: '{"numbers":[{"number":"...","action":{}}],"deleteAllNumbers":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NUMBERS), indent=2))
         raise typer.Exit(0)

@@ -53,7 +53,7 @@ Webex Ops splits the problem into three layers, each killing one way an LLM fail
 |-------|-----------|---------------------|
 | **Reference docs** (118) | De-conflated, authoritative API and platform knowledge — data models, enums, license-tier distinctions, Flow Designer activities, gotchas | **Hallucination** — the agent grounds on docs, never on training data |
 | **Skills** (39) | Encoded procedures for outcomes — prerequisites, ordering, intent disambiguation, known landmines | **Wrong sequence / wrong tool** — the agent follows a checklist, not a guess |
-| **CLI** (200 groups) | Tested, self-describing commands generated from 10 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
+| **CLI** (202 groups) | Tested, self-describing commands generated from 10 OpenAPI specs | **Malformed execution** — the model emits a command string, not hand-rolled HTTP |
 
 Alongside the reference docs sit 27 step-by-step playbooks (send an SMS, set up a data lookup, build a scripted agent), each naming the reference doc that owns its values.
 
@@ -307,7 +307,7 @@ Behind a firewall that blocks PyPI? Point `WXCLI_UPDATE_INDEX_URL` at an interna
 Claude reads `--help`, not this section. It is here so you can follow what Claude does, or use the CLI in your own scripts and CI without any AI. Outside Claude, the reference docs in `docs/reference/` are a Webex API knowledge base any developer can read, and the **10 OpenAPI specs** (`specs/webex-*.json`) import into Postman or any API client.
 
 ```bash
-wxcli --help                               # all 200 command groups
+wxcli --help                               # all 202 command groups
 wxcli locations list                       # location IDs
 wxcli users list --location-id LOC_ID      # person IDs
 wxcli numbers list --location-id LOC_ID    # number inventory
@@ -356,7 +356,7 @@ wxcli user-settings show-call-forwarding PERSON_ID --output json
 
 The full behavior reference, including the eleven known issues, is `docs/reference/wxcli-behavior.md`.
 
-**Common command groups** (run `wxcli --help` to see all 200 groups, which also cover admin, device, messaging, meetings, and contact center APIs)
+**Common command groups** (run `wxcli --help` to see all 202 groups, which also cover admin, device, messaging, meetings, and contact center APIs)
 
 | Group | Description |
 |-------|-------------|
@@ -471,7 +471,7 @@ This section is for people changing this repository. In the repo, too, Claude ru
 ```
 wxops/
 ├── src/wxcli/                    # CLI source (Typer + httpx REST client)
-│   ├── main.py                   # Entry point — registers 200 command groups
+│   ├── main.py                   # Entry point — registers 202 command groups
 │   ├── auth.py                   # Token storage and API client init
 │   ├── output.py                 # Table/JSON output formatting
 │   ├── commands/                 # generated command modules (one per API tag) + _registry.py manifest

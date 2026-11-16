@@ -61,6 +61,7 @@ _BODY_SKELETON_CREATE = '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ON
 def create(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the call park. The maximum length is 80."),
+    recall: str = typer.Option(None, "--recall", help="(required) Recall options that are added to the call park."),
     park_on_agents_enabled: bool = typer.Option(None, "--park-on-agents-enabled/--no-park-on-agents-enabled", help="Whether or not the calls will be parked on agents as a destination."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -68,7 +69,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Call Park.\n\n\b\nExample: wxcli call-park create LOCATION_ID --json-body '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ONLY"}}'\n\n\b\nExample --json-body: '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ONLY","huntGroupId":"..."},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'"""
+    """Create a Call Park.\n\n\b\nExample: wxcli call-park create LOCATION_ID --name NAME --recall RECALL\n\n\b\nExample --json-body: '{"name":"...","recall":{"option":"ALERT_PARKING_USER_ONLY","huntGroupId":"..."},"agents":["..."],"parkOnAgentsEnabled":true,"callParkExtensions":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -84,9 +85,11 @@ def create(
         body = {}
         if name is not None:
             body["name"] = name
+        if recall is not None:
+            body["recall"] = recall
         if park_on_agents_enabled is not None:
             body["parkOnAgentsEnabled"] = park_on_agents_enabled
-        _missing = [f for f in ['name'] if f not in body or body[f] is None]
+        _missing = [f for f in ['name', 'recall'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -140,6 +143,7 @@ def update(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     call_park_id: str = typer.Argument(help="Webex CALL_PARK id, from: wxcli call-park list"),
     name: str = typer.Option(None, "--name", help="Unique name for the call park. The maximum length is 80."),
+    recall: str = typer.Option(None, "--recall", help="Recall options that are added to call park."),
     park_on_agents_enabled: bool = typer.Option(None, "--park-on-agents-enabled/--no-park-on-agents-enabled", help="Whether or not the calls will be parked on agents as a destination."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -164,6 +168,8 @@ def update(
         body = {}
         if name is not None:
             body["name"] = name
+        if recall is not None:
+            body["recall"] = recall
         if park_on_agents_enabled is not None:
             body["parkOnAgentsEnabled"] = park_on_agents_enabled
     try:
@@ -337,6 +343,8 @@ _BODY_SKELETON_UPDATE_SETTINGS = '{"callParkRecall":{"option":"ALERT_PARKING_USE
 @app.command("update-settings", short_help="Update Call Park settings.")
 def update_settings(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    call_park_recall: str = typer.Option(None, "--call-park-recall", help="Recall options that are added to call park."),
+    call_park_settings: str = typer.Option(None, "--call-park-settings", help="Setting controlling call park behavior."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -358,6 +366,10 @@ def update_settings(
         body = load_json_body(json_body)
     else:
         body = {}
+        if call_park_recall is not None:
+            body["callParkRecall"] = call_park_recall
+        if call_park_settings is not None:
+            body["callParkSettings"] = call_park_settings
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:

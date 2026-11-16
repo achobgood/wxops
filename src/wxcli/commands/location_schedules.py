@@ -60,7 +60,7 @@ _BODY_SKELETON_CREATE = '{"type":"businessHours","name":"...","events":[{"name":
 def create(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     type_param: str = typer.Option(None, "--type", help="(required) Choices: businessHours, holidays"),
-    name: str = typer.Option(None, "--name", help="(required) Unique name for the schedule."),
+    name: str = typer.Option(None, "--name", help="(required) Unique name for the schedule. Name must not contain slashes"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -140,7 +140,7 @@ def update(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
     schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
-    name: str = typer.Option(None, "--name", help="Unique name for the schedule."),
+    name: str = typer.Option(None, "--name", help="Unique name for the schedule. Name must not contain slashes"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -256,6 +256,7 @@ def update_events(
     start_time: str = typer.Option(None, "--start-time", help="Start time of event. Mandatory if the event is not all day."),
     end_time: str = typer.Option(None, "--end-time", help="End time of event. Mandatory if the event is not all day."),
     all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="An indication of whether given event is an all-day event or not. Mandatory if the `startTime` and `endTime` are not defined."),
+    recurrence: str = typer.Option(None, "--recurrence", help="Recurrence definition."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -289,6 +290,8 @@ def update_events(
             body["endTime"] = end_time
         if all_day_enabled is not None:
             body["allDayEnabled"] = all_day_enabled
+        if recurrence is not None:
+            body["recurrence"] = recurrence
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -354,6 +357,7 @@ def create_events(
     start_time: str = typer.Option(None, "--start-time", help="Start time of event. Mandatory if the event is not all day."),
     end_time: str = typer.Option(None, "--end-time", help="End time of event. Mandatory if the event is not all day."),
     all_day_enabled: bool = typer.Option(None, "--all-day-enabled/--no-all-day-enabled", help="An indication of whether given event is an all-day event or not. Mandatory if the `startTime` and `endTime` are not defined."),
+    recurrence: str = typer.Option(None, "--recurrence", help="Recurrence definition."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -386,6 +390,8 @@ def create_events(
             body["endTime"] = end_time
         if all_day_enabled is not None:
             body["allDayEnabled"] = all_day_enabled
+        if recurrence is not None:
+            body["recurrence"] = recurrence
         _missing = [f for f in ['name', 'startDate', 'endDate'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -405,5 +411,155 @@ def create_events(
             print_json(result)
     else:
         emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_VALIDATE_EVENT_NAME = '{"name":"..."}'
+
+@app.command("validate-event-name", short_help="Validate a Location Schedule Event Name.")
+def validate_event_name(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    schedule_type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
+    name: str = typer.Option(None, "--name", help="Event name to check. It must contain at least one non-whitespace character."),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Validate a Location Schedule Event Name.\n\n\b\nExample: wxcli location-schedules validate-event-name LOCATION_ID businessHours SCHEDULE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"..."}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_EVENT_NAME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{schedule_type}/{schedule_id}/events/actions/validate/invoke"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+@app.command("list-usage", short_help="List People and Features Using a Location Schedule.")
+def list_usage(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    schedule_type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
+    output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    offset: int = typer.Option(0, "--offset", help="Start offset"),
+    all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """List People and Features Using a Location Schedule.\n\n\b\nExample: wxcli location-schedules list-usage LOCATION_ID businessHours SCHEDULE_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{schedule_type}/{schedule_id}/usage"
+    params = {}
+    if limit > 0:
+        params["max"] = limit
+    if offset > 0:
+        params["start"] = offset
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    try:
+        if limit > 0 and not all_pages:
+            result = api.session.rest_get(url, params=params, remedies=("all", "offset"))
+            result = result or {}
+            items = result.get("usedBy", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
+        else:
+            items = list(api.session.follow_pagination(url=url, params=params, item_key="usedBy"))
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Location Name', 'locationName'), ('Location ID', 'locationId')], limit=limit)
+
+
+
+@app.command("promote-a-location", short_help="Promote a Location Schedule to Organization Scope.")
+def promote_a_location(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    schedule_type: str = typer.Argument(help="one of: businessHours|holidays, from: wxcli location-schedules list"),
+    schedule_id: str = typer.Argument(help="Webex SCHEDULE id, from: wxcli location-schedules list"),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Promote a Location Schedule to Organization Scope.\n\n\b\nExample: wxcli location-schedules promote-a-location LOCATION_ID businessHours SCHEDULE_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/{schedule_type}/{schedule_id}/actions/promote/invoke"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
+_BODY_SKELETON_VALIDATE_NAME = '{"name":"...","type":"businessHours"}'
+
+@app.command("validate-name", short_help="Validate a Location Schedule Name.")
+def validate_name(
+    location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    name: str = typer.Option(None, "--name", help="Nonblank name to check for the schedule. Name must not contain slashes."),
+    type_param: str = typer.Option(None, "--type", help="Choices: businessHours, holidays"),
+    generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
+    json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Validate a Location Schedule Name.\n\n\b\nExample: wxcli location-schedules validate-name LOCATION_ID --name NAME --type businessHours\n\n\b\nExample --json-body: '{"name":"...","type":"businessHours"}'"""
+    if generate_json_body:
+        typer.echo(json.dumps(json.loads(_BODY_SKELETON_VALIDATE_NAME), indent=2))
+        raise typer.Exit(0)
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/locations/{location_id}/schedules/actions/validate/invoke"
+    params = {}
+    org_id = get_org_id()
+    if org_id is not None:
+        params["orgId"] = org_id
+    if json_body:
+        body = load_json_body(json_body)
+    else:
+        body = {}
+        if name is not None:
+            body["name"] = name
+        if type_param is not None:
+            body["type"] = type_param
+    try:
+        result = api.session.rest_post(url, json=body, params=params)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
 
 

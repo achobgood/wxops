@@ -18,6 +18,7 @@ Reference for managing audio media (announcements, playlists), time-based routin
 3. [Access Codes](#3-access-codes)
 4. [Schedules & Holiday Schedules](#4-schedules--holiday-schedules)
 5. [Cross-Cutting Patterns](#5-cross-cutting-patterns)
+6. [Organization-Level Schedules and Schedule Usage Export](#6-organization-level-schedules-and-schedule-usage-export)
 6. [Gotchas](#gotchas)
 7. [See Also](#see-also)
 
@@ -707,6 +708,100 @@ User schedules:
 
 ---
 
+## 6. Organization-Level Schedules and Schedule Usage Export
+
+> **Unverified:** (spec only, 2026-11-16) — every statement in this section comes from the
+> 2026-11-16 Webex Calling OpenAPI spec. None of it has been tested live; an unattended spec
+> sync wrote it.
+
+Two command groups arrived together on 2026-11-16. `org-wide-schedules` manages **business
+hours and holiday schedules that belong to the organization** rather than to one location, and
+lists organization and location schedules side by side. `export-schedule-usage-jobs` runs a
+background job that exports **who and what uses one schedule** (people and features). The
+Org vs. Location Scoping table in §5 says schedules are location-level only; that row predates
+this spec.
+
+This section is **NOT** about Contact Center business hours or holiday lists (those are CC
+objects, `contact-center-core.md`), and **NOT** about a person's own schedules
+(`/people/{personId}/features/schedules`, §4). It is also not where an auto attendant, call
+queue or hunt group chooses a schedule: that choice is the `businessScheduleLevel` /
+`holidayScheduleLevel` field on those features, documented in `call-features-major.md`.
+
+### Key Parameters
+
+- **`type`** — `businessHours` or `holidays` (also the `schedule_type` positional argument).
+- **`name`** — 1 to 40 characters, no slashes (both `create` and `validate-name`).
+- **Event body** (`org-wide-schedules create-events`) — `name` (1 to 40 characters),
+  `startDate` and `endDate` (`yyyy-MM-dd`; the end cannot precede the start), `allDayEnabled`,
+  `startTime` and `endTime` (required unless `allDayEnabled` is true; omit both for an all-day
+  event), and an optional `recurrence` object (`recurForEver`, `recurEndDate`, per the spec's
+  own example).
+- **`--level`** on `org-wide-schedules list` — `LOCATION` or `ORGANIZATION`; `--location-id`
+  limits results to one location's schedules.
+- **Export job body** — `level` (the spec lists only `LOCATION` as a choice today),
+  `locationId` (required for `LOCATION`), `scheduleId`, `type`.
+- New on `location-schedules` in the same spec: `validate-name` and `validate-event-name`
+  check a name before you create it, `list-usage` lists people and features using a location
+  schedule, and `promote-a-location` promotes a location schedule to organization scope.
+
+### CLI Examples
+
+```bash
+# List organization and location schedules together; narrow to org-level ones
+wxcli org-wide-schedules list --level ORGANIZATION
+
+# Check a name, then create an organization-level business-hours schedule
+wxcli org-wide-schedules validate-name --name "Corporate Hours" --type businessHours
+wxcli org-wide-schedules create --name "Corporate Hours" --type businessHours
+
+# Read it, and see which people and features use it
+wxcli org-wide-schedules show businessHours SCHEDULE_ID
+wxcli org-wide-schedules list-usage businessHours SCHEDULE_ID
+
+# Add an all-day holiday event to an organization holiday schedule
+wxcli org-wide-schedules create-events holidays SCHEDULE_ID --json-body '{"name": "New Year", "allDayEnabled": true, "startDate": "2027-01-01", "endDate": "2027-01-01"}'
+
+# Promote an existing location schedule to organization scope
+wxcli location-schedules promote-a-location LOCATION_ID businessHours SCHEDULE_ID
+
+# Export the usage of one location schedule as a background job, then poll it
+wxcli export-schedule-usage-jobs create --level LOCATION --location-id LOCATION_ID --schedule-id SCHEDULE_ID --type businessHours
+wxcli export-schedule-usage-jobs show JOB_ID
+wxcli export-schedule-usage-jobs list-errors JOB_ID
+```
+
+### Raw HTTP
+
+```
+GET    /v1/telephony/config/schedules                                         # org + location schedules
+POST   /v1/telephony/config/schedules                                         # create org schedule
+POST   /v1/telephony/config/schedules/actions/validate/invoke                 # validate name
+GET    /v1/telephony/config/schedules/{scheduleType}/{scheduleId}
+PUT    /v1/telephony/config/schedules/{scheduleType}/{scheduleId}
+DELETE /v1/telephony/config/schedules/{scheduleType}/{scheduleId}
+GET    /v1/telephony/config/schedules/{scheduleType}/{scheduleId}/usage
+POST   /v1/telephony/config/schedules/{scheduleType}/{scheduleId}/events
+POST   /v1/telephony/config/schedules/{scheduleType}/{scheduleId}/events/actions/validate/invoke
+GET|PUT|DELETE /v1/telephony/config/schedules/{scheduleType}/{scheduleId}/events/{eventId}
+POST   /v1/telephony/config/locations/{locationId}/schedules/{scheduleType}/{scheduleId}/actions/promote/invoke
+GET    /v1/telephony/config/locations/{locationId}/schedules/{scheduleType}/{scheduleId}/usage
+POST   /v1/telephony/config/jobs/schedules/exportUsage                        # start export job
+GET    /v1/telephony/config/jobs/schedules/exportUsage                        # list jobs
+GET    /v1/telephony/config/jobs/schedules/exportUsage/{jobId}                # job status
+POST   /v1/telephony/config/jobs/schedules/exportUsage/{jobId}/actions/pause/invoke
+POST   /v1/telephony/config/jobs/schedules/exportUsage/{jobId}/actions/resume/invoke
+GET    /v1/telephony/config/jobs/schedules/exportUsage/{jobId}/errors
+```
+
+### Gotcha
+
+- **A schedule's level must travel with its name.** **Unverified:** (spec only, 2026-11-16)
+  — features reference a schedule by name plus a level field that defaults to `LOCATION`, so an
+  organization schedule and a location schedule can share a name; set the level explicitly to
+  `ORGANIZATION` when you mean the org one, or the feature resolves the location schedule.
+
+---
+
 ## Gotchas
 
 These are collected from the sections above; each is stated where it was first
@@ -747,3 +842,4 @@ documented, and nothing here is new.
 ## See Also
 
 - **[Call Features — Major](call-features-major.md)** — Auto Attendants, Call Queues, and Hunt Groups that consume schedules for time-based routing
+- **[Contact Center: Core](contact-center-core.md)** — go there instead when the schedule is a Contact Center business-hours or holiday-list object; §6 here covers Webex Calling schedules only

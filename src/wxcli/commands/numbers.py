@@ -11,14 +11,14 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling: numbers.")
 
 
-_BODY_SKELETON_CREATE = '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'
+_BODY_SKELETON_CREATE = '{"phoneNumbers":["..."],"numberType":{},"numberUsageType":{},"state":{},"subscriptionId":"...","carrierId":"..."}'
 
 @app.command("create", short_help="Add Phone Numbers to a Location.")
 def create(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
-    number_type: str = typer.Option(None, "--number-type", help="Choices: TOLLFREE, DID, MOBILE"),
-    number_usage_type: str = typer.Option(None, "--number-usage-type", help="Choices: NONE, SERVICE"),
-    state: str = typer.Option(None, "--state", help="Choices: ACTIVE, INACTIVE"),
+    number_type: str = typer.Option(None, "--number-type", help="The type of the number. Required for `MOBILE` number type."),
+    number_usage_type: str = typer.Option(None, "--number-usage-type", help="The type of usage expected for the number."),
+    state: str = typer.Option(None, "--state", help="The state of the number. By default, the state of a number is set to `ACTIVE` for DID and toll-free numbers only. Mobile numbers will be activated upon assignment to a user."),
     subscription_id: str = typer.Option(None, "--subscription-id", help="The `subscriptionId` to be used for the mobile number order."),
     carrier_id: str = typer.Option(None, "--carrier-id", help="The `carrierId` to be used for the mobile number order."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -27,7 +27,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add Phone Numbers to a Location.\n\n\b\nExample: wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers":["..."]}'\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'"""
+    """Add Phone Numbers to a Location.\n\n\b\nExample: wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers":["..."]}'\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"numberType":{},"numberUsageType":{},"state":{},"subscriptionId":"...","carrierId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

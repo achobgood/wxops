@@ -363,6 +363,7 @@ def update_screen_pop(
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Enable/disable screen pop."),
     screen_pop_url: str = typer.Option(None, "--screen-pop-url", help="The screen pop URL that integrates Webex calls with other business apps like CRM, ticketing tools, and order entry systems."),
     desktop_label: str = typer.Option(None, "--desktop-label", help="A label for the screen pop configuration."),
+    query_params: str = typer.Option(None, "--query-params", help="The additional user-defined key-value pairs that must be sent to the agent."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -390,6 +391,8 @@ def update_screen_pop(
             body["screenPopUrl"] = screen_pop_url
         if desktop_label is not None:
             body["desktopLabel"] = desktop_label
+        if query_params is not None:
+            body["queryParams"] = query_params
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -441,7 +444,7 @@ def list_available_agents(
         handle_network_error(e)
     result = result or []
     items = result.get("agents", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Last Name', 'lastName'), ('First Name', 'firstName'), ('Type', 'type')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Display Name', 'displayName'), ('Last Name', 'lastName'), ('First Name', 'firstName'), ('Email', 'email')], limit=limit)
 
 
 

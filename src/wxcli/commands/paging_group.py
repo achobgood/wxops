@@ -56,7 +56,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("create", short_help="Create a new Paging Group.")
 def create(
@@ -68,6 +68,7 @@ def create(
     first_name: str = typer.Option(None, "--first-name", help="First name that displays when a group page is performed. Minimum length is 1. Maximum length is 64. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     last_name: str = typer.Option(None, "--last-name", help="Last name that displays when a group page is performed. Minimum length is 1. Maximum length is 64. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     originator_caller_id_enabled: bool = typer.Option(None, "--originator-caller-id-enabled/--no-originator-caller-id-enabled", help="Determines what is shown on target users caller ID when a group page is performed. If true shows page originator ID."),
+    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Settings for the direct line caller ID name to be shown for this paging group."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -75,7 +76,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Paging Group.\n\n\b\nExample: wxcli paging-group create LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Create a new Paging Group.\n\n\b\nExample: wxcli paging-group create LOCATION_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -103,6 +104,8 @@ def create(
             body["lastName"] = last_name
         if originator_caller_id_enabled is not None:
             body["originatorCallerIdEnabled"] = originator_caller_id_enabled
+        if direct_line_caller_id_name is not None:
+            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
         _missing = [f for f in ['name'] if f not in body or body[f] is None]
@@ -152,7 +155,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("update", short_help="Update a Paging Group.")
 def update(
@@ -166,6 +169,7 @@ def update(
     first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this paging group. Defaults to \".\". This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this paging group. Defaults to the phone number if set, otherwise defaults to call group name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     originator_caller_id_enabled: bool = typer.Option(None, "--originator-caller-id-enabled/--no-originator-caller-id-enabled", help="Determines what is shown on target users caller ID when a group page is performed. If true shows page originator ID."),
+    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Settings for the direct line caller ID name to be shown for this paging group."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -174,7 +178,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Paging Group.\n\n\b\nExample: wxcli paging-group update LOCATION_ID PAGING_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Update a Paging Group.\n\n\b\nExample: wxcli paging-group update LOCATION_ID PAGING_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","originatorCallerIdEnabled":true,"originators":["..."],"targets":["..."],"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -204,6 +208,8 @@ def update(
             body["lastName"] = last_name
         if originator_caller_id_enabled is not None:
             body["originatorCallerIdEnabled"] = originator_caller_id_enabled
+        if direct_line_caller_id_name is not None:
+            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
     try:

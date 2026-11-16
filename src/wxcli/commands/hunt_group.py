@@ -56,7 +56,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","callPolicies":{"policy":{},"noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("create", short_help="Create a Hunt Group.")
 def create(
@@ -68,8 +68,10 @@ def create(
     first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this hunt group. Defaults to `.`. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this hunt group. Defaults to the phone number if set, otherwise defaults to call group name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the hunt group."),
+    call_policies: str = typer.Option(None, "--call-policies", help="(required) Policy controlling how calls are routed to agents."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="(required) Whether or not the hunt group is enabled."),
     hunt_group_caller_id_for_outgoing_calls_enabled: bool = typer.Option(None, "--hunt-group-caller-id-for-outgoing-calls-enabled/--no-hunt-group-caller-id-for-outgoing-calls-enabled", help="Enable the hunt group to be used as the caller ID when the agent places outgoing calls. When set to true the hunt group's caller ID will be used."),
+    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Settings for the direct line caller ID name to be shown for this hunt group."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -77,7 +79,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Hunt Group.\n\n\b\nExample: wxcli hunt-group create LOCATION_ID --json-body '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true}},"agents":[{"id":"..."}],"enabled":true}'\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Create a Hunt Group.\n\n\b\nExample: wxcli hunt-group create LOCATION_ID --json-body '{"name":"...","callPolicies":{"policy":{},"noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true}},"agents":[{"id":"..."}],"enabled":true}'\n\n\b\nExample --json-body: '{"name":"...","callPolicies":{"policy":{},"noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"enabled":true,"phoneNumber":"...","extension":"...","languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -105,13 +107,17 @@ def create(
             body["lastName"] = last_name
         if time_zone is not None:
             body["timeZone"] = time_zone
+        if call_policies is not None:
+            body["callPolicies"] = call_policies
         if enabled is not None:
             body["enabled"] = enabled
         if hunt_group_caller_id_for_outgoing_calls_enabled is not None:
             body["huntGroupCallerIdForOutgoingCallsEnabled"] = hunt_group_caller_id_for_outgoing_calls_enabled
+        if direct_line_caller_id_name is not None:
+            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
-        _missing = [f for f in ['name', 'enabled'] if f not in body or body[f] is None]
+        _missing = [f for f in ['name', 'callPolicies', 'enabled'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -161,7 +167,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}],"languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_UPDATE = '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":{}}],"languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callPolicies":{"policy":{},"noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("update", short_help="Update a Hunt Group.")
 def update(
@@ -176,7 +182,9 @@ def update(
     first_name: str = typer.Option(None, "--first-name", help="First name to be shown when calls are forwarded out of this hunt group. Defaults to `.`. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     last_name: str = typer.Option(None, "--last-name", help="Last name to be shown when calls are forwarded out of this hunt group. Defaults to the phone number if set, otherwise defaults to call group name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     time_zone: str = typer.Option(None, "--time-zone", help="Time zone for the hunt group."),
+    call_policies: str = typer.Option(None, "--call-policies", help="Policy controlling how calls are routed to agents."),
     hunt_group_caller_id_for_outgoing_calls_enabled: bool = typer.Option(None, "--hunt-group-caller-id-for-outgoing-calls-enabled/--no-hunt-group-caller-id-for-outgoing-calls-enabled", help="Enable the hunt group to be used as the caller ID when the agent places outgoing calls. When set to true the hunt group's caller ID will be used."),
+    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Settings for the direct line caller ID name to be shown for this hunt group."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -185,7 +193,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Hunt Group.\n\n\b\nExample: wxcli hunt-group update LOCATION_ID HUNT_GROUP_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL"}],"languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callPolicies":{"policy":"CIRCULAR","noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Update a Hunt Group.\n\n\b\nExample: wxcli hunt-group update LOCATION_ID HUNT_GROUP_ID\n\n\b\nExample --json-body: '{"enabled":true,"name":"...","phoneNumber":"...","extension":"...","distinctiveRing":true,"alternateNumbers":[{"phoneNumber":"...","ringPattern":{}}],"languageCode":"...","firstName":"...","lastName":"...","timeZone":"...","callPolicies":{"policy":{},"noAnswer":{"nextAgentEnabled":true,"nextAgentRings":0,"forwardEnabled":true,"numberOfRings":0,"destinationVoicemailEnabled":true,"destination":"..."},"waitingEnabled":true,"groupBusyEnabled":true,"allowMembersToControlGroupBusyEnabled":true,"busyRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"businessContinuityRedirect":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}},"agents":[{"id":"...","weight":"..."}],"huntGroupCallerIdForOutgoingCallsEnabled":true,"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -217,8 +225,12 @@ def update(
             body["lastName"] = last_name
         if time_zone is not None:
             body["timeZone"] = time_zone
+        if call_policies is not None:
+            body["callPolicies"] = call_policies
         if hunt_group_caller_id_for_outgoing_calls_enabled is not None:
             body["huntGroupCallerIdForOutgoingCallsEnabled"] = hunt_group_caller_id_for_outgoing_calls_enabled
+        if direct_line_caller_id_name is not None:
+            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
     try:
@@ -340,7 +352,7 @@ def update_call_forwarding(
 
 
 
-_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'
+_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"businessScheduleLevel":"LOCATION","holidayScheduleLevel":"LOCATION"}'
 
 @app.command("create-selective-rules", short_help="Create a Selective Call Forwarding Rule for a Hunt Group.")
 def create_selective_rules(
@@ -348,15 +360,17 @@ def create_selective_rules(
     hunt_group_id: str = typer.Argument(help="Webex HUNT_GROUP id, from: wxcli hunt-group list"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the selective rule in the hunt group."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
-    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the holiday schedule used to determine when this selective call forwarding rule is in effect."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the business schedule used to determine when this selective call forwarding rule is in effect."),
+    business_schedule_level: str = typer.Option(None, "--business-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
+    holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group create-selective-rules LOCATION_ID HUNT_GROUP_ID --json-body '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true}},"callsTo":{"numbers":[{"type":"PRIMARY"}]}}'\n\n\b\nExample --json-body: '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."}}'"""
+    """Create a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group create-selective-rules LOCATION_ID HUNT_GROUP_ID --json-body '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true}},"callsTo":{"numbers":[{"type":"PRIMARY"}]}}'\n\n\b\nExample --json-body: '{"name":"...","callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"businessScheduleLevel":"LOCATION","holidayScheduleLevel":"LOCATION"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -378,6 +392,10 @@ def create_selective_rules(
             body["holidaySchedule"] = holiday_schedule
         if business_schedule is not None:
             body["businessSchedule"] = business_schedule
+        if business_schedule_level is not None:
+            body["businessScheduleLevel"] = business_schedule_level
+        if holiday_schedule_level is not None:
+            body["holidayScheduleLevel"] = holiday_schedule_level
         _missing = [f for f in ['name'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -426,7 +444,7 @@ def show_selective_rules(
 
 
 
-_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
+_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"businessScheduleLevel":"LOCATION","holidayScheduleLevel":"LOCATION"}'
 
 @app.command("update-selective-rules", short_help="Update a Selective Call Forwarding Rule for a Hunt Group.")
 def update_selective_rules(
@@ -435,8 +453,10 @@ def update_selective_rules(
     rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the hunt group."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
-    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the holiday schedule which determines when this selective call forwarding rule is in effect."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the business schedule which determines when this selective call forwarding rule is in effect."),
+    business_schedule_level: str = typer.Option(None, "--business-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
+    holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -444,7 +464,7 @@ def update_selective_rules(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group update-selective-rules LOCATION_ID HUNT_GROUP_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
+    """Update a Selective Call Forwarding Rule for a Hunt Group.\n\n\b\nExample: wxcli hunt-group update-selective-rules LOCATION_ID HUNT_GROUP_ID RULE_ID\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"holidaySchedule":"...","businessSchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]},"businessScheduleLevel":"LOCATION","holidayScheduleLevel":"LOCATION"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -466,6 +486,10 @@ def update_selective_rules(
             body["holidaySchedule"] = holiday_schedule
         if business_schedule is not None:
             body["businessSchedule"] = business_schedule
+        if business_schedule_level is not None:
+            body["businessScheduleLevel"] = business_schedule_level
+        if holiday_schedule_level is not None:
+            body["holidayScheduleLevel"] = holiday_schedule_level
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:

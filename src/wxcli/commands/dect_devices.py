@@ -111,7 +111,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("dectNetworks", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Display Name', 'displayName'), ('Chain ID', 'chainId'), ('Model', 'model')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Display Name', 'displayName'), ('Chain ID', 'chainId'), ('Default Access Code Enabled', 'defaultAccessCodeEnabled')], limit=limit)
 
 
 
@@ -229,20 +229,20 @@ def delete(
 
 
 
-_BODY_SKELETON_UPDATE_DEBUG_LEVEL = '{"debugLevel":"STANDARD"}'
+_BODY_SKELETON_UPDATE_DEBUG_LEVEL = '{"debugLevel":{}}'
 
 @app.command("update-debug-level", short_help="Update DECT Network Debug Level.")
 def update_debug_level(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     dect_network_id: str = typer.Argument(help="Webex DECT_DEV_NET id, from: wxcli dect-devices list"),
-    debug_level: str = typer.Option(None, "--debug-level", help="Choices: STANDARD, DEBUG"),
+    debug_level: str = typer.Option(None, "--debug-level", help="Debug level for the DECT network. Set to `STANDARD` for normal operational logging or `DEBUG` for detailed diagnostic logging."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update DECT Network Debug Level.\n\n\b\nExample: wxcli dect-devices update-debug-level LOCATION_ID DECT_NETWORK_ID --debug-level STANDARD\n\n\b\nExample --json-body: '{"debugLevel":"STANDARD"}'"""
+    """Update DECT Network Debug Level.\n\n\b\nExample: wxcli dect-devices update-debug-level LOCATION_ID DECT_NETWORK_ID --debug-level DEBUG_LEVEL\n\n\b\nExample --json-body: '{"debugLevel":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DEBUG_LEVEL), indent=2))
         raise typer.Exit(0)

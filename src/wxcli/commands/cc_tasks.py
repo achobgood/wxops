@@ -69,6 +69,7 @@ def create(
     outbound_type: str = typer.Option(None, "--outbound-type", help="The outbound type for the task. Supported values are ```CALLBACK```, ```OUTDIAL```, and ```EXECUTE_FLOW```. Use ```OUTDIAL``` when the user is logged into the Agent Desktop and needs to make an outbound call to the customer. Use ```CALLBACK``` when the user is not logged in and needs to schedule a..."),
     media_type: str = typer.Option(None, "--media-type", help="(required) The media type for the request. The ```telephony``` type is required for ```EXECUTE_FLOW``` and ```CALLBACK```. The supported value is ```telephony```."),
     origin: str = typer.Option(None, "--origin", help="The contact center number, which is an ANI Outdial number, that will be used while making a call to the customer. This field is mandatory for ```EXECUTE_FLOW``` and ```OUTDIAL``` type while it is optional for ```CALLBACK```. If not provided for ```CALLBACK``` type, default out-dial ANI..."),
+    callback: str = typer.Option(None, "--callback", help="Callback details. Required only when outboundType is set to ```CALLBACK```."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -96,6 +97,8 @@ def create(
             body["mediaType"] = media_type
         if origin is not None:
             body["origin"] = origin
+        if callback is not None:
+            body["callback"] = callback
         _missing = [f for f in ['destination', 'entryPointId', 'mediaType'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)

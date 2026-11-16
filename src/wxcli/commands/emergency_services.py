@@ -92,11 +92,11 @@ def show(
 
 
 
-_BODY_SKELETON_CREATE = '{"email":"...","orgPrefix":"wxc","partnerRedskyOrgId":"..."}'
+_BODY_SKELETON_CREATE = '{"email":"...","orgPrefix":{},"partnerRedskyOrgId":"..."}'
 
 @app.command("create", short_help="Create an Account and Admin in RedSky.")
 def create(
-    org_prefix: str = typer.Option(None, "--org-prefix", help="Choices: wxc, wxc-whs"),
+    org_prefix: str = typer.Option(None, "--org-prefix", help="Represents whether the customer is 'Webex Calling' or not."),
     email: str = typer.Option(None, "--email", help="(required) The email for the RedSky account administrator."),
     partner_redsky_org_id: str = typer.Option(None, "--partner-redsky-org-id", help="New organization is created under this partner organization ID if present, otherwise it will be created under a Cisco partner."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -105,7 +105,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Account and Admin in RedSky.\n\n\b\nExample: wxcli emergency-services create --email EMAIL\n\n\b\nExample --json-body: '{"email":"...","orgPrefix":"wxc","partnerRedskyOrgId":"..."}'"""
+    """Create an Account and Admin in RedSky.\n\n\b\nExample: wxcli emergency-services create --email EMAIL\n\n\b\nExample --json-body: '{"email":"...","orgPrefix":{},"partnerRedskyOrgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -170,11 +170,11 @@ def show_status_red_sky(
 
 
 
-_BODY_SKELETON_UPDATE_STATUS_RED_SKY = '{"complianceStatus":"OPTED_OUT"}'
+_BODY_SKELETON_UPDATE_STATUS_RED_SKY = '{"complianceStatus":{}}'
 
 @app.command("update-status-red-sky", short_help="Update the Organization RedSky Account's Compliance Status.")
 def update_status_red_sky(
-    compliance_status: str = typer.Option(None, "--compliance-status", help="Choices: OPTED_OUT, LOCATION_SETUP, ALERTS, NETWORK_ELEMENTS, ROUTING_ENABLED"),
+    compliance_status: str = typer.Option(None, "--compliance-status", help="Specifies which stage of the RedSky account creation process has been completed. The stages must be completed in the following order: `LOCATION_SETUP`, `ALERTS`, `NETWORK_ELEMENTS`, `ROUTING_ENABLED`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -182,7 +182,7 @@ def update_status_red_sky(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the Organization RedSky Account's Compliance Status.\n\n\b\nExample: wxcli emergency-services update-status-red-sky --compliance-status OPTED_OUT\n\n\b\nExample --json-body: '{"complianceStatus":"OPTED_OUT"}'"""
+    """Update the Organization RedSky Account's Compliance Status.\n\n\b\nExample: wxcli emergency-services update-status-red-sky --compliance-status COMPLIANCE_STATUS\n\n\b\nExample --json-body: '{"complianceStatus":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STATUS_RED_SKY), indent=2))
         raise typer.Exit(0)
@@ -338,12 +338,12 @@ def show_status_red_sky_1(
 
 
 
-_BODY_SKELETON_UPDATE_STATUS_RED_SKY_1 = '{"complianceStatus":"OPTED_OUT"}'
+_BODY_SKELETON_UPDATE_STATUS_RED_SKY_1 = '{"complianceStatus":{}}'
 
 @app.command("update-status-red-sky-1", short_help="Update a Location's RedSky Compliance Status.")
 def update_status_red_sky_1(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
-    compliance_status: str = typer.Option(None, "--compliance-status", help="Choices: OPTED_OUT, LOCATION_SETUP, ALERTS, NETWORK_ELEMENTS, ROUTING_ENABLED"),
+    compliance_status: str = typer.Option(None, "--compliance-status", help="Specifies which stage of the RedSky account creation process has been completed. The stages must be completed in the following order: `LOCATION_SETUP`, `ALERTS`, `NETWORK_ELEMENTS`, `ROUTING_ENABLED`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -351,7 +351,7 @@ def update_status_red_sky_1(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Location's RedSky Compliance Status.\n\n\b\nExample: wxcli emergency-services update-status-red-sky-1 LOCATION_ID --compliance-status OPTED_OUT\n\n\b\nExample --json-body: '{"complianceStatus":"OPTED_OUT"}'"""
+    """Update a Location's RedSky Compliance Status.\n\n\b\nExample: wxcli emergency-services update-status-red-sky-1 LOCATION_ID --compliance-status COMPLIANCE_STATUS\n\n\b\nExample --json-body: '{"complianceStatus":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STATUS_RED_SKY_1), indent=2))
         raise typer.Exit(0)
@@ -390,6 +390,7 @@ _BODY_SKELETON_CREATE_BUILDING = '{"alertingEmail":"...","address":{"addressLine
 def create_building(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     alerting_email: str = typer.Option(None, "--alerting-email", help="(required) Email that is used to create alerts in RedSky. At least one email is mandatory."),
+    address: str = typer.Option(None, "--address", help="Contains address information for the building."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -412,6 +413,8 @@ def create_building(
         body = {}
         if alerting_email is not None:
             body["alertingEmail"] = alerting_email
+        if address is not None:
+            body["address"] = address
         _missing = [f for f in ['alertingEmail'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -439,6 +442,7 @@ _BODY_SKELETON_UPDATE_BUILDING = '{"address":{"addressLine1":"...","addressLine2
 @app.command("update-building", short_help="Update a RedSky Building Address for a Location.")
 def update_building(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
+    address: str = typer.Option(None, "--address", help="Contains address information for the building."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -459,6 +463,8 @@ def update_building(
         body = load_json_body(json_body)
     else:
         body = {}
+        if address is not None:
+            body["address"] = address
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -669,12 +675,12 @@ def show_emergency_callback_number_people(
 
 
 
-_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_PEOPLE = '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'
+_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_PEOPLE = '{"selected":{},"locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'
 
 @app.command("update-emergency-callback-number-people", short_help="Update a Person's Emergency Callback Number.")
 def update_emergency_callback_number_people(
     person_id: str = typer.Argument(help="Webex PEOPLE id, from: wxcli people list"),
-    selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
+    selected: str = typer.Option(None, "--selected", help="The source from which the emergency calling line ID (CLID) is selected for an actual emergency call."),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within the location. Required when `selected` is `LOCATION_MEMBER_NUMBER`."),
     elin_enabled: bool = typer.Option(None, "--elin-enabled/--no-elin-enabled", help="Indicates whether this person is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made from one of their devices."),
     elin_for_webex_app_enabled: bool = typer.Option(None, "--elin-for-webex-app-enabled/--no-elin-for-webex-app-enabled", help="Indicates whether this member is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made using Webex App."),
@@ -685,7 +691,7 @@ def update_emergency_callback_number_people(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Person's Emergency Callback Number.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-people PERSON_ID\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'"""
+    """Update a Person's Emergency Callback Number.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-people PERSON_ID\n\n\b\nExample --json-body: '{"selected":{},"locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_PEOPLE), indent=2))
         raise typer.Exit(0)
@@ -772,12 +778,12 @@ def show_emergency_callback_number_workspaces(
 
 
 
-_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_WORKSPACES = '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true}'
+_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_WORKSPACES = '{"selected":{},"locationMemberId":"...","elinEnabled":true}'
 
 @app.command("update-emergency-callback-number-workspaces", short_help="Update a Workspace Emergency Callback Number.")
 def update_emergency_callback_number_workspaces(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
+    selected: str = typer.Option(None, "--selected", help="The source from which the emergency calling line ID (CLID) is selected for an actual emergency call."),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within the location. Required when `selected` is `LOCATION_MEMBER_NUMBER`."),
     elin_enabled: bool = typer.Option(None, "--elin-enabled/--no-elin-enabled", help="Indicates whether this workspace is allowed to use an Emergency Location Identification Number (ELIN) for emergency calls made from one of its devices."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
@@ -787,7 +793,7 @@ def update_emergency_callback_number_workspaces(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Workspace Emergency Callback Number.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-workspaces WORKSPACE_ID\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true}'"""
+    """Update a Workspace Emergency Callback Number.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-workspaces WORKSPACE_ID\n\n\b\nExample --json-body: '{"selected":{},"locationMemberId":"...","elinEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_WORKSPACES), indent=2))
         raise typer.Exit(0)
@@ -896,12 +902,12 @@ def show_emergency_callback_number_virtual_lines(
 
 
 
-_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_VIRTUAL_LINES = '{"selected":"DIRECT_LINE","locationMemberId":"..."}'
+_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_VIRTUAL_LINES = '{"selected":{},"locationMemberId":"..."}'
 
 @app.command("update-emergency-callback-number-virtual-lines", short_help="Update a Virtual Line's Emergency Callback settings.")
 def update_emergency_callback_number_virtual_lines(
     virtual_line_id: str = typer.Argument(help="Webex VIRTUAL_LINE id, from: wxcli virtual-line-settings list"),
-    selected: str = typer.Option(None, "--selected", help="Choices: DIRECT_LINE, LOCATION_ECBN, LOCATION_MEMBER_NUMBER"),
+    selected: str = typer.Option(None, "--selected", help="The source from which the emergency calling line ID (CLID) is selected for an actual emergency call."),
     location_member_id: str = typer.Option(None, "--location-member-id", help="Member ID of person/workspace/virtual line/hunt group within the location. Required when `selected` is `LOCATION_MEMBER_NUMBER`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -910,7 +916,7 @@ def update_emergency_callback_number_virtual_lines(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Virtual Line's Emergency Callback settings.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-virtual-lines VIRTUAL_LINE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","locationMemberId":"..."}'"""
+    """Update a Virtual Line's Emergency Callback settings.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-virtual-lines VIRTUAL_LINE_ID --selected SELECTED\n\n\b\nExample --json-body: '{"selected":{},"locationMemberId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_VIRTUAL_LINES), indent=2))
         raise typer.Exit(0)

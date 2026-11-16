@@ -71,12 +71,13 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":"ROUTE_GROUP"}}'
+_BODY_SKELETON_UPDATE = '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":{}}}'
 
 @app.command("update", short_help="Modify the Internal Dialing configuration for a location.")
 def update(
     location_id: str = typer.Argument(help="Webex LOCATION id, from: wxcli location-settings list-calling-details"),
     enable_unknown_extension_route_policy: bool = typer.Option(None, "--enable-unknown-extension-route-policy/--no-enable-unknown-extension-route-policy", help="When enabled, calls made by users at the location to an unknown extension (between 2-6 digits) are routed to the selected route group/trunk as premises calls."),
+    unknown_extension_route_identity: str = typer.Option(None, "--unknown-extension-route-identity", help="Type associated with the identity."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -84,7 +85,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify the Internal Dialing configuration for a location.\n\n\b\nExample: wxcli location-call-handling update LOCATION_ID\n\n\b\nExample --json-body: '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":"ROUTE_GROUP"}}'"""
+    """Modify the Internal Dialing configuration for a location.\n\n\b\nExample: wxcli location-call-handling update LOCATION_ID\n\n\b\nExample --json-body: '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":{}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -100,6 +101,8 @@ def update(
         body = {}
         if enable_unknown_extension_route_policy is not None:
             body["enableUnknownExtensionRoutePolicy"] = enable_unknown_extension_route_policy
+        if unknown_extension_route_identity is not None:
+            body["unknownExtensionRouteIdentity"] = unknown_extension_route_identity
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:

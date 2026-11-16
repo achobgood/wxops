@@ -56,7 +56,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("operatingModes", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Level', 'level')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name')], limit=limit)
 
 
 
@@ -90,6 +90,9 @@ _BODY_SKELETON_UPDATE = '{"name":"...","sameHoursDaily":{"mondayToFriday":{"enab
 def update(
     mode_id: str = typer.Argument(help="Webex OPERATING_MODE id, from: wxcli operating-modes list"),
     name: str = typer.Option(None, "--name", help="New unique name for the `operating mode`."),
+    same_hours_daily: str = typer.Option(None, "--same-hours-daily", help="Updated schedule for same hours daily."),
+    different_hours_daily: str = typer.Option(None, "--different-hours-daily", help="Updated schedule for different hours daily."),
+    call_forwarding: str = typer.Option(None, "--call-forwarding", help="Updated call forwarding settings for an `operating mode`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -113,6 +116,12 @@ def update(
         body = {}
         if name is not None:
             body["name"] = name
+        if same_hours_daily is not None:
+            body["sameHoursDaily"] = same_hours_daily
+        if different_hours_daily is not None:
+            body["differentHoursDaily"] = different_hours_daily
+        if call_forwarding is not None:
+            body["callForwarding"] = call_forwarding
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -162,21 +171,24 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"monday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"tuesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"wednesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"thursday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"friday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'
+_BODY_SKELETON_CREATE = '{"name":"...","type":{},"level":{},"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"monday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"tuesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"wednesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"thursday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"friday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'
 
 @app.command("create", short_help="Create an Operating Mode.")
 def create(
     name: str = typer.Option(None, "--name", help="(required) Unique name for the `operating mode`."),
-    type_param: str = typer.Option(None, "--type", help="(required) Choices: SAME_HOURS_DAILY, DIFFERENT_HOURS_DAILY, HOLIDAY, NONE"),
-    level: str = typer.Option(None, "--level", help="(required) Choices: ORGANIZATION, LOCATION"),
+    type_param: str = typer.Option(None, "--type", help="(required) Defines the scheduling of the `operating mode`."),
+    level: str = typer.Option(None, "--level", help="(required) Level at which the `operating mode` would be defined."),
     location_id: str = typer.Option(None, "--location-id", help="Unique identifier of the location. Mandatory if level is `LOCATION`."),
+    same_hours_daily: str = typer.Option(None, "--same-hours-daily", help="`Operating mode` schedule for same hours daily. Mandatory if type is `SAME_HOURS_DAILY`."),
+    different_hours_daily: str = typer.Option(None, "--different-hours-daily", help="`Operating mode` schedule for different hours daily. Mandatory if type is `DIFFERENT_HOURS_DAILY`."),
+    call_forwarding: str = typer.Option(None, "--call-forwarding", help="(required) Call forwarding settings for an `operating mode`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Operating Mode.\n\n\b\nExample: wxcli operating-modes create --json-body '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true}}'\n\n\b\nExample --json-body: '{"name":"...","type":"SAME_HOURS_DAILY","level":"ORGANIZATION","callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"monday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"tuesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"wednesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"thursday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"friday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'"""
+    """Create an Operating Mode.\n\n\b\nExample: wxcli operating-modes create --name NAME --type TYPE_PARAM --level LEVEL --call-forwarding CALL_FORWARDING\n\n\b\nExample --json-body: '{"name":"...","type":{},"level":{},"callForwarding":{"enabled":true,"destination":"...","destinationVoicemailEnabled":true},"locationId":"...","sameHoursDaily":{"mondayToFriday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturdayToSunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"differentHoursDaily":{"sunday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"monday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"tuesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"wednesday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"thursday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"friday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."},"saturday":{"enabled":true,"allDayEnabled":true,"startTime":"...","endTime":"..."}},"holidays":[{"name":"...","allDayEnabled":true,"startDate":"...","endDate":"...","startTime":"...","endTime":"...","recurrence":{"recurYearlyByDate":{"dayOfMonth":0,"month":"JANUARY"},"recurYearlyByDay":{"day":"SUNDAY","week":"FIRST","month":"JANUARY"}}}]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -198,7 +210,13 @@ def create(
             body["level"] = level
         if location_id is not None:
             body["locationId"] = location_id
-        _missing = [f for f in ['name', 'type', 'level'] if f not in body or body[f] is None]
+        if same_hours_daily is not None:
+            body["sameHoursDaily"] = same_hours_daily
+        if different_hours_daily is not None:
+            body["differentHoursDaily"] = different_hours_daily
+        if call_forwarding is not None:
+            body["callForwarding"] = call_forwarding
+        _missing = [f for f in ['name', 'type', 'level', 'callForwarding'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -257,6 +275,7 @@ def update_holidays(
     end_date: str = typer.Option(None, "--end-date", help="End date of the `operating mode holiday`."),
     start_time: str = typer.Option(None, "--start-time", help="Start time for the `operating mode holiday`. Mandatory if `allDayEnabled` is not set."),
     end_time: str = typer.Option(None, "--end-time", help="End time for the `operating mode holiday`. Mandatory if `allDayEnabled` is not set."),
+    recurrence: str = typer.Option(None, "--recurrence", help="Recurrence configuration for the `operating mode holiday`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -290,6 +309,8 @@ def update_holidays(
             body["startTime"] = start_time
         if end_time is not None:
             body["endTime"] = end_time
+        if recurrence is not None:
+            body["recurrence"] = recurrence
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -351,6 +372,7 @@ def create_holidays(
     end_date: str = typer.Option(None, "--end-date", help="(required) End date of the `operating mode holiday`."),
     start_time: str = typer.Option(None, "--start-time", help="Start time for the `operating mode holiday`. Mandatory if `allDayEnabled` is false."),
     end_time: str = typer.Option(None, "--end-time", help="End time for the `operating mode holiday`. Mandatory if `allDayEnabled` is false."),
+    recurrence: str = typer.Option(None, "--recurrence", help="Recurrence configuration for the `operating mode holiday`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -383,6 +405,8 @@ def create_holidays(
             body["startTime"] = start_time
         if end_time is not None:
             body["endTime"] = end_time
+        if recurrence is not None:
+            body["recurrence"] = recurrence
         _missing = [f for f in ['name', 'allDayEnabled', 'startDate', 'endDate'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -481,6 +505,6 @@ def list_available_numbers(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 

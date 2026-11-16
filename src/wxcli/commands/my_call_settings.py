@@ -115,7 +115,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("endpoints", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Is Preferred Answer Endpoint', 'isPreferredAnswerEndpoint')], limit=limit)
 
 
 
@@ -146,7 +146,7 @@ def list_available_preferred_answer_endpoints(
         handle_network_error(e)
     result = result or []
     items = result.get("endpoints", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Is Preferred Answer Endpoint', 'isPreferredAnswerEndpoint')], limit=limit)
 
 
 
@@ -1959,24 +1959,25 @@ def update_priority_alert(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_PRIORITY_ALERT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true}'
+_BODY_SKELETON_CREATE_CRITERIA_PRIORITY_ALERT = '{"callsFrom":"ANY_PHONE_NUMBER","notificationEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringPattern":"NORMAL"}'
 
 @app.command("create-criteria-priority-alert", short_help="Add a Priority Alert Criteria.")
 def create_criteria_priority_alert(
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criteria."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criterion. When provided with a non-empty value, `scheduleType` and `scheduleLevel` must also be provided. Omit this field or set it to an empty string to create the criterion without a schedule association. When no schedule is associated, the..."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION"),
-    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
-    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="Determines whether priority alerting is applied for calls matching this criteria. If `true`, priority alerting is applied. If `false`, this criteria acts as a 'Don't Alert' rule, preventing priority alerting. Criteria with `notificationEnabled` set to `false` (Don't Alert) take precedence over..."),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION, ORGANIZATION"),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criterion. Required when `callsFrom` is `SELECT_PHONE_NUMBERS`; omit otherwise."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criterion. Required when `callsFrom` is `SELECT_PHONE_NUMBERS`; omit otherwise."),
+    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="(required) Determines whether priority alerting is applied for calls matching this criterion. This field is required and cannot be `null`. If `true`, priority alerting is applied. If `false`, this criterion acts as a 'Don't Alert' rule, preventing priority alerting. Criteria with `notificationEnabled` set to..."),
+    ring_pattern: str = typer.Option(None, "--ring-pattern", help="Choices: NORMAL, LONG_LONG, SHORT_LONG_SHORT, SHORT_SHORT_LONG"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add a Priority Alert Criteria.\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true}'"""
+    """Add a Priority Alert Criteria.\n\n\b\nExample: wxcli my-call-settings create-criteria-priority-alert --calls-from ANY_PHONE_NUMBER --notification-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","notificationEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringPattern":"NORMAL"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_PRIORITY_ALERT), indent=2))
         raise typer.Exit(0)
@@ -2000,6 +2001,12 @@ def create_criteria_priority_alert(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if notification_enabled is not None:
             body["notificationEnabled"] = notification_enabled
+        if ring_pattern is not None:
+            body["ringPattern"] = ring_pattern
+        _missing = [f for f in ['callsFrom', 'notificationEnabled'] if f not in body or body[f] is None]
+        if _missing:
+            typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
+            raise typer.Exit(1)
     try:
         result = api.session.rest_post(url, json=body)
     except WebexError as e:
@@ -2038,18 +2045,19 @@ def show_criteria_priority_alert(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_PRIORITY_ALERT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true}'
+_BODY_SKELETON_UPDATE_CRITERIA_PRIORITY_ALERT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true,"ringPattern":"NORMAL"}'
 
 @app.command("update-criteria-priority-alert", short_help="Modify Settings for a Priority Alert Criteria.")
 def update_criteria_priority_alert(
     id: str = typer.Argument(help="Webex CRITERIA id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criteria."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criterion. When provided with a non-empty value, `scheduleType` and `scheduleLevel` must also be provided. Set `scheduleName` to `null` or an empty string to remove the current schedule association. When no schedule is associated, the criterion is..."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION"),
-    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
-    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="Determines whether priority alerting is applied for calls matching this criteria. If `true`, priority alerting is applied. If `false`, this criteria acts as a 'Don't Alert' rule, preventing priority alerting. Criteria with `notificationEnabled` set to `false` (Don't Alert) take precedence over..."),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION, ORGANIZATION"),
+    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL"),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criterion. Required when `callsFrom` is `SELECT_PHONE_NUMBERS`; omit otherwise."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criterion. Required when `callsFrom` is `SELECT_PHONE_NUMBERS`; omit otherwise."),
+    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="Determines whether priority alerting is applied for calls matching this criterion. Omit it to preserve the current value. This field cannot be cleared with `null`. If `true`, priority alerting is applied. If `false`, this criterion acts as a 'Don't Alert' rule, preventing priority alerting...."),
+    ring_pattern: str = typer.Option(None, "--ring-pattern", help="Choices: NORMAL, LONG_LONG, SHORT_LONG_SHORT, SHORT_SHORT_LONG"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -2057,7 +2065,7 @@ def update_criteria_priority_alert(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Settings for a Priority Alert Criteria.\n\n\b\nExample: wxcli my-call-settings update-criteria-priority-alert ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true}'"""
+    """Modify Settings for a Priority Alert Criteria.\n\n\b\nExample: wxcli my-call-settings update-criteria-priority-alert ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true,"ringPattern":"NORMAL"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_PRIORITY_ALERT), indent=2))
         raise typer.Exit(0)
@@ -2081,6 +2089,8 @@ def update_criteria_priority_alert(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if notification_enabled is not None:
             body["notificationEnabled"] = notification_enabled
+        if ring_pattern is not None:
+            body["ringPattern"] = ring_pattern
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
@@ -2494,6 +2504,27 @@ def show_schedules_locations(
 
 
 
+@app.command("show-schedules-organization", short_help="Get an Organization Schedule for the User.")
+def show_schedules_organization(
+    schedule_type: str = typer.Argument(help="one of: holidays|businessHours, from: wxcli my-call-settings list-schedules"),
+    schedule_id: str = typer.Argument(help="Webex USER_SCHEDULE id, from: wxcli my-call-settings list-schedules"),
+    output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
+    fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
+    debug: bool = typer.Option(False, "--debug"),
+):
+    """Get an Organization Schedule for the User.\n\n\b\nExample: wxcli my-call-settings show-schedules-organization holidays SCHEDULE_ID"""
+    api = get_api(debug=debug)
+    url = f"https://webexapis.com/v1/telephony/config/people/me/organization/schedules/{schedule_type}/{schedule_id}"
+    try:
+        result = api.session.rest_get(url)
+    except WebexError as e:
+        handle_rest_error(e)
+    except httpx.HTTPError as e:
+        handle_network_error(e)
+    emit(result, output=output, fields=fields)
+
+
+
 @app.command("list-call-notify", short_help="Get Call Notify Settings for User.")
 def list_call_notify(
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -2566,7 +2597,7 @@ _BODY_SKELETON_CREATE_CRITERIA_CALL_NOTIFY = '{"scheduleName":"...","scheduleTyp
 def create_criteria_call_notify(
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criteria."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -2646,7 +2677,7 @@ def update_criteria_call_notify(
     id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criteria."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -2790,14 +2821,14 @@ def update_selective_accept(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_ACCEPT = '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_ACCEPT = '{"callsFrom":{},"acceptEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
 @app.command("create-criteria-selective-accept", short_help="Add User Selective Call Accept Criteria.")
 def create_criteria_selective_accept(
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
-    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
-    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="The schedule type."),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="schedule level of the criteria."),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Accept calls selection."),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
     accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="(required) Boolean flag indicating if selective call accept is enabled."),
@@ -2807,7 +2838,7 @@ def create_criteria_selective_accept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add User Selective Call Accept Criteria.\n\n\b\nExample: wxcli my-call-settings create-criteria-selective-accept --calls-from ANY_PHONE_NUMBER --accept-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Add User Selective Call Accept Criteria.\n\n\b\nExample: wxcli my-call-settings create-criteria-selective-accept --calls-from CALLS_FROM --accept-enabled\n\n\b\nExample --json-body: '{"callsFrom":{},"acceptEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_ACCEPT), indent=2))
         raise typer.Exit(0)
@@ -2873,15 +2904,15 @@ def show_criteria_selective_accept(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_ACCEPT = '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_ACCEPT = '{"callsFrom":{},"acceptEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
 @app.command("update-criteria-selective-accept", short_help="Modify a Selective Call Accept Criteria.")
 def update_criteria_selective_accept(
     id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
-    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
-    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="Schedule Type."),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="schedule level of the criteria."),
+    calls_from: str = typer.Option(None, "--calls-from", help="Accept calls from selected."),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
     accept_enabled: bool = typer.Option(None, "--accept-enabled/--no-accept-enabled", help="Boolean flag to enable/disable the selective accept criteria."),
@@ -2892,7 +2923,7 @@ def update_criteria_selective_accept(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Selective Call Accept Criteria.\n\n\b\nExample: wxcli my-call-settings update-criteria-selective-accept ID --calls-from ANY_PHONE_NUMBER --accept-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Modify a Selective Call Accept Criteria.\n\n\b\nExample: wxcli my-call-settings update-criteria-selective-accept ID --calls-from CALLS_FROM --accept-enabled\n\n\b\nExample --json-body: '{"callsFrom":{},"acceptEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_ACCEPT), indent=2))
         raise typer.Exit(0)
@@ -3014,7 +3045,7 @@ def create_criteria_selective_forward(
     destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Indicates whether calls that meet the criteria are forwarded to the destination phone number's voicemail."),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criteria."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -3100,7 +3131,7 @@ def update_criteria_selective_forward(
     destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Indicates whether calls that meet the criteria are forwarded to the destination phone number's voicemail."),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criteria."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criteria. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -3320,14 +3351,14 @@ def update_selective_reject(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_REJECT = '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_REJECT = '{"callsFrom":{},"rejectEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
 @app.command("create-criteria-selective-reject", short_help="Add User Selective Call Reject Criteria.")
 def create_criteria_selective_reject(
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
-    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
-    calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="The schedule type."),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="schedule level of the criteria."),
+    calls_from: str = typer.Option(None, "--calls-from", help="(required) Reject calls selection."),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
     reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="(required) Boolean flag to enable/disable rejection."),
@@ -3337,7 +3368,7 @@ def create_criteria_selective_reject(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add User Selective Call Reject Criteria.\n\n\b\nExample: wxcli my-call-settings create-criteria-selective-reject --calls-from ANY_PHONE_NUMBER --reject-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Add User Selective Call Reject Criteria.\n\n\b\nExample: wxcli my-call-settings create-criteria-selective-reject --calls-from CALLS_FROM --reject-enabled\n\n\b\nExample --json-body: '{"callsFrom":{},"rejectEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -3463,15 +3494,15 @@ def show_criteria_selective_reject(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_REJECT = '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_REJECT = '{"callsFrom":{},"rejectEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
 @app.command("update-criteria-selective-reject", short_help="Modify a Selective Call Reject Criteria.")
 def update_criteria_selective_reject(
     id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to which the criteria is created."),
-    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
-    calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="schedule type."),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="schedule level of the criteria."),
+    calls_from: str = typer.Option(None, "--calls-from", help="Reject calls selection."),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Boolean flag indicating if calls from custom numbers, private numbers are enabled."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Boolean flag indicating if calls from custom numbers, unavailable numbers are enabled."),
     reject_enabled: bool = typer.Option(None, "--reject-enabled/--no-reject-enabled", help="Boolean flag to enable/disable rejection."),
@@ -3482,7 +3513,7 @@ def update_criteria_selective_reject(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify a Selective Call Reject Criteria.\n\n\b\nExample: wxcli my-call-settings update-criteria-selective-reject ID --calls-from ANY_PHONE_NUMBER --reject-enabled\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Modify a Selective Call Reject Criteria.\n\n\b\nExample: wxcli my-call-settings update-criteria-selective-reject ID --calls-from CALLS_FROM --reject-enabled\n\n\b\nExample --json-body: '{"callsFrom":{},"rejectEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -3690,9 +3721,9 @@ _BODY_SKELETON_CREATE_CRITERIA_SEQUENTIAL_RING = '{"callsFrom":"SELECT_PHONE_NUM
 
 @app.command("create-criteria-sequential-ring", short_help="Add User Sequential Ring Criteria.")
 def create_criteria_sequential_ring(
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the sequential ring is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the sequential ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: holidays, businessHours"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: SELECT_PHONE_NUMBERS, ANY_PHONE_NUMBER"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true` incoming calls from private numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true` incoming calls from unavailable numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
@@ -3776,7 +3807,7 @@ def update_criteria_sequential_ring(
     id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criteria."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, LOCATION, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, means this criteria applies for anonymous callers. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, means this criteria applies for unavailable callers. Required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -3953,7 +3984,7 @@ def update_criteria_simultaneous_ring(
     id: str = typer.Argument(help="Webex CRITERIA id"),
     schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: PEOPLE, GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, the criteria applies to calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, the criteria applies to calls from unavailable callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -4034,13 +4065,13 @@ def delete_criteria_simultaneous_ring(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SIMULTANEOUS_RING = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_CREATE_CRITERIA_SIMULTANEOUS_RING = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":{},"callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
 @app.command("create-criteria-simultaneous-ring", short_help="Create My Simultaneous Ring Criteria.")
 def create_criteria_simultaneous_ring(
     schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: PEOPLE, GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Scope of the associated schedule."),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, the criteria applies to calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, the criteria applies to calls from unavailable callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -4051,7 +4082,7 @@ def create_criteria_simultaneous_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create My Simultaneous Ring Criteria.\n\n\b\nExample: wxcli my-call-settings create-criteria-simultaneous-ring --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level PEOPLE --calls-from ANY_PHONE_NUMBER --ring-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"PEOPLE","callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Create My Simultaneous Ring Criteria.\n\n\b\nExample: wxcli my-call-settings create-criteria-simultaneous-ring --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level SCHEDULE_LEVEL --calls-from ANY_PHONE_NUMBER --ring-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":{},"callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SIMULTANEOUS_RING), indent=2))
         raise typer.Exit(0)

@@ -164,6 +164,7 @@ def update_group_meetings(
     require_attendee_login: str = typer.Option(None, "--require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
     restrict_to_invitees: str = typer.Option(None, "--restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
     enabled_live_stream: str = typer.Option(None, "--enabled-live-stream", help="When `true`, live streaming is enabled."),
+    live_stream: str = typer.Option(None, "--live-stream", help="Live streaming settings. Applies when `enabledLiveStream` is `true`."),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -246,6 +247,8 @@ def update_group_meetings(
             patch_op["restrictToInvitees"] = restrict_to_invitees
         if enabled_live_stream is not None:
             patch_op["enabledLiveStream"] = enabled_live_stream
+        if live_stream is not None:
+            patch_op["liveStream"] = live_stream
         if value is not None:
             try:
                 patch_op["value"] = json.loads(value)
@@ -460,6 +463,7 @@ def create(
     require_attendee_login: bool = typer.Option(None, "--require-attendee-login/--no-require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
     restrict_to_invitees: bool = typer.Option(None, "--restrict-to-invitees/--no-restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
     enabled_live_stream: bool = typer.Option(None, "--enabled-live-stream/--no-enabled-live-stream", help="Whether or not live streaming is enabled. If it's enabled, the `liveStream` must be specified. The RTMP streaming specified by `liveStream.rtmpUrl` can be started and viewed during the meeting without any ad-hoc settings."),
+    live_stream: str = typer.Option(None, "--live-stream", help="Live streaming settings. It applies when `enabledLiveStream` is `true`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
@@ -550,6 +554,8 @@ def create(
             body["restrictToInvitees"] = restrict_to_invitees
         if enabled_live_stream is not None:
             body["enabledLiveStream"] = enabled_live_stream
+        if live_stream is not None:
+            body["liveStream"] = live_stream
         _missing = [f for f in ['title', 'start', 'end'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -636,6 +642,7 @@ def update(
     require_attendee_login: bool = typer.Option(None, "--require-attendee-login/--no-require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
     restrict_to_invitees: bool = typer.Option(None, "--restrict-to-invitees/--no-restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
     enabled_live_stream: bool = typer.Option(None, "--enabled-live-stream/--no-enabled-live-stream", help="Whether or not live streaming is enabled."),
+    live_stream: str = typer.Option(None, "--live-stream", help="Live streaming settings. It applies when `enabledLiveStream` is `true`."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -717,6 +724,8 @@ def update(
             body["restrictToInvitees"] = restrict_to_invitees
         if enabled_live_stream is not None:
             body["enabledLiveStream"] = enabled_live_stream
+        if live_stream is not None:
+            body["liveStream"] = live_stream
     try:
         result = api.session.rest_put(url, json=body)
     except WebexError as e:
@@ -772,6 +781,7 @@ def update_meetings(
     require_attendee_login: str = typer.Option(None, "--require-attendee-login", help="Require attendees to sign in before joining the webinar. This option works when the value of `scheduledType` attribute is `webinar`. Please note that `requireAttendeeLogin` cannot be set if someone has already registered for the webinar."),
     restrict_to_invitees: str = typer.Option(None, "--restrict-to-invitees", help="Restrict webinar to invited attendees only. This option works when the registration option is disabled and the value of `scheduledType` attribute is `webinar`. Please note that `restrictToInvitees` cannot be set to `true` if `requireAttendeeLogin` is `false`."),
     enabled_live_stream: str = typer.Option(None, "--enabled-live-stream", help="Whether or not live streaming is enabled."),
+    live_stream: str = typer.Option(None, "--live-stream", help="Live streaming settings. It applies when `enabledLiveStream` is `true`."),
     value: str = typer.Option(None, "--value", help="Value for replace op (JSON-parsed: string, number, bool, or array)"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -854,6 +864,8 @@ def update_meetings(
             patch_op["restrictToInvitees"] = restrict_to_invitees
         if enabled_live_stream is not None:
             patch_op["enabledLiveStream"] = enabled_live_stream
+        if live_stream is not None:
+            patch_op["liveStream"] = live_stream
         if value is not None:
             try:
                 patch_op["value"] = json.loads(value)

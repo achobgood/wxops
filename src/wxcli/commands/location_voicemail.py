@@ -106,7 +106,7 @@ def show_voice_portal(
 
 
 
-_BODY_SKELETON_UPDATE_VOICE_PORTAL = '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_UPDATE_VOICE_PORTAL = '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("update-voice-portal", short_help="Update VoicePortal.")
 def update_voice_portal(
@@ -117,6 +117,7 @@ def update_voice_portal(
     phone_number: str = typer.Option(None, "--phone-number", help="Phone Number of incoming call."),
     first_name: str = typer.Option(None, "--first-name", help="Caller ID First Name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     last_name: str = typer.Option(None, "--last-name", help="Caller ID Last Name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
+    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Settings for the direct line caller ID name to be shown for this voice portal."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -125,7 +126,7 @@ def update_voice_portal(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update VoicePortal.\n\n\b\nExample: wxcli location-voicemail update-voice-portal LOCATION_ID\n\n\b\nExample --json-body: '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Update VoicePortal.\n\n\b\nExample: wxcli location-voicemail update-voice-portal LOCATION_ID\n\n\b\nExample --json-body: '{"name":"...","languageCode":"...","extension":"...","phoneNumber":"...","firstName":"...","lastName":"...","passcode":{"newPasscode":"...","confirmPasscode":"..."},"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICE_PORTAL), indent=2))
         raise typer.Exit(0)
@@ -151,6 +152,8 @@ def update_voice_portal(
             body["firstName"] = first_name
         if last_name is not None:
             body["lastName"] = last_name
+        if direct_line_caller_id_name is not None:
+            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
     try:
@@ -264,7 +267,7 @@ def show_voicemail_groups(
 
 
 
-_BODY_SKELETON_UPDATE_VOICEMAIL_GROUPS = '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"...","greeting":"DEFAULT","greetingDescription":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_UPDATE_VOICEMAIL_GROUPS = '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"...","greeting":"DEFAULT","greetingDescription":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("update-voicemail-groups", short_help="Modify Location Voicemail Group.")
 def update_voicemail_groups(
@@ -280,6 +283,7 @@ def update_voicemail_groups(
     language_code: str = typer.Option(None, "--language-code", help="Language code for the voicemail group audio announcement."),
     greeting: str = typer.Option(None, "--greeting", help="Choices: DEFAULT, CUSTOM"),
     greeting_description: str = typer.Option(None, "--greeting-description", help="CUSTOM greeting for previously uploaded."),
+    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Settings for the direct line caller ID name to be shown for this voicemail group."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -288,7 +292,7 @@ def update_voicemail_groups(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Location Voicemail Group.\n\n\b\nExample: wxcli location-voicemail update-voicemail-groups LOCATION_ID VOICEMAIL_GROUP_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"...","greeting":"DEFAULT","greetingDescription":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Modify Location Voicemail Group.\n\n\b\nExample: wxcli location-voicemail update-voicemail-groups LOCATION_ID VOICEMAIL_GROUP_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":0,"firstName":"...","lastName":"...","enabled":true,"passcode":0,"languageCode":"...","greeting":"DEFAULT","greetingDescription":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_VOICEMAIL_GROUPS), indent=2))
         raise typer.Exit(0)
@@ -322,6 +326,8 @@ def update_voicemail_groups(
             body["greeting"] = greeting
         if greeting_description is not None:
             body["greetingDescription"] = greeting_description
+        if direct_line_caller_id_name is not None:
+            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
     try:
@@ -374,7 +380,7 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"phoneNumber":"...","firstName":"...","lastName":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"phoneNumber":"...","firstName":"...","lastName":"...","directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("create", short_help="Create a new Voicemail Group for a Location.")
 def create(
@@ -386,6 +392,7 @@ def create(
     last_name: str = typer.Option(None, "--last-name", help="Set voicemail group called ID last name. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     passcode: str = typer.Option(None, "--passcode", help="(required) Set passcode to access voicemail group when calling."),
     language_code: str = typer.Option(None, "--language-code", help="(required) Language code for voicemail group audio announcement."),
+    direct_line_caller_id_name: str = typer.Option(None, "--direct-line-caller-id-name", help="Settings for the direct line caller ID name to be shown for this voicemail group."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="The name to be used for dial by name functions. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
@@ -393,7 +400,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a new Voicemail Group for a Location.\n\n\b\nExample: wxcli location-voicemail create LOCATION_ID --json-body '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL"},"notifications":{"enabled":true},"faxMessage":{"enabled":true},"transferToNumber":{"enabled":true},"emailCopyOfMessage":{"enabled":true}}'\n\n\b\nExample --json-body: '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"phoneNumber":"...","firstName":"...","lastName":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Create a new Voicemail Group for a Location.\n\n\b\nExample: wxcli location-voicemail create LOCATION_ID --json-body '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL"},"notifications":{"enabled":true},"faxMessage":{"enabled":true},"transferToNumber":{"enabled":true},"emailCopyOfMessage":{"enabled":true}}'\n\n\b\nExample --json-body: '{"name":"...","extension":0,"passcode":0,"languageCode":"...","messageStorage":{"storageType":"INTERNAL","externalEmail":"..."},"notifications":{"enabled":true,"destination":"..."},"faxMessage":{"enabled":true,"phoneNumber":"...","extension":0},"transferToNumber":{"enabled":true,"destination":"..."},"emailCopyOfMessage":{"enabled":true,"emailId":"..."},"phoneNumber":"...","firstName":"...","lastName":"...","directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -421,6 +428,8 @@ def create(
             body["passcode"] = passcode
         if language_code is not None:
             body["languageCode"] = language_code
+        if direct_line_caller_id_name is not None:
+            body["directLineCallerIdName"] = direct_line_caller_id_name
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
         _missing = [f for f in ['name', 'extension', 'passcode', 'languageCode'] if f not in body or body[f] is None]
@@ -481,7 +490,7 @@ def list_available_numbers_fax_message(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Telephony Type', 'telephonyType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 
 
@@ -521,7 +530,7 @@ def list_available_numbers_voicemail_groups(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Telephony Type', 'telephonyType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 
 
@@ -561,6 +570,6 @@ def list_available_numbers_voice_portal(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Telephony Type', 'telephonyType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 

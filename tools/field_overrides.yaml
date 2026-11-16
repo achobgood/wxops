@@ -1848,6 +1848,20 @@ tag_overrides:
         "update-pin": "update-voicemail-pin"
         "show-guest": "show-hoteling-guest"
         "update-guest": "update-hoteling-guest"
+    # Spec sync 2026-11-16: upstream added name validators for schedules and
+    # schedule events at both scopes. Two ops per tag derived the same base
+    # name, so one got a meaningless `-1` (drift check 12). None has shipped
+    # yet, so name all four for what they validate (summaries:
+    # "Validate a Location Schedule [Event] Name",
+    # "Validate an Organization Schedule [Event] Name").
+    "Location Call Settings:  Schedules":
+      command_name_overrides:
+        "validate-a-location-invoke": "validate-event-name"
+        "validate-a-location-invoke-1": "validate-name"
+    "Org-Wide Schedules":
+      command_name_overrides:
+        "validate-an-organization-invoke": "validate-name"
+        "validate-an-organization-invoke-1": "validate-event-name"
   webex-contact-center.json:
     # Plan 2 Task 15. The spec's `fields` query param on GET /v1/{orgId}/functions
     # ("id,name,status", evaluated by the API) is not wxcli's client-side --fields
