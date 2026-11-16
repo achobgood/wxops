@@ -1,0 +1,22 @@
+spec-sync 2026-11-16 — failed closed (contract §2 D / §4)
+
+Pass bar item: TERM=dumb COLUMNS=400 python3 -m pytest tests/ -m "not live" -q
+Result: 1 failed, 5494 passed, 21 skipped, 57 deselected, 2 xfailed
+
+E       AssertionError: 5 commands changed what they return by DEFAULT — --all is supposed to be opt-in
+E       assert 61 == 56
+tests/test_pagination_walkers.py:384: AssertionError
+FAILED tests/test_pagination_walkers.py::TestDefaultsUnchanged::test_the_default_walk_all_branch_did_not_grow - AssertionError: 5 commands changed what they return by DEFAULT — --all is supposed to...
+1 failed, 37 passed in 0.11s
+
+The 5 commands that newly walk every page by default (all new this sync):
+  export-schedule-usage-jobs list
+  export-schedule-usage-jobs list-errors
+  location-schedules list-usage
+  org-wide-schedules list
+  org-wide-schedules list-usage
+
+Contract §2 D: bumping DEFAULT_WALK_ALL_COMMANDS (56 -> 61) needs a person to confirm each really pages by Link. Not repairable unattended (tests/ is forbidden).
+
+Everything else held: sync_guard diff 0 forbidden edits; drift_check --enforce PASS (202 command sets, 2274 commands); sync_classify verdict=minor, exit 0.
+The full regen (docs, routing, 36 check-35 gaps, 4 name pins) is committed at 63adc902 on branch claude/wonderful-carson-po6m77 — not on main.
