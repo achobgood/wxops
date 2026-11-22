@@ -1885,6 +1885,23 @@ org ≠ the token's own org, compared on the decoded UUID) are always present, a
 `tokenExpiresIn` states every case. `partnerTarget` exists because `configure` saves an org
 for single-org tokens too, so `targetOrgId` alone cannot answer "is this a customer org?".
 
+**Follow-up, 2026-11-22: the token file and the expiry it recorded.** (1) `config.save_config`,
+the only writer of `~/.wxcli/config.json` (`save_org`, `save_cc_region`,
+`save_flow_store_url` and `configure` all go through it), wrote the bearer token with a plain
+`open()`, so the file was 0o644 under the usual umask. It now creates the file 0o600, tightens
+an existing one to 0o600 before writing the token into it, and creates a missing parent folder
+0o700 (an existing folder is left as it is). Windows honours only the read-only bit, so this is
+a POSIX guarantee. (2) `configure` stored `expires_at = now + 12h` for any pasted token. That
+was made up: a developer.webex.com personal access token lasts 12 hours from when it was
+issued (`authentication.md` § Personal Access Tokens), not from the paste, and integration and
+service-app tokens last longer, so the countdown overstated a PAT and understated the rest.
+Nothing `configure` receives carries the real expiry, so it now records none and removes the
+`expires_at` the previous token left (it says nothing about the new one). `whoami` reports
+`tokenExpiresIn` as `unknown — a developer.webex.com personal access token lasts 12 hours from
+when it was issued; …` (`main.UNKNOWN_EXPIRY`), also for an unparseable record. A config
+written before this change keeps its estimate, which `whoami` still reads and counts down.
+**Rejected: keeping the estimate with a caveat.** An agent reads the number, not the caveat.
+
 **Looked at and left alone, with the reason:** org-health's collect → analyze → report run
 (file-based; `manifest.json` is written last and is the completion marker; a partial page is
 announced on stderr and the skill tells the agent to re-run with `--all`); the spec-sync run

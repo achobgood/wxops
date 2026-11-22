@@ -74,7 +74,9 @@ wxcli configure
 # Or pipe it in non-interactively
 echo "YOUR_PERSONAL_ACCESS_TOKEN" | wxcli configure
 
-# Confirm the token works — prints the authenticated user, org, and time remaining
+# Confirm the token works — prints the authenticated user and org. Its expiry
+# shows as unknown: configure records none, since the 12 hours run from when
+# developer.webex.com displayed the token, not from when you pasted it
 wxcli whoami
 ```
 

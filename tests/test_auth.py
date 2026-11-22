@@ -674,7 +674,12 @@ def whoami(monkeypatch):
 
     def run(*, token_org, target_org=None, expires_in_h=5.0, env=None, saved=True):
         monkeypatch.setattr("wxcli.auth.get_token", lambda *a, **k: "CFG" if saved else None)
-        exp = (datetime.now(timezone.utc) + timedelta(hours=expires_in_h)).isoformat()
+        # expires_in_h=None: no expiry recorded, as `configure` now saves it;
+        # a str is stored verbatim (an unparseable record).
+        if expires_in_h is None or isinstance(expires_in_h, str):
+            exp = expires_in_h
+        else:
+            exp = (datetime.now(timezone.utc) + timedelta(hours=expires_in_h)).isoformat()
         monkeypatch.setattr(wxmain, "get_expires_at", lambda: exp)
         monkeypatch.setattr(wxmain, "get_org_id", lambda: target_org)
         monkeypatch.setattr(wxmain, "get_org_name", lambda: "Cust" if target_org else None)
@@ -728,3 +733,58 @@ def test_whoami_past_recorded_expiry_is_stated_not_silent(whoami):
 def test_whoami_live_expiry_and_soon_warning(whoami):
     assert whoami(token_org=_org("o"), expires_in_h=5)["tokenExpiresIn"].startswith("4h")
     assert "refreshing soon" in whoami(token_org=_org("o"), expires_in_h=1)["tokenExpiresIn"]
+
+
+def test_whoami_saved_token_without_a_recorded_expiry_says_unknown(whoami):
+    """`configure` records no expiry now: say so, and why, instead of nothing."""
+    out = whoami(token_org=_org("o"), expires_in_h=None)
+    assert out["tokenSource"] == "config"
+    assert out["tokenExpiresIn"] == wxmain.UNKNOWN_EXPIRY
+    assert out["tokenExpiresIn"].startswith("unknown")
+    assert "12 hours from when it was issued" in out["tokenExpiresIn"]
+
+
+def test_whoami_unparseable_recorded_expiry_says_unknown(whoami):
+    out = whoami(token_org=_org("o"), expires_in_h="not-a-date")
+    assert out["tokenExpiresIn"] == wxmain.UNKNOWN_EXPIRY
+
+
+def _run_configure(tmp_path, saved: dict):
+    """`wxcli configure` with HTTP, the org lookup and the auto-mode offer
+    mocked and the config redirected to tmp_path. Returns (result, config)."""
+    from wxcli.config import load_config as _lc, save_config as _sc, save_org as _so
+
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"profiles": {"default": saved}}))
+    api = Mock()
+    api.session.rest_get.side_effect = lambda url, **kw: (
+        {"displayName": "Ada", "emails": ["ada@x.com"], "orgId": "ORG_HOME"}
+        if "people/me" in url else {"items": [{"id": "ORG_HOME", "displayName": "Home"}]})
+    with patch("wxcli.commands.configure.WebexApi", return_value=api), \
+         patch("wxcli.commands.configure.load_config", side_effect=lambda path=None: _lc(config_path)), \
+         patch("wxcli.commands.configure.save_config", side_effect=lambda d, path=None: _sc(d, config_path)), \
+         patch("wxcli.commands.configure.save_org", side_effect=lambda o, n, path=None: _so(o, n, config_path)), \
+         patch("wxcli.commands.configure.offer_automode", Mock(return_value="declined")):
+        result = CliRunner().invoke(wxmain.app, ["configure"], input="NEWTOKEN\n")
+    return result, _lc(config_path)
+
+
+def test_configure_records_no_expiry(tmp_path):
+    """A pasted token carries no expiry wxcli can read: none is invented."""
+    result, config = _run_configure(tmp_path, {})
+    assert result.exit_code == 0, result.output
+    profile = config["profiles"]["default"]
+    assert profile["token"] == "NEWTOKEN"
+    assert "expires_at" not in profile
+
+
+def test_configure_drops_the_previous_tokens_expiry(tmp_path):
+    """An expiry saved with the old token says nothing about the new one."""
+    saved = {"token": "OLD", "expires_at": "2026-01-01T00:00:00+00:00",
+             "org_id": "ORG_HOME", "org_name": "Home"}
+    result, config = _run_configure(tmp_path, saved)
+    assert result.exit_code == 0, result.output
+    profile = config["profiles"]["default"]
+    assert profile["token"] == "NEWTOKEN"
+    assert "expires_at" not in profile
+    assert profile["org_id"] == "ORG_HOME"          # the rest of the profile is kept

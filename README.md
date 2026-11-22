@@ -74,7 +74,7 @@ At every step the agent is forced back to an authoritative source: data model fr
 - **No way around the gate.** A Python script that imports the wxcli package is refused for every caller, so every API call goes through the checked command line.
 - **Preview before anything destructive.** Cleanup and migration have dry runs; the agent shows you the plan and waits for your yes.
 - **Every change is read back.** A success code means Webex accepted the request, not that it applied. The agent re-reads the resource and reports what is actually there.
-- **Your token stays yours.** You paste it at a local prompt during Setup, never into the chat. It is stored in plaintext at `~/.wxcli/config.json`, so treat that file like a password. Personal tokens expire after 12 hours.
+- **Your token stays yours.** You paste it at a local prompt during Setup, never into the chat. It is stored in plaintext at `~/.wxcli/config.json`, so treat that file like a password; on macOS and Linux wxcli writes it readable by your user account only. Personal tokens expire 12 hours after developer.webex.com issues them.
 - **Still a live org, still an AI.** The same request can produce different actions. Test in a sandbox first, confirm every emergency (E911) address and callback number yourself, and read [Disclaimer & Safe Use](#disclaimer--safe-use).
 
 Under Codex the protection is weaker in three specific ways; see [Codex](#codex).
@@ -547,7 +547,8 @@ By using this tool you accept these risks and the terms of the Apache 2.0 Licens
 ### Credentials, secrets, and API usage
 
 - **Tokens are stored locally in plaintext** in your wxcli config file. Treat that
-  file like a password — it grants full admin access to your Webex org. Personal
+  file like a password — it grants full admin access to your Webex org. On macOS and
+  Linux wxcli writes it readable by your user account only (`0600`). Personal
   access tokens expire after 12 hours; OAuth/service-app tokens live longer, so
   guard them accordingly.
 - **CUCM AXL credentials** passed inline to `wxcli cucm discover --username/--password`

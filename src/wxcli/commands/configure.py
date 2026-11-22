@@ -1,5 +1,4 @@
 import typer
-from datetime import datetime, timedelta, timezone
 
 from wxcli.auth import WebexApi, WebexSession
 from wxcli.claude_automode import offer_automode
@@ -63,14 +62,18 @@ def configure():
         typer.echo(f"Error: Invalid token — {e}", err=True)
         raise typer.Exit(1)
 
-    expires_at = (datetime.now(timezone.utc) + timedelta(hours=12)).isoformat()
-
     # Load-then-merge: preserve existing org_id/org_name
     config = load_config()
     profile = config.setdefault("profiles", {}).setdefault("default", {})
     existing_org = profile.get("org_id")
     profile["token"] = token
-    profile["expires_at"] = expires_at
+    # No expiry is recorded: a pasted token carries none that wxcli can read.
+    # This used to store now + 12h, but a developer.webex.com personal access
+    # token lasts 12 hours from when it was issued, not from when it is pasted
+    # here, and integration and service-app tokens last longer. A saved expiry
+    # belonged to the previous token, so it goes too; `whoami` reports
+    # "unknown" instead of a made-up countdown.
+    profile.pop("expires_at", None)
     save_config(config)
 
     display_name = me.get("displayName", "")

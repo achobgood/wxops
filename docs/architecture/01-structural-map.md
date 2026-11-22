@@ -297,7 +297,7 @@ Each Endpoint becomes one `@app.command()` function following a fixed template:
 
 | Boundary | Contract | Stability |
 |----------|----------|-----------|
-| **Config file format** (`~/.wxcli/config.json`) | `{profiles: {default: {token, org_id, org_name, cc_region, expires_at}}}` | Stable — changing this breaks every existing installation |
+| **Config file format** (`~/.wxcli/config.json`) | `{profiles: {default: {token, org_id, org_name, cc_region, expires_at}}}` (`expires_at` only in configs saved before 2026-11-22; still read, no longer written) | Stable — changing this breaks every existing installation |
 | **`WebexSession` API** | `.rest_get()`, `.rest_post()`, `.rest_put()`, `.rest_delete()`, `.follow_pagination()` — all return `dict` | Stable — every command file depends on this (migration engine uses aiohttp independently) |
 | **`Endpoint`/`EndpointField` dataclasses** | Fields in `tools/postman_parser.py:11-42` | Stable — parser and renderer must agree on this shape |
 | **`MigrationStore` schema** | 7 SQLite tables (`objects`, `cross_refs`, `decisions`, `journal`, `merge_log`, `plan_operations`, `plan_edges`) | Stable — schema migrations exist (`ALTER TABLE ADD COLUMN`) but tables are never removed or renamed. Existing project databases must remain loadable. |

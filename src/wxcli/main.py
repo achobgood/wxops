@@ -107,25 +107,35 @@ def _is_partner_target(token_org_id: str, target_org_id: str | None) -> bool:
     return decode_webex_id(target_org_id) != decode_webex_id(token_org_id)
 
 
+# What whoami says for a saved token with no recorded expiry. The 12 hours is
+# docs/reference/authentication.md § Personal Access Tokens ("Expires after 12
+# hours from the time it is displayed").
+UNKNOWN_EXPIRY = ("unknown — a developer.webex.com personal access token lasts 12 hours "
+                  "from when it was issued; re-run `wxcli configure` on a 401")
+
+
 def _token_expires_in(source: str | None, expires_at: str | None,
                       now: datetime | None = None) -> str | None:
     """The token's remaining life, stated for every state it can be in.
 
     Before, an env-var token reported the *saved* token's expiry, and a saved
     token past its recorded expiry printed nothing — the same as "no record".
+    `wxcli configure` records no expiry (a pasted token carries none wxcli can
+    read), so a saved token normally has none; only a config written by an
+    older wxcli still holds the `expires_at` it estimated as paste time + 12h.
     """
     if source != "config":
         return f"unknown — token from {source}" if source else None
     if not expires_at:
-        return None
+        return UNKNOWN_EXPIRY
     try:
         exp_dt = datetime.fromisoformat(expires_at)
     except ValueError:
-        return None
+        return UNKNOWN_EXPIRY
     remaining = (exp_dt - (now or datetime.now(timezone.utc))).total_seconds()
     if remaining <= 0:
         # whoami only gets here after /people/me succeeded, so the token works:
-        # the 12h figure `wxcli configure` records is an estimate, not a fact.
+        # the 12h figure an older `wxcli configure` recorded is an estimate.
         return "past the recorded 12h, still accepted — re-run `wxcli configure` on a 401"
     hours = int(remaining // 3600)
     minutes = int((remaining % 3600) // 60)
