@@ -318,11 +318,9 @@ Common goals that span several skills. When the user states one of these end goa
 
 ## Out-of-Skill-Scope Command Groups
 
-These groups are registered in the CLI but deliberately have **no skill routing** — the playbook does not cover them. Drift-gate checks **4 and 20** both read this list: check 4 asks whether a skill claims the group, check 20 asks whether a `docs/reference/*.md` describes it. One declaration answers both, because the premise of this table is that the playbook does not cover the group at all, and a group the playbook does not cover needs neither a skill nor a reference doc. If a group ever needs to be skill-routed *and* deliberately undocumented, that is a different decision and needs its own table with its own reason — do not stretch a row here to cover it.
+These groups are registered in the CLI but deliberately have **no skill routing** — the playbook does not cover them, so there is no skill and no reference doc to load for them. Every entry states a reason.
 
-Listing a group here is a commitment that we intentionally do not route to it. It is **not** a way to quiet the gate: if a group belongs in a skill, wire it into the skill instead. Every entry states a reason.
-
-> **Maintainer note:** only the group names in the left column may be backticked in this section. The gate harvests every backticked token between this heading and the next one, so a backticked group name in a *reason* would silently declare that group out of scope too.
+> **Maintainer note:** only the group names in the left column may be backticked in this section. The gate harvests every backticked token between this heading and the next one, so a backticked group name in a *reason* would silently declare that group out of scope too. What drift checks 4 and 20 do with this list, and the rules for adding a row, are documented with check 20 in the source repository's generator notes.
 
 | Group | Why the playbook does not cover it |
 |-------|-----------------------------------|
@@ -346,20 +344,13 @@ Listing a group here is a commitment that we intentionally do not route to it. I
 4. **`--verify`** after a write that matters: a 2xx means accepted, not applied.
 5. **`--offset` refused** (exit 2, "this endpoint ignores --offset"): use `--all` and slice with `--fields '[N:M]'`.
 
-Everything behind these rules — every flag, paging, partner multi-org, the eleven Known Issues, cleanup — is in `docs/reference/wxcli-behavior.md`. In a source checkout only, `docs/spec-sync-contract.md` is the weekly spec-sync's definition of done (the cloud routine's prompt points there).
+Everything behind these rules — every flag, paging, partner multi-org, the eleven Known Issues, cleanup — is in `docs/reference/wxcli-behavior.md`.
 
-### Error → Known Issue Quick Reference
+### When a command fails
 
-When you hit one of these errors, read the matching Known Issue in `docs/reference/wxcli-behavior.md` § 3:
+For most known errors the CLI prints the fix itself (no Calling license, user-level OAuth needed, Contact Center scopes, Professional license, a 409 with dependents). Two it does not explain:
 
-| Error | Symptom | Known Issue |
-|-------|---------|-------------|
-| 400 "Target user not authorized" | `call-controls` with admin token | #1 — needs user-level OAuth |
-| 404 (error 4008) | `my-call-settings` or `mode-management` | #3 — user needs Calling license |
-| 404 on person settings | Admin token on user-only endpoints | #4 — 19 settings have no admin path |
-| 405 on workspace settings | Workspace `/telephony/config/` endpoint | #6 — needs Professional license |
-| 403 on `cc-*` commands | Token lacks `cjp:config_*` scopes (a full-admin PAT has them — verified 2026-10-13) | #11 — OAuth integration / Service App with `cjp:config_*` selected |
-| 409 on location delete | Resources still assigned | See `.codex/rules/cleanup.md` |
-| 400 "Required request parameter 'orgId' ... is not present" | `audit-events list`, `security-audit list`, or any `video-mesh` command | No org saved in config — run `wxcli switch-org` (or `wxcli switch-org <orgId>` in automation); fixed for new configs. See `docs/reference/meetings-infrastructure.md` gotcha #8. |
-| Unexpected command name | `show-*` vs `list-*`, singular vs plural | #5 — two path families; always run `--help` first |
-| `--json-body` needed | Complex nested fields in request body | #2 — run the command with `--generate-json-body` for a skeleton |
+- **404 on a person's call setting with an admin token:** 19 settings have no admin path (Known Issue #4); the generic "no such resource" tip points the wrong way.
+- **400 "Required request parameter 'orgId' ... is not present"** (`audit-events list`, `security-audit list`, any `video-mesh` command): no org saved in config. Run `wxcli switch-org` (or `wxcli switch-org <orgId>` in automation).
+
+Every known error, with its issue number, is in the table at the top of `docs/reference/wxcli-behavior.md` § 3.

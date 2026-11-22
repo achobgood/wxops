@@ -107,6 +107,22 @@ See `docs/reference/authentication.md` (Partner/Multi-Org Tokens section) for fu
 
 ## 3. Known Issues
 
+### Error → Known Issue lookup
+
+When a command fails with one of these, read the matching numbered issue below (moved here from the root `CLAUDE.md` on 2026-11-22, unchanged):
+
+| Error | Symptom | Known Issue |
+|-------|---------|-------------|
+| 400 "Target user not authorized" | `call-controls` with admin token | #1 — needs user-level OAuth |
+| 404 (error 4008) | `my-call-settings` or `mode-management` | #3 — user needs Calling license |
+| 404 on person settings | Admin token on user-only endpoints | #4 — 19 settings have no admin path |
+| 405 on workspace settings | Workspace `/telephony/config/` endpoint | #6 — needs Professional license |
+| 403 on `cc-*` commands | Token lacks `cjp:config_*` scopes (a full-admin PAT has them — verified 2026-10-13) | #11 — OAuth integration / Service App with `cjp:config_*` selected |
+| 409 on location delete | Resources still assigned | See `.claude/rules/cleanup.md` |
+| 400 "Required request parameter 'orgId' ... is not present" | `audit-events list`, `security-audit list`, or any `video-mesh` command | No org saved in config — run `wxcli switch-org` (or `wxcli switch-org <orgId>` in automation); fixed for new configs. See `meetings-infrastructure.md` gotcha #8. |
+| Unexpected command name | `show-*` vs `list-*`, singular vs plural | #5 — two path families; always run `--help` first |
+| `--json-body` needed | Complex nested fields in request body | #2 — run the command with `--generate-json-body` for a skeleton |
+
 1. **call-controls requires user-level OAuth.** Admin tokens get 400 "Target user not authorized". The CLI now detects this error and prints a tip about needing user-level OAuth.
 2. **Complex nested settings need `--json-body`.** The generator skips deeply nested object/array body fields. Run the command with `--generate-json-body` to print an indented request-body skeleton and exit before authenticating, e.g. `wxcli user-settings update-call-forwarding PERSON_ID --generate-json-body`; edit the printed skeleton and pass it back via `--json-body`. Caveat, verified live: `--generate-json-body` does not bypass required positional arguments — `wxcli call-queue create --generate-json-body` fails with `Missing argument 'LOCATION_ID'`; pass a placeholder positional first, e.g. `wxcli call-queue create dummy-location-id --generate-json-body`. `cc-team`, `cc-skill-profile` and `cc-desktop-profile` `create`/`update` had no `--generate-json-body` (and required a dummy `--team-dto` / `--skill-profile-dto` / `--agent-profile-dto` beside `--json-body`) because the spec declares their body as a query parameter; since the generator fix of 2026-10-13 (ADR-16) they take `--json-body` alone and offer `--generate-json-body`, and the old option is accepted and ignored — Verified live 2026-10-13 on a temporary team, skill profile and desktop profile (create, show, update, delete; the old option on update for teams and desktop profiles; not tried: the old option on create, or on update for skill profiles).
 3. **my-call-settings and mode-management require calling-licensed user.** All `/people/me/*` endpoints return 404 (error 4008) if the authenticated user doesn't have a Webex Calling license. The `my-call-settings` group (130 commands) covers base + UserHub Phase 2/3/4/5 self-service endpoints. Phase 5 was folded in on 2026-07-29 — it had been shipping as its own group named `call-settings-for-me-phase-5`; its 7 commands are now `show-personal-assistant`, `update-personal-assistant`, `show-voicemail-rules`, `update-voicemail-pin`, `show-hoteling-guest`, `update-hoteling-guest`, `list-available-hosts`. The old group name is **deliberately not aliased**: `my-call-settings show`/`update`/`list` are the Preferred Answer Endpoint commands, so an alias would have answered a different question with exit 0. The CLI detects this error and prints a tip.

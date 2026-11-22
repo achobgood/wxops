@@ -1577,13 +1577,20 @@ exactly the shape that gets a check switched off.
 are now documented (`contact-center-routing.md` §8, `person-call-settings-behavior.md`
 §6), which is what makes the check green — not an exemption.
 
-**One declaration answers both checks, and that widening is stated where the
-declaration lives.** CLAUDE.md's out-of-skill-scope preamble now says checks 4
-and 20 both read it, and why: the table's premise is that the playbook does not
-cover the group, and a group the playbook does not cover needs neither a skill
-nor a reference doc — 6 of its 12 rows already give "No reference doc exists" as
-the reason. A group that must be skill-routed *and* deliberately undocumented is
-a different decision and needs its own table; do not stretch a row here.
+**One declaration answers both checks.** The root CLAUDE.md "Out-of-Skill-Scope
+Command Groups" table is read by both: check 4 asks whether a skill claims the
+group, check 20 asks whether a `docs/reference/*.md` describes it. The table's
+premise is that the playbook does not cover the group, and a group the playbook
+does not cover needs neither a skill nor a reference doc — 6 of its 12 rows
+already give "No reference doc exists" as the reason. A group that must be
+skill-routed *and* deliberately undocumented is a different decision and needs
+its own table with its own reason; do not stretch a row here. Listing a group
+there is a commitment that we intentionally do not route to it. It is **not** a
+way to quiet the gate: if a group belongs in a skill, wire it into the skill
+instead. Every entry states a reason. (This explanation sat above the table in
+the root CLAUDE.md until 2026-11-22; it moved here because the root file ships
+to every customer folder and the drift gate runs only in this repo. The root
+keeps the table, a one-line purpose and the backtick maintainer note.)
 
 ### Check 22 — the command-name lock (2026-09-08)
 

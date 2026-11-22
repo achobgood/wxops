@@ -131,3 +131,7 @@ Endpoints/CLI/Raw-HTTP skeleton.
 ## Maintenance
 
 Update these docs when you discover new gotchas, API behavior changes, or scope/permission corrections. See `tools/CLAUDE.md` § Reference Doc Sync Protocol for the full workflow.
+
+**Content moved here from the root `CLAUDE.md`.** The root file ships to every customer folder, and the Codex `AGENTS.md` generated from it has a hard 44,000-byte cap (`wxcli-dist/assemble.py`), so lookup material that is only needed after something goes wrong lives in the shipped doc that owns it, with a one-line pointer left in the root:
+
+- **Error → Known Issue lookup** (2026-11-22): the full table now opens `wxcli-behavior.md` § 3 (Known Issues), unchanged. The root keeps a short "When a command fails" section with only the two rows the CLI prints no specific tip for (404 on a person setting with an admin token; the missing-`orgId` 400), because a model hitting those would otherwise have to think to look the table up. The other rows are delivered by `src/wxcli/errors.py` at the moment of the error (verified 2026-11-22: user-level OAuth, error 4008, 25409/405, the `cjp:config` 403, 409, 25008). When you add a row: if `errors.py` prints a tip for it, add it only to the § 3 table; if not, add it to the root section too (or, better, add the tip to `errors.py`). This file does not ship, so never move customer-facing content into it; it records where that content went.
