@@ -176,7 +176,6 @@ All runtime config lives in `~/.wxcli/config.json`:
   "profiles": {
     "default": {
       "token": "NjY3...",
-      "expires_at": "2026-05-03T22:00:00Z",
       "org_id": "Y2lzY29...",
       "org_name": "Acme Corp",
       "cc_region": "us1"
@@ -184,6 +183,8 @@ All runtime config lives in `~/.wxcli/config.json`:
   }
 }
 ```
+
+wxcli writes this file readable by its owner only (`0600`, in a `0700` `~/.wxcli/` when it creates the folder), because it holds the token. A config saved before 2026-11-22 may also carry `expires_at`, an estimate (paste time + 12 hours) that `wxcli whoami` still reads; `configure` removes it when it saves a new token.
 
 **Token resolution priority** (`auth.py:67-77`):
 1. `WEBEX_ACCESS_TOKEN` environment variable
@@ -195,7 +196,7 @@ All runtime config lives in `~/.wxcli/config.json`:
 - `wxcli switch-org <org_id>` — change active target org for partner admins
 - `wxcli clear-org` — revert to single-org behavior
 - `wxcli set-cc-region <region>` — set Contact Center region (us1, eu1, eu2, anz1, ca1, jp1, sg1)
-- `wxcli whoami` — show authenticated identity, org, token expiry
+- `wxcli whoami` — show authenticated identity, org, where the token came from, and whether commands target another org
 
 **Partner multi-org:** When an admin token has access to multiple orgs, 668 of 804 generated commands auto-inject `orgId` from the saved config. No flag needed — it's transparent.
 
@@ -245,7 +246,7 @@ HTML error responses are automatically truncated to the `<title>` or `<h1>` cont
 Two path families exist for person settings: `/people/{id}/features/` (classic) vs. `/telephony/config/people/{id}/` (newer). Names may differ. Always run `wxcli <group> --help` first.
 
 **"Error: No token found":**
-Run `wxcli configure` or set `WEBEX_ACCESS_TOKEN`. Token expires after 12 hours; `wxcli whoami` shows remaining time.
+Run `wxcli configure` or set `WEBEX_ACCESS_TOKEN`. A personal access token expires 12 hours after developer.webex.com issued it; `wxcli whoami` cannot show the time left, because `configure` records no expiry (2026-11-22; it used to store paste time + 12 hours).
 
 **Generated command returns unexpected data:**
 Check `field_overrides.yaml` for the endpoint — table columns, response key paths, and display settings are all controlled there. If the API response shape changed upstream, the override may be stale.

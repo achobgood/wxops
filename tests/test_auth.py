@@ -644,3 +644,147 @@ def test_every_call_method_accepts_headers():
         s = Recorder()
         calls[name](s)
         assert s.sent and all(h == H for h in s.sent), name
+
+
+# ---------------------------------------------------------------------------
+# Session state reported by `whoami`: where the token came from, how long it
+# has, and whether commands go to an org other than the token's own. No
+# network: WebexSession.rest_get is patched before the command runs.
+# ---------------------------------------------------------------------------
+
+import base64  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+from typer.testing import CliRunner  # noqa: E402
+
+import wxcli.main as wxmain  # noqa: E402
+from wxcli.auth import token_source  # noqa: E402
+
+
+def _org(uuid, region="us"):
+    return base64.b64encode(
+        f"ciscospark://{region}/ORGANIZATION/{uuid}".encode()).decode().rstrip("=")
+
+
+@pytest.fixture
+def whoami(monkeypatch):
+    """Invoke `whoami -o json` against a saved config, with HTTP mocked."""
+    for name in ("WEBEX_ACCESS_TOKEN", "WEBEX_TOKEN"):
+        monkeypatch.delenv(name, raising=False)
+
+    def run(*, token_org, target_org=None, expires_in_h=5.0, env=None, saved=True):
+        monkeypatch.setattr("wxcli.auth.get_token", lambda *a, **k: "CFG" if saved else None)
+        # expires_in_h=None: no expiry recorded, as `configure` now saves it;
+        # a str is stored verbatim (an unparseable record).
+        if expires_in_h is None or isinstance(expires_in_h, str):
+            exp = expires_in_h
+        else:
+            exp = (datetime.now(timezone.utc) + timedelta(hours=expires_in_h)).isoformat()
+        monkeypatch.setattr(wxmain, "get_expires_at", lambda: exp)
+        monkeypatch.setattr(wxmain, "get_org_id", lambda: target_org)
+        monkeypatch.setattr(wxmain, "get_org_name", lambda: "Cust" if target_org else None)
+        if env:
+            monkeypatch.setenv(env, "ENVTOKEN")
+        monkeypatch.setattr(WebexSession, "rest_get", lambda self, url, **k: {
+            "displayName": "Ada", "emails": ["ada@x.com"], "orgId": token_org})
+        r = CliRunner().invoke(wxmain.app, ["whoami", "-o", "json"])
+        assert r.exit_code == 0, r.output
+        return json.loads(r.stdout)
+
+    return run
+
+
+def test_token_source_follows_resolve_token_order(monkeypatch):
+    monkeypatch.setattr("wxcli.auth.get_token", lambda *a, **k: "CFG")
+    monkeypatch.delenv("WEBEX_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("WEBEX_TOKEN", raising=False)
+    assert token_source() == "config"
+    monkeypatch.setenv("WEBEX_TOKEN", "b")
+    assert token_source() == "WEBEX_TOKEN"
+    monkeypatch.setenv("WEBEX_ACCESS_TOKEN", "a")
+    assert token_source() == "WEBEX_ACCESS_TOKEN"
+    assert resolve_token() == "a"
+
+
+def test_whoami_flags_a_partner_target(whoami):
+    out = whoami(token_org=_org("partner"), target_org=_org("customer"))
+    assert out["partnerTarget"] is True
+
+
+def test_whoami_own_org_saved_is_not_a_partner_target(whoami):
+    """configure saves the org for single-org tokens too: presence alone is not partner."""
+    out = whoami(token_org=_org("same", "us"), target_org=_org("same", "eu"))
+    assert out["partnerTarget"] is False
+    assert whoami(token_org=_org("same"))["partnerTarget"] is False
+
+
+def test_whoami_env_token_does_not_borrow_the_saved_expiry(whoami):
+    out = whoami(token_org=_org("o"), env="WEBEX_ACCESS_TOKEN")
+    assert out["tokenSource"] == "WEBEX_ACCESS_TOKEN"
+    assert out["tokenExpiresIn"].startswith("unknown")
+
+
+def test_whoami_past_recorded_expiry_is_stated_not_silent(whoami):
+    out = whoami(token_org=_org("o"), expires_in_h=-1)
+    assert out["tokenSource"] == "config"
+    assert "past the recorded 12h" in out["tokenExpiresIn"]
+
+
+def test_whoami_live_expiry_and_soon_warning(whoami):
+    assert whoami(token_org=_org("o"), expires_in_h=5)["tokenExpiresIn"].startswith("4h")
+    assert "refreshing soon" in whoami(token_org=_org("o"), expires_in_h=1)["tokenExpiresIn"]
+
+
+def test_whoami_saved_token_without_a_recorded_expiry_says_unknown(whoami):
+    """`configure` records no expiry now: say so, and why, instead of nothing."""
+    out = whoami(token_org=_org("o"), expires_in_h=None)
+    assert out["tokenSource"] == "config"
+    assert out["tokenExpiresIn"] == wxmain.UNKNOWN_EXPIRY
+    assert out["tokenExpiresIn"].startswith("unknown")
+    assert "12 hours from when it was issued" in out["tokenExpiresIn"]
+
+
+def test_whoami_unparseable_recorded_expiry_says_unknown(whoami):
+    out = whoami(token_org=_org("o"), expires_in_h="not-a-date")
+    assert out["tokenExpiresIn"] == wxmain.UNKNOWN_EXPIRY
+
+
+def _run_configure(tmp_path, saved: dict):
+    """`wxcli configure` with HTTP, the org lookup and the auto-mode offer
+    mocked and the config redirected to tmp_path. Returns (result, config)."""
+    from wxcli.config import load_config as _lc, save_config as _sc, save_org as _so
+
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({"profiles": {"default": saved}}))
+    api = Mock()
+    api.session.rest_get.side_effect = lambda url, **kw: (
+        {"displayName": "Ada", "emails": ["ada@x.com"], "orgId": "ORG_HOME"}
+        if "people/me" in url else {"items": [{"id": "ORG_HOME", "displayName": "Home"}]})
+    with patch("wxcli.commands.configure.WebexApi", return_value=api), \
+         patch("wxcli.commands.configure.load_config", side_effect=lambda path=None: _lc(config_path)), \
+         patch("wxcli.commands.configure.save_config", side_effect=lambda d, path=None: _sc(d, config_path)), \
+         patch("wxcli.commands.configure.save_org", side_effect=lambda o, n, path=None: _so(o, n, config_path)), \
+         patch("wxcli.commands.configure.offer_automode", Mock(return_value="declined")):
+        result = CliRunner().invoke(wxmain.app, ["configure"], input="NEWTOKEN\n")
+    return result, _lc(config_path)
+
+
+def test_configure_records_no_expiry(tmp_path):
+    """A pasted token carries no expiry wxcli can read: none is invented."""
+    result, config = _run_configure(tmp_path, {})
+    assert result.exit_code == 0, result.output
+    profile = config["profiles"]["default"]
+    assert profile["token"] == "NEWTOKEN"
+    assert "expires_at" not in profile
+
+
+def test_configure_drops_the_previous_tokens_expiry(tmp_path):
+    """An expiry saved with the old token says nothing about the new one."""
+    saved = {"token": "OLD", "expires_at": "2026-01-01T00:00:00+00:00",
+             "org_id": "ORG_HOME", "org_name": "Home"}
+    result, config = _run_configure(tmp_path, saved)
+    assert result.exit_code == 0, result.output
+    profile = config["profiles"]["default"]
+    assert profile["token"] == "NEWTOKEN"
+    assert "expires_at" not in profile
+    assert profile["org_id"] == "ORG_HOME"          # the rest of the profile is kept

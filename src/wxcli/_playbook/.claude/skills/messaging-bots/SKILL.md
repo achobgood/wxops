@@ -67,7 +67,7 @@ After identifying the token type, verify the token has the scopes required for t
 | Room tab | `spark:rooms_read`, `spark:rooms_write` (user token only) |
 | Cross-domain (calling + messaging) | `spark:messages_write` + `spark:calls_read` (may need two tokens) |
 
-**How to check:** Run `wxcli whoami` to confirm identity. `wxcli whoami` does not support `--output json` — it displays a formatted summary. For detailed token inspection, use `wxcli people show-me --output json`. Bot tokens have a fixed scope set (see above). For user/admin tokens, the scopes depend on the OAuth grant.
+**How to check:** Run `wxcli whoami` to confirm identity. `wxcli whoami -o json` returns the user, email, `orgId`, `roles`, `tokenSource` and `tokenExpiresIn`. For detailed token inspection, use `wxcli people show-me --output json`. Bot tokens have a fixed scope set (see above). For user/admin tokens, the scopes depend on the OAuth grant.
 
 **If scopes are missing:**
 - **Bot token:** Bot scopes are fixed at creation time. If the bot lacks a required scope, the user must create a new bot with the correct scopes at developer.webex.com.

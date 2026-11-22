@@ -74,7 +74,12 @@ def test_refresh_replaces_deletes_owned_and_spares_user_files(bundle, tmp_path):
     # new bundle version: skill retired, CLAUDE.md changed
     (bundle / "CLAUDE.md").write_text("# Playbook v2\n")
     (bundle / ".claude/skills/provision-calling/SKILL.md").unlink()
+    # An owned file the user edited is refused under --yes (12bf5f3b): --yes
+    # skips a question, it does not authorize losing the edit. --force does.
     r = _init(str(pb), "--yes")
+    assert r.exit_code == 1 and "CLAUDE.md" in r.output
+    assert (pb / "CLAUDE.md").read_text() == "locally edited\n"  # refused → untouched
+    r = _init(str(pb), "--force")
     assert r.exit_code == 0, r.output
     assert (pb / "CLAUDE.md").read_text() == "# Playbook v2\n"   # owned → replaced
     assert not (pb / ".claude/skills/provision-calling/SKILL.md").exists()  # retired → deleted

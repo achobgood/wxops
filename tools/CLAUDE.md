@@ -1852,6 +1852,65 @@ run on a spec contradiction.
 refresh that drops a key the live API still accepts fails the gate, and the only way out is
 a human doc edit. The widening rules above soften this; they do not remove it.
 
+### State the hand-written commands carry, made explicit (2026-11-09)
+
+*(Written as 12bf5f3b on a side branch and ported by hand onto main on 2026-11-22, after
+`configure`'s auto-mode offer and `switch-org`'s no-"Unknown" change had landed there. Nothing
+in either was changed by the port: `whoami` already reads a missing `targetOrgName` as absent,
+which is what `switch-org <id>` now stores when the id cannot be looked up.)*
+
+An audit for implicit state machines outside `wxcli cucm` (the CUCM ones are in
+`src/wxcli/migration/CLAUDE.md` § State machines) found two that lost information:
+
+**`wxcli init` — per-file state of the installed playbook.** The manifest has recorded a
+sha256 per file since it was written, but nothing read the hashes back, so a file the user
+edited after install looked exactly like an untouched one: refresh overwrote it (under
+`--yes` too), a file retired upstream was deleted, and `--uninstall` deleted it. Each owned
+file is now `pristine`, `edited` or `missing` (`init_playbook.owned_file_state`). Refresh
+refuses while an edited file would be overwritten or removed and lists it; `--uninstall`
+keeps edited files and lists them; `--force` overrides both. **`--yes` deliberately does
+not**: it answers a question, it does not authorize data loss, and an agent runs `wxcli init
+--yes` after `wxcli update`. **Rejected: skipping edited files and refreshing the rest.** It
+leaves a skill one version behind the CLI it describes, silently. A missing file is restored
+by refresh, as before (refresh is also the repair path).
+
+**`wxcli whoami` — session state.** Three states were invisible: (1) a token from
+`WEBEX_ACCESS_TOKEN` / `WEBEX_TOKEN` reported the expiry of the *saved* token, a different
+token; (2) a saved token past its recorded 12h printed nothing, the same as "no record";
+(3) the agent definition, `wxcli-behavior.md` and `authentication.md` all said to look for a
+`Target:` line, which the emit()-based output has never printed, so an agent following them
+concluded "single-org" and skipped confirming the target org. Now `tokenSource`
+(`auth.token_source`, kept in the same order as `resolve_token`) and `partnerTarget` (saved
+org ≠ the token's own org, compared on the decoded UUID) are always present, and
+`tokenExpiresIn` states every case. `partnerTarget` exists because `configure` saves an org
+for single-org tokens too, so `targetOrgId` alone cannot answer "is this a customer org?".
+
+**Follow-up, 2026-11-22: the token file and the expiry it recorded.** (1) `config.save_config`,
+the only writer of `~/.wxcli/config.json` (`save_org`, `save_cc_region`,
+`save_flow_store_url` and `configure` all go through it), wrote the bearer token with a plain
+`open()`, so the file was 0o644 under the usual umask. It now creates the file 0o600, tightens
+an existing one to 0o600 before writing the token into it, and creates a missing parent folder
+0o700 (an existing folder is left as it is). Windows honours only the read-only bit, so this is
+a POSIX guarantee. (2) `configure` stored `expires_at = now + 12h` for any pasted token. That
+was made up: a developer.webex.com personal access token lasts 12 hours from when it was
+issued (`authentication.md` § Personal Access Tokens), not from the paste, and integration and
+service-app tokens last longer, so the countdown overstated a PAT and understated the rest.
+Nothing `configure` receives carries the real expiry, so it now records none and removes the
+`expires_at` the previous token left (it says nothing about the new one). `whoami` reports
+`tokenExpiresIn` as `unknown — a developer.webex.com personal access token lasts 12 hours from
+when it was issued; …` (`main.UNKNOWN_EXPIRY`), also for an unparseable record. A config
+written before this change keeps its estimate, which `whoami` still reads and counts down.
+**Rejected: keeping the estimate with a caveat.** An agent reads the number, not the caveat.
+
+**Looked at and left alone, with the reason:** org-health's collect → analyze → report run
+(file-based; `manifest.json` is written last and is the completion marker; a partial page is
+announced on stderr and the skill tells the agent to re-run with `--all`); the spec-sync run
+record's `outcome` (written by the routine, read by `spec-sync-liveness.yml` with an
+allow-list, so a misspelled outcome fails loud as stale rather than passing); `cleanup`'s
+location lifecycle (disable calling → wait → delete with 409 retries → CCP backend gate,
+already explicit and tuned live); the update-check cache (explicit TTL with negative
+caching); the pagination walkers in `auth.py` (every stop condition is named and tested).
+
 ### Query-parameter enums through `$ref`/`items`, and `readOnly` body fields (2026-11-10, audit F7 and F6, checks 36-37)
 
 **F7.** `parse_parameters` read `enum` and `type` off the raw query schema. It now calls

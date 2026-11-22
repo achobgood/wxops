@@ -300,3 +300,93 @@ def test_refresh_does_not_overwrite_unowned_mcp_json(bundle, tmp_path):
     assert r.exit_code == 0, r.output
     assert (pb / ".mcp.json").read_text() == shipped
     assert ".mcp.json" in json.loads((pb / MANIFEST).read_text())["files"]
+
+
+# ---------------------------------------------------------------------------
+# Per-file state: pristine / edited / missing. The manifest always recorded a
+# hash per file; these tests pin that the hashes are now READ, so a file the
+# user edited after install is never overwritten, retired or uninstalled
+# without --force. --yes skips a question; it does not authorize data loss.
+# ---------------------------------------------------------------------------
+
+
+def test_owned_file_state(bundle, tmp_path):
+    pb = tmp_path / "pb"
+    assert _init(str(pb), "--yes").exit_code == 0
+    rec = I.recorded_hashes(pb)
+    assert I.owned_file_state(pb, "CLAUDE.md", rec["CLAUDE.md"]) == I.PRISTINE
+    (pb / "CLAUDE.md").write_text("mine now\n")
+    assert I.owned_file_state(pb, "CLAUDE.md", rec["CLAUDE.md"]) == I.EDITED
+    (pb / "CLAUDE.md").unlink()
+    assert I.owned_file_state(pb, "CLAUDE.md", rec["CLAUDE.md"]) == I.MISSING
+
+
+def test_refresh_with_yes_refuses_to_overwrite_an_edited_file(bundle, tmp_path):
+    pb = tmp_path / "pb"
+    assert _init(str(pb), "--yes").exit_code == 0
+    (pb / "CLAUDE.md").write_text("my house rules\n")
+    (bundle / "CLAUDE.md").write_text("# Playbook v2\n")
+    (bundle / "docs/playbooks/wxcc-setup.md").write_text("playbook v2\n")
+
+    r = _init(str(pb), "--yes")
+    assert r.exit_code == 1
+    assert "CLAUDE.md" in r.output and "--force" in r.output
+    assert (pb / "CLAUDE.md").read_text() == "my house rules\n"
+    assert (pb / "docs/playbooks/wxcc-setup.md").read_text() == "playbook\n"  # nothing written
+
+
+def test_refresh_refuses_to_remove_an_edited_retired_file(bundle, tmp_path):
+    pb = tmp_path / "pb"
+    assert _init(str(pb), "--yes").exit_code == 0
+    skill = pb / ".claude/skills/design-flow/SKILL.md"
+    skill.write_text("skill v1 + my tweaks\n")
+    (bundle / ".claude/skills/design-flow/SKILL.md").unlink()   # retired upstream
+
+    r = _init(str(pb), "--yes")
+    assert r.exit_code == 1
+    assert ".claude/skills/design-flow/SKILL.md" in r.output
+    assert skill.read_text() == "skill v1 + my tweaks\n"
+
+
+def test_refresh_proceeds_when_edits_are_pristine_or_already_current(bundle, tmp_path):
+    pb = tmp_path / "pb"
+    assert _init(str(pb), "--yes").exit_code == 0
+    (pb / "CLAUDE.md").write_text("# Playbook v2\n")     # user pre-applied v2 by hand
+    (pb / "docs/playbooks/wxcc-setup.md").unlink()      # deleted: a refresh restores it
+    (bundle / "CLAUDE.md").write_text("# Playbook v2\n")
+
+    r = _init(str(pb), "--yes")
+    assert r.exit_code == 0, r.output
+    assert (pb / "docs/playbooks/wxcc-setup.md").read_text() == "playbook\n"
+
+
+def test_force_refresh_overwrites_edits(bundle, tmp_path):
+    pb = tmp_path / "pb"
+    assert _init(str(pb), "--yes").exit_code == 0
+    (pb / "CLAUDE.md").write_text("my house rules\n")
+    (bundle / "CLAUDE.md").write_text("# Playbook v2\n")
+    r = _init(str(pb), "--force")
+    assert r.exit_code == 0, r.output
+    assert (pb / "CLAUDE.md").read_text() == "# Playbook v2\n"
+
+
+def test_uninstall_keeps_edited_files_unless_forced(bundle, tmp_path):
+    pb = tmp_path / "pb"
+    assert _init(str(pb), "--yes").exit_code == 0
+    (pb / "CLAUDE.md").write_text("my house rules\n")
+
+    r = _init(str(pb), "--uninstall")
+    assert r.exit_code == 0, r.output
+    assert (pb / "CLAUDE.md").read_text() == "my house rules\n"   # kept
+    assert "CLAUDE.md" in r.output and "--force" in r.output
+    assert not (pb / ".claude/settings.json").exists()           # pristine → removed
+    assert not (pb / MANIFEST).exists()
+
+
+def test_uninstall_force_removes_edited_files(bundle, tmp_path):
+    pb = tmp_path / "pb"
+    assert _init(str(pb), "--yes").exit_code == 0
+    (pb / "CLAUDE.md").write_text("my house rules\n")
+    r = _init(str(pb), "--uninstall", "--force")
+    assert r.exit_code == 0, r.output
+    assert not (pb / "CLAUDE.md").exists()

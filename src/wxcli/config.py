@@ -12,8 +12,25 @@ def load_config(path: Path = DEFAULT_CONFIG_PATH) -> dict:
         return json.load(f)
 
 def save_config(data: dict, path: Path = DEFAULT_CONFIG_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
+    """Write the config readable by its owner only: it holds the bearer token.
+
+    Every writer of ~/.wxcli/config.json goes through here. A new file is
+    created 0o600, an existing one (older wxcli wrote 0o644 under the usual
+    umask) is tightened to 0o600 before the token is written into it, and a
+    parent directory created here is 0o700. On Windows os.chmod sets only the
+    read-only flag, so these modes are a POSIX guarantee.
+    """
+    if not path.parent.exists():
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # O_BINARY exists on Windows only. Without it the descriptor can open in CRT
+    # text mode, which may translate the "\r\n" TextIOWrapper already writes
+    # there a second time (not tested on Windows; harmless where it is absent).
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_BINARY", 0)
+    fd = os.open(path, flags, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        # O_CREAT's mode applies only to a new file; tighten an existing one
+        # before anything is written to it.
+        os.chmod(path, 0o600)
         json.dump(data, f, indent=2)
 
 def get_token(path: Path = DEFAULT_CONFIG_PATH) -> str | None:
