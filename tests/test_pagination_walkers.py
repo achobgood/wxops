@@ -342,13 +342,32 @@ class TestDefaultsUnchanged:
             total += len(re.findall(pattern, src))
         return total
 
-    # Pinned absolutely, not diffed against HEAD. An earlier version of this
-    # test counted the pre-`--all` branch shape at HEAD — which silently became
-    # 0 the moment the change was committed, so the guard would have passed
-    # forever while measuring nothing. The number is the count at 600eb38, the
-    # commit before --all, and it is the whole point of the guard: it may not
-    # move without someone deciding it should.
+    # The rule, not a count (2026-11-22). Until then this guard was a frozen
+    # number: 53 at 600eb38 (the commit before --all), then 55 (2026-08-04,
+    # ai-receptionist), 56 (2026-09-08, meetings list-group-meetings) and 61
+    # (2026-11-22, the org-wide schedule lists). Each move was a person
+    # confirming the new commands' spec 200 declares `Link`, every one was a
+    # legitimate addition, and the 2026-11-16 weekly sync failed closed on the
+    # number because the routine may not edit tests. That confirmation is
+    # mechanical, so the test now makes it, in both directions:
+    #   - a command that fetches every page by default has a spec 200 that
+    #     declares `Link` (the defect this guard exists for: --all is opt-in);
+    #   - a list command (it offers --all) whose spec 200 declares `Link` does
+    #     fetch every page by default (the old pin caught that shrink too).
+    # A single-object read whose spec declares Link (`licenses show`,
+    # `meetings show`, `device-settings show-settings-devices-2`) has no --all
+    # and is not a list, so it is out of the second rule.
     #
+    # "Declares Link" is read exactly as `openapi_parser.py` reads `paginates`:
+    # a header named `Link`, case and all, on the operation's own 200. Its own
+    # reader, so a parser change cannot move both sides at once. Known
+    # divergence, deliberately left: `security-audit list` declares lowercase
+    # `link` (specs/webex-admin.json), so it fetches one page by default; the
+    # comment at `paginates` says why that rule is not widened.
+    WALK_ALL_MARKER = "if limit > 0 and not all_pages:"
+    ALL_FLAG = '"--all", help="Fetch every page'
+
+    # Old history, kept for the record of how each addition was judged:
     # 53 -> 55 on 2026-08-04, deliberately. The `ai-receptionist` group landed
     # with two list commands in this branch: `list`
     # (GET /telephony/config/aiReceptionists) and `list-available-numbers`
@@ -387,16 +406,71 @@ class TestDefaultsUnchanged:
     # Checked the cause rather than the count: each one's 200 declares a `Link`
     # response header in specs/webex-cloud-calling.json, the declaration that
     # puts the 56 above in this branch, so the move is correct.
-    # If this number changes again, confirm the new commands' 200 really
-    # declares `Link` before touching it — a command reaching this branch
-    # WITHOUT that header would be the actual defect this guard exists to catch.
-    DEFAULT_WALK_ALL_COMMANDS = 61
 
-    def test_the_default_walk_all_branch_did_not_grow(self):
-        after = self._count(r"if limit > 0 and not all_pages:")
-        assert after == self.DEFAULT_WALK_ALL_COMMANDS, (
-            f"{after - self.DEFAULT_WALK_ALL_COMMANDS} commands changed what "
-            "they return by DEFAULT — --all is supposed to be opt-in")
+    @staticmethod
+    def _declares_link(op: dict) -> bool:
+        return "Link" in (op.get("responses", {}).get("200", {}).get("headers") or {})
+
+    @classmethod
+    def _walk_all_violations(cls, blocks, ops):
+        """(walk_all, without_link, link_not_walking), each a list of
+        "<group> <command>  <METHOD> <path>", for drift_check CommandBlocks
+        against drift_check.spec_ops_by_key(). Any declaring spec's Link counts."""
+        walk_all, without_link, link_not_walking = [], [], []
+        for b in blocks:
+            name = f"{b.group} {b.command}  {b.method} {b.npath}"
+            declares = b.method == "GET" and any(
+                cls._declares_link(s.op) for s in ops.get((b.method, b.npath), []))
+            if cls.WALK_ALL_MARKER in b.text:
+                walk_all.append(name)
+                if not declares:
+                    without_link.append(name)
+            elif declares and cls.ALL_FLAG in b.text:
+                link_not_walking.append(name)
+        return walk_all, without_link, link_not_walking
+
+    def test_only_link_paged_lists_fetch_every_page_by_default(self):
+        from tools import drift_check as dc
+        walk_all, without_link, link_not_walking = self._walk_all_violations(
+            dc.iter_command_blocks(), dc.spec_ops_by_key())
+        # Every marker in the tree sits in a block the reader parsed; a block it
+        # dropped would otherwise escape both rules below.
+        assert len(walk_all) == self._count(re.escape(self.WALK_ALL_MARKER))
+        assert len(walk_all) >= 50, "reader went blind — the marker moved"
+        assert not without_link, (
+            "these fetch every page by DEFAULT but their spec 200 declares no "
+            "Link header — --all is supposed to be opt-in", without_link)
+        assert not link_not_walking, (
+            "these list commands' spec 200 declares Link, yet by default they "
+            "fetch one page", link_not_walking)
+
+    def test_the_rule_fires_both_ways(self):
+        """The live-tree test passes on a clean tree; this proves it can fail."""
+        from tools.drift_check import CommandBlock, SpecOp
+
+        def block(command, text):
+            return CommandBlock("things", "things", command, "GET", "/things", text)
+
+        def spec(headers):
+            op = {"responses": {"200": {"headers": headers}}}
+            return {("GET", "/things"): [SpecOp("x.json", "/things", "GET", op, {})]}
+
+        link, lower, none = spec({"Link": {}}), spec({"link": {}}), spec({})
+        walking = f"{self.ALL_FLAG} …)\n        {self.WALK_ALL_MARKER}\n"
+        one_page = f"{self.ALL_FLAG} …)\n        result = api.session.rest_get(url)\n"
+        single = "        result = api.session.rest_get(url)\n"
+        name = "things list  GET /things"
+        rule = self._walk_all_violations
+
+        # Fetches everything by default with no Link on the spec: the defect.
+        assert rule([block("list", walking)], none) == ([name], [name], [])
+        assert rule([block("list", walking)], lower) == ([name], [name], [])
+        # A list whose spec declares Link but fetches one page: the shrink.
+        assert rule([block("list", one_page)], link) == ([], [], [name])
+        # Controls: both agreeing shapes, and a single-object read with Link.
+        assert rule([block("list", walking)], link) == ([name], [], [])
+        assert rule([block("list", one_page)], none) == ([], [], [])
+        assert rule([block("show", single)], link) == ([], [], [])
 
     def test_a_spec_parameter_named_all_fails_generation(self):
         """--all must be protected the way --output and --fields are.
