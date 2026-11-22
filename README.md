@@ -257,7 +257,7 @@ For partners, resellers and managed-service providers managing several customer 
 ```bash
 wxcli switch-org                  # Change the active target org
 wxcli clear-org                   # Revert to single-org behavior
-wxcli whoami                      # Shows "Target:" line when an org is set
+wxcli whoami -o json              # targetOrgId = the saved org; partnerTarget true = not the token's own org
 ```
 
 The commands add the selected organization ID to every endpoint that accepts it — no extra flag required.

@@ -156,7 +156,7 @@ Run `wxcli configure` to complete the interactive OAuth flow. The CLI prompts fo
 
 ### Partner Token Note
 
-If `wxcli whoami` shows a **"Target: \<org name\>"** line, the operator is working against the saved customer org (partner/VAR/MSP scenario). This is the correct state for multi-org deployments. If no Target line appears and you are a partner admin, run `wxcli configure` again — it detects multi-org tokens automatically and prompts for org selection. See [`docs/reference/authentication.md` §Partner/Multi-Org Tokens](../../reference/authentication.md#partnermulti-org-tokens) for the full multi-org workflow.
+If `wxcli whoami -o json` shows **`"partnerTarget": true`**, the operator is working against the saved customer org (`targetOrgId` / `targetOrgName`; partner/VAR/MSP scenario). This is the correct state for multi-org deployments. If `partnerTarget` is `false` and you are a partner admin, run `wxcli configure` again — it detects multi-org tokens automatically and prompts for org selection. See [`docs/reference/authentication.md` §Partner/Multi-Org Tokens](../../reference/authentication.md#partnermulti-org-tokens) for the full multi-org workflow.
 
 → Multi-org detection logic: `docs/reference/authentication.md` §How wxcli handles partner tokens.
 

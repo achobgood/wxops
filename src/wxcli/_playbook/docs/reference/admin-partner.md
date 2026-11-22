@@ -70,7 +70,8 @@ Manage assignment of partner administrators to customer organizations.
 >
 > **This matters most for partners.** These commands act on whichever tenant `switch-org` last
 > saved, not on the one you name in the command. Before running any of them, confirm the target
-> with `wxcli whoami` (it prints a `Target:` line) and set it explicitly with
+> with `wxcli whoami -o json` (`targetOrgId` / `targetOrgName` name it; `partnerTarget` is `true`
+> when it is not the token's own org) and set it explicitly with
 > `wxcli switch-org <customerOrgId>`. In automation always pass the ID -- bare `switch-org`
 > prompts interactively and will hang.
 
@@ -319,7 +320,7 @@ wxcli people list --display-name "Jane Partner" -o json
 
 # 2. Point at the customer org -- steps 3 and 4 have no org argument
 wxcli switch-org CUSTOMER_ORG_ID
-wxcli whoami          # confirm the "Target:" line names the customer org
+wxcli whoami -o json  # confirm targetOrgId is the customer org and partnerTarget is true
 
 # 3. Assign them to the customer org
 wxcli partner-admins create PARTNER_ADMIN_PERSON_ID

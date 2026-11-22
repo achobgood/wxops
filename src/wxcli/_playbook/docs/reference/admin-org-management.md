@@ -76,8 +76,9 @@ wxcli organizations delete --force
 > `resolve_org_id()` -- the org saved by `wxcli switch-org`, falling back to the token's own org
 > from `GET /v1/people/me`. Passing an org ID as a positional fails with "unexpected extra
 > argument"; removing it does **not** make the command target the org you named. Run
-> `wxcli whoami` and read the `Target:` line before either command, and never run
-> `organizations delete --force` without doing so -- it deletes whatever tenant `switch-org`
+> `wxcli whoami -o json` and read `targetOrgId` / `targetOrgName` (the org commands go to) and
+> `partnerTarget` (`true` when that is not the token's own org) before either command, and never
+> run `organizations delete --force` without doing so -- it deletes whatever tenant `switch-org`
 > last saved.
 
 ### Raw HTTP Fallback

@@ -44,7 +44,7 @@ _MESSAGE_TIPS = {
     # ("missing, expired, or revoked") sent people to re-run configure with a
     # perfectly good token. Live 2026-10-13 on the Contact Center host, which
     # rejected the base64 Webex org id with this text and accepted the bare UUID.
-    "does not have access to OrgId": "The token itself is valid — the org id sent with the request is the problem. Contact Center APIs want the org's bare UUID, not the base64 Webex org id, and they also refuse an org this token does not administer. Check the 'Target:' line of: wxcli whoami — if it names the wrong org, run: wxcli switch-org <orgId> (or wxcli clear-org to use the token's own org).",
+    "does not have access to OrgId": "The token itself is valid — the org id sent with the request is the problem. Contact Center APIs want the org's bare UUID, not the base64 Webex org id, and they also refuse an org this token does not administer. Check targetOrgId in: wxcli whoami -o json (partnerTarget true = not the token's own org) — if it names the wrong org, run: wxcli switch-org <orgId> (or wxcli clear-org to use the token's own org).",
     "Target user not authorized": "This endpoint needs a user-level OAuth token, not an admin or service app token. Re-run: wxcli configure with the target user's own access token, then confirm the owner with: wxcli whoami",
     # Measured 2026-08-01: four person-setting reads (do-not-disturb, call
     # waiting, call forwarding, voicemail) all returned this shape for one
@@ -71,7 +71,7 @@ _MESSAGE_TIPS = {
 _STATUS_TIPS = {
     400: "The request body or a parameter was rejected. Re-check every ID you passed against the list command of the group it came from; if this command sends a body, re-run it with --generate-json-body to print the exact skeleton it accepts (that exits before authenticating).",
     401: "The token is missing, expired, or revoked. Re-run: wxcli configure — then confirm it works with: wxcli whoami",
-    403: "The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami — it prints the token owner and the 'Target:' org. If the Target line is wrong or missing, run: wxcli switch-org <orgId>",
+    403: "The token is valid but is not an admin of the target org, or lacks this endpoint's scope. Run: wxcli whoami -o json — targetOrgId is the org commands go to (partnerTarget true = not the token's own org). If that org is wrong or missing, run: wxcli switch-org <orgId>",
     404: "No such resource in the target org — the ID may belong to a different org, or already be deleted. Get a live ID from this command group's list subcommand, and confirm which org you are pointed at with: wxcli whoami",
     # A 405 here is usually not about the verb. Live: a PUT to /people that
     # succeeded on three licensed users returned this on an unlicensed one, and

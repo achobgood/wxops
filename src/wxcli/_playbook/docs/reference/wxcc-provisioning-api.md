@@ -31,6 +31,8 @@ Verified sequence (2026-07-25):
    - `Org: …<your-org-id>` — the user's own org
    - `Target: …<other-org-id>` — a **different** org, set earlier with `wxcli switch-org`
    - `Token: expires in 11h 59m` — the token was valid
+
+   (`whoami` printed those labelled lines until 2026-07-25. Today `wxcli whoami -o json` carries `orgId`, `targetOrgId` / `targetOrgName` and `partnerTarget` instead.)
 2. `wxcli cc-site list -o json` → `403`:
    ```json
    {"error":{"key":"403","reason":"Access denied - Client is forbidden access to the resource"}}
@@ -43,7 +45,7 @@ Verified sequence (2026-07-25):
 4. `wxcli clear-org` → "Cleared target org. Commands will now target your own organization."
 5. `wxcli cc-site list -o json` → 200. `wxcli cc-queue list` then returned 13 queues.
 
-**Diagnostic:** on a 403 from any `cc-*` command, run `wxcli whoami` and compare the `Target:` line to the `Org:` line. If `Target:` names a different org than the one hosting your Contact Center, that is the cause — the token was never the issue.
+**Diagnostic:** on a 403 from any `cc-*` command, run `wxcli whoami -o json` and read `partnerTarget` and `targetOrgId` (compare it with `orgId`, the token's own org). If `targetOrgId` names a different org than the one hosting your Contact Center, that is the cause — the token was never the issue.
 
 **Fix:** run `wxcli clear-org` to go back to targeting your own org, or `wxcli switch-org <correct-org-id>` if the Contact Center lives elsewhere. In this environment the Contact Center is in the user's own org, so `clear-org` is the correct fix.
 

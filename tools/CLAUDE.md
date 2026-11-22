@@ -1884,6 +1884,13 @@ concluded "single-org" and skipped confirming the target org. Now `tokenSource`
 org ≠ the token's own org, compared on the decoded UUID) are always present, and
 `tokenExpiresIn` states every case. `partnerTarget` exists because `configure` saves an org
 for single-org tokens too, so `targetOrgId` alone cannot answer "is this a customer org?".
+That port fixed three files; a 2026-11-22 follow-up fixed the rest that still named a
+`Target:` / `Org:` line: two tips in `src/wxcli/errors.py` (the 403 tip and the Contact
+Center "does not have access to OrgId" tip), README, the CUCM operator
+runbook, `admin-org-management.md`, `admin-identity-scim.md`, `admin-partner.md` (twice),
+`wxcc-provisioning-api.md` and `contact-center-core.md` gotcha 23a. The labelled lines were
+real until 3503db67 (2026-07-25) moved whoami to emit(), so the dated 2026-07-25 sequence in
+`wxcc-provisioning-api.md` keeps them, with a note.
 
 **Follow-up, 2026-11-22: the token file and the expiry it recorded.** (1) `config.save_config`,
 the only writer of `~/.wxcli/config.json` (`save_org`, `save_cc_region`,

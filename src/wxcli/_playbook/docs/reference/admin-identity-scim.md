@@ -926,7 +926,7 @@ wxcli identity-org generate-otp USER_ID
 
 The org ID is part of the SCIM URL path (`/identity/scim/{orgId}/v2/...`), but you never pass it on the command line. Every `scim-users`, `scim-groups`, `scim-bulk`, and `identity-org` command fills it from `resolve_org_id()`: the org saved by `wxcli switch-org` if there is one, otherwise the authenticated token's own org from `GET /v1/people/me`. Passing an org ID as the first positional makes zero-argument commands fail with "unexpected extra argument", and makes `show`/`update`/`delete` treat the org ID as the **user or group** ID.
 
-On a partner/multi-org token this means SCIM commands act on whichever tenant `switch-org` last saved. Confirm the target with `wxcli whoami` (it prints a `Target:` line) before running them.
+On a partner/multi-org token this means SCIM commands act on whichever tenant `switch-org` last saved. Confirm the target with `wxcli whoami -o json` before running them: `targetOrgId` / `targetOrgName` name the org commands go to, and `partnerTarget` is `true` when that is not the token's own org.
 
 ### Scope Troubleshooting for Identity Scopes
 
