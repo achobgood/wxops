@@ -87,7 +87,7 @@ Pull recent API logs to see what actually hit the database:
 | Agent says wrong time | UTC timestamps not converted | Add timezone conversion note in action description and agent instructions |
 | Agent skips the action entirely | LLM non-determinism | Add forceful language: "You MUST call [action] before anything else. No exceptions." |
 | Agent uses wrong data between actions | LLM lost a UUID between actions | Never pass UUIDs as slot entities; use phone_number or confirmation_number instead |
-| Output variable `id` collision | Multiple HTTP nodes both output `id` | Rename to descriptive names: `customer_id`, `order_id` |
+| Output variable `id` collision | Multiple HTTP nodes both output `id` | Use descriptive names: `customer_id`, `order_id` (post-parse renaming not confirmed in official Cisco docs — use consistent, descriptive field names in the sample JSON instead; see `docs/reference/webex-connect.md` § HTTP Request node, Output Variables Tab) |
 | Flow Designer HTTP returns 401/403 calling WxCC API | Manual auth headers instead of HTTP Connector, or connector misconfigured | Use an HTTP Connector (Control Hub → Contact Center → Connectors) with **Use Authenticated Endpoint** enabled; check connector access level (Read vs Read/Write) |
 | Flow Designer HTTP returns 429 | WxCC API rate limit hit | Add a Case activity to detect 429 and route to fallback path |
 | Flow Designer HTTP returns empty after Queue Contact | Queue Contact hasn't finished processing | Add a Play Message or Play Music activity between Queue Contact and HTTP Request |

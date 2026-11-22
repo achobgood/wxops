@@ -89,7 +89,7 @@ Thanks for calling [Organization]! I can help you with [capability list]. One mo
 2. Go to the **Actions** tab
 3. Click **Add Action**
 4. In the **Action Name** field, enter the action name in lowercase_underscores format (e.g., `lookup_customer`) — the LLM uses this name to identify when to call this action
-5. Under **Connect Flow**, select the flow you just built in Webex Connect from the dropdown — **this is why the Connect flow must be built first; it won't appear here until it exists and is made live**
+5. Under **Connect Flow**, select the flow you just built in Webex Connect from the dropdown — **this is why the Connect flow must be built first; it won't appear here until it exists (whether it must also be made live first is unverified — the owner docs `ai-agent-studio.md` § Fulfillment and `webex-connect.md` do not state it; they say only that only flows whose start node is AI Agent are listed, and that a flow in a group-level or team-level workspace never appears). Make it live per `webex-connect.md` before you test**
 6. Configure remaining fields per following steps
 
 ## Step 6: Generate Action Name — `[AI Agent Studio → Action → Action Name field]`

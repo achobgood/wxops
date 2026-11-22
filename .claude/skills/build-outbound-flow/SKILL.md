@@ -96,9 +96,9 @@ Configure headers appropriate to the user's backend API (see `reference.md` or `
 
 ### Output Variables
 
-1. Paste a sample JSON response into the Parse field and click **Parse**
-2. Rename `id` to a descriptive name (e.g., `order_id`, `customer_id`)
-3. Response path: `$.field_name` (single object) or `$[0].field_name` (array first element)
+1. Click **Import from Sample**, paste a sample JSON response into the **Data Parser** dialog box and click **Parse**, select the required parameters under **Select key paths to be extracted**, then click **Import** [`webex-connect.md` § HTTP Request Node -- GET Requests, Output Variables Tab]
+2. Rename `id` to a descriptive name (e.g., `order_id`, `customer_id`) — **renaming not confirmed in official docs**; use consistent, descriptive field names in the sample JSON as a reliable alternative [`webex-connect.md` § HTTP Request Node -- GET Requests, Output Variables Tab]
+3. Response path: `$.field_name` (single object) or `$[0].field_name` (array first element) — **not documented in official docs** (the HTTP Request node UI uses key-path selection; JSONPath-style notation appears only on the Data Parser page); confirm against the key paths the tenant UI generates [`webex-connect.md` § HTTP Request Node -- GET Requests, Output Variables Tab]
 
 ### Curl Test
 

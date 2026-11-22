@@ -8,7 +8,7 @@ Step-by-step guide for building a digital inbound AI agent flow in Webex Connect
 
 **Key distinction from voice:** The entire flow lives in Webex Connect. Flow Designer is NOT used for digital inbound.
 
-**Key distinction from action flows:** This is the parent conversation flow, not a per-action flow. Action flows (Receive → HTTP → Flow Outcomes) are channel-agnostic and work for both voice and digital without changes.
+**Key distinction from action flows:** This is the parent conversation flow, not a per-action flow. Action flows (Start node with Trigger category AI Agent → HTTP Request → End, with the returned data set in the Flow Outcomes area of Flow Settings — Flow Outcomes is not a node, and there is no Receive node [`webex-connect.md` § Flow Outcomes (Flow Settings — NOT a node)]) are channel-agnostic and work for both voice and digital without changes.
 
 ---
 
@@ -50,6 +50,8 @@ Before building the flow:
 ## 3. Start Node Configuration
 
 Create a new flow in Connect. Configure the Start node with a channel-specific trigger:
+
+> ⚠ **SMS trigger name is UNRESOLVED — open item O5.** Three spellings are live in this repo (`SMS - Mobile Originated - MO`, `Mobile Originated - MO`, `SMS - Mobile Originated`) and none is verified against a tenant. The SMS row below is preserved as written, not corrected; read the literal label from the Start node trigger picker on your tenant. See `connect-sms.md` § Open item O5 and `digital-inbound.md`.
 
 | Channel | Channel Section | Trigger Name | Message Variable | Customer ID Variable |
 |---------|----------------|--------------|------------------|----------------------|

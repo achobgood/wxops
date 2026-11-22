@@ -118,7 +118,7 @@ Flow Outcomes is **not a node** — there is nothing to drag onto the canvas, an
 ## Step 10: Save and Make Live — `[Webex Connect]`
 
 1. Click **Save** in the top toolbar
-2. Click **Make Live** to activate the flow — the flow must be live before AI Agent Studio can select it in the action dropdown
+2. Click **Make Live** to activate the flow (publish; select the assets used and enter comments before going live) [source: webex-connect.md § Configuration Steps]. Whether the flow must be live before it appears in the AI Agent Studio action dropdown is unverified — the owner docs (`ai-agent-studio.md`, `webex-connect.md`) do not state it; they say only that the dropdown lists flows whose start node is AI Agent, in client-level workspaces. Make it live before testing the action
 
 ## Step 11: Generate the full 10-step action config
 

@@ -66,7 +66,7 @@ Before building anything in Webex Connect, verify the database query works.
 After the skill output, remind the user:
 - Use the variable picker -- never type variable references manually
 - **Verify Notify AI Agent is selected** in Flow Settings > Flow Outcomes > the **Last Execution Status** row > enable **Notify** > confirm **Notify AI Agent** is the selected notification target (**UNVERIFIED** whether it is pre-selected by default or an explicit click under a **Notification Settings** heading — Cisco documents it as enabled by default for the AI Agent start node, the platform owner describes selecting it explicitly, and the two have not been reconciled; check the tenant UI and confirm it is selected either way — open item **O2** in `docs/plans/2026-07-25-documentation-remediation-backlog.md` §6)
-- Rename `id` to a descriptive name (e.g., `customer_id`) after parsing sample JSON
+- Rename `id` to a descriptive name (e.g., `customer_id`) after parsing sample JSON (renaming not confirmed in official Cisco docs — use consistent, descriptive field names in the sample JSON so names do not collide when chaining HTTP nodes; see `docs/reference/webex-connect.md` § HTTP Request node, Output Variables Tab)
 - If the action involves a lookup that might return no results (e.g., patient not found), add a **Branch node** after the HTTP node to check `$(nX.https.statusCode)`. There is **no Flow Outcomes node** to route to — the outcome payload is configured once at flow level, and there is **one key-set per flow**, so you cannot return a different payload per Branch leg. Set a status/error variable on each leg, converge the legs into the **End (END FLOW)** node, and return that variable through the single **Last Execution Status** key-set so the agent gets an error message it can use conversationally. See `docs/reference/webex-connect.md` § "Flow Outcomes (Flow Settings — NOT a node)" and `docs/reference/webex-connect-advanced.md` for the Branch node pattern.
 
 Wait for the user to confirm they have built the flow and made it live.
@@ -286,11 +286,13 @@ Never use UUIDs as input entities that the **caller** must provide. Callers cann
 **Exception:** UUIDs returned by one action and consumed by the next (e.g., `test_id` from `get_test_info` passed to `create_appointment`) are acceptable. The LLM carries these in conversation context, not from caller speech. Monitor for reliability — if the LLM drops a UUID between actions, redesign to use a lookup-by-name pattern instead.
 
 ### Prohibited Nodes (Connect)
-NEVER use these nodes in AI Agent flows -- they cause 30-second timeouts:
+NEVER use these nodes in AI Agent flows -- they risk exceeding the 30-second execution time limit (Cisco: Waiting Nodes "can cause flow execution to exceed this limit"; owner: `docs/reference/webex-connect.md` § Prohibited Nodes in AI Agent Flows):
 - Delay
-- Social Hour
+- Social Hour Check
 - Receive Node
 - Call Workflow
+
+These four are examples of a category, not a closed list — Cisco's own wording is "such as"; see the owner section for the additional waiting nodes (Wait for events in Send nodes, Prebuilt asynchronous events).
 
 ### Action vs. Field
 NEVER create a separate action just to retrieve additional columns from the same record. If the data comes from the same table and the same query with no new caller input required, add it as an output variable on the existing action. New actions are for new triggers, new tables, or new HTTP methods.

@@ -36,6 +36,8 @@ Flow Outcomes is configured in **Flow Settings**, not on the canvas — there is
 | Array -- whole | `$` | Listing multiple records |
 | Array -- first | `$[0].field_name` | Avoid if possible |
 
+These path formats are **not documented in official docs** — the HTTP Request node UI uses key-path selection; JSONPath-style notation appears only on the Data Parser page [`webex-connect.md` § HTTP Request Node -- GET Requests, Output Variables Tab].
+
 ## Common URL Patterns
 
 | Operation | Pattern |
@@ -73,7 +75,7 @@ See `docs/reference/webex-connect.md` § "Flow Outcomes (Flow Settings — NOT a
 
 1. Wire first node's **Success** output to second node's input
 2. Reference first node's output: `$(n{nodeNumber}.{variableName})` (no `aiAgent` prefix)
-3. Rename `id` in each node to avoid collisions (e.g., `customer_id`, `order_id`)
+3. Rename `id` in each node to avoid collisions (e.g., `customer_id`, `order_id`) — **renaming not confirmed in official docs**; use consistent, descriptive field names in each node's sample JSON as a reliable alternative [`webex-connect.md` § HTTP Request Node -- GET Requests, Output Variables Tab]
 
 ## Variable Naming
 

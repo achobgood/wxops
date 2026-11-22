@@ -177,24 +177,27 @@ doc-maintenance rule, not surgery.
 Root `AGENTS.md` § Answering platform questions and § Routing Table still dictate
 *which* files. This rule dictates *which directory to trust for what*.
 
-## ⚠ Interim: neither directory is reliably authoritative yet
+## ⚠ Known residue: unsettled facts are marked in place
 
-**Do not treat `docs/reference/` as the source of truth until the remediation
-backlog is worked.** An audit pass in April 2026 corrected `docs/playbooks/` and
-`.codex/skills/` and never swept `docs/reference/` — so for the topics that
-audit touched, the *playbook* is currently the more current file. Of 117 priority
-fixes: 51 applied, 24 not applied, 42 partially applied.
+An April 2026 audit corrected `docs/playbooks/` and `.codex/skills/` but not
+`docs/reference/`. A reference-layer sweep on 2026-07-27 and a re-check with
+fixes on 2026-11-22 brought the reference layer level, so it owns values as this
+file describes. Two kinds of residue remain:
 
-Until `docs/plans/2026-07-25-documentation-remediation-backlog.md` is closed out:
+- **Facts only a live tenant can settle** are marked where they appear:
+  `UNRESOLVED`, `UNVERIFIED`, or `open item O<n>`. Quote the marking; never settle
+  one from memory, from training data, or by picking the more plausible copy.
+- **Three reference docs have never been checked against vendor documentation:**
+  `bre.md`, `db-integration.md` and `flow-blueprints.md`. Read the matching
+  playbook too when you rely on one of them.
 
-- **Read both** when they cover the same ground.
-- **Treat any disagreement as a finding, not a coin flip.** Do not silently pick
-  the more plausible one. Report it, and resolve it against the live API, the
-  official vendor documentation, or the platform owner — never from training data.
-- Log what you resolve into the backlog document.
+**Treat any disagreement between two files as a finding, not a coin flip.** Report
+it, and resolve it against the live API, the official vendor documentation, or
+the platform owner — never from training data. This rule is how the Flow
+Outcomes and Event Name errors were caught.
 
-This caveat is how the Flow Outcomes and Event Name errors were caught. Delete
-this section only when the backlog is closed.
+Delete the second bullet when those three docs have been checked against vendor
+documentation; keep the rest.
 
 ## When you find a duplicate
 

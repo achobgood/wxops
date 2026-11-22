@@ -56,7 +56,7 @@ Ask the user ONE question at a time. Confirm all answers before proceeding.
 
 | Channel | Channel Section | Start Trigger |
 |---------|----------------|--------------|
-| SMS | Mobile Originated | Mobile Originated - MO |
+| SMS | Mobile Originated | Mobile Originated - MO ⚠ spelling unresolved — open item O5 (three spellings live; see `docs/reference/connect-sms.md` and `docs/reference/digital-inbound.md`; do not settle it from memory) |
 | WhatsApp | WhatsApp | Incoming Message |
 | Live Chat | Mobile & Web App | Incoming Message |
 | Email | Email | Incoming Message |
@@ -90,7 +90,7 @@ Ask the user ONE question at a time. Confirm all answers before proceeding.
 5. Set Message Variable: channel-specific message variable from Step 4
 6. Set Channel: the channel name (e.g., "WhatsApp")
 7. Set User Identifier: channel-specific customer ID from Step 4
-8. (Optional) Configure Custom Parameters for customer profile data (scripted agents only on digital)
+8. (Optional) Configure Custom Parameters for customer profile data (⚠ "scripted-only" is UNVERIFIED — open item O8, see `docs/reference/ai-agent-studio-scripted.md` § Scripted-Only Features on Digital Channels)
 
 ### Output variables to note:
 
@@ -207,7 +207,7 @@ Start ({Channel} - Incoming Message)
 
 Remind the user:
 
-- Action flows (Start: AI Agent -> Receive -> HTTP Request -> Flow Outcomes) work for digital WITHOUT changes -- the same action flows used for voice work identically for digital
+- Action flows (Start node, Trigger category: AI Agent -> HTTP Request -> End; the payload returned to the agent is set in Flow Settings > Flow Outcomes, which is a settings area, not a node [`webex-connect.md` § Flow Outcomes (Flow Settings — NOT a node)]) work for digital WITHOUT changes -- the same action flows used for voice work identically for digital
 - SessionId must be stored and passed on each loop iteration to maintain conversation context
 - The flow must be Made Live before testing
 - Test by sending a message on the configured channel
@@ -217,7 +217,7 @@ Remind the user:
 
 ## CRITICAL REMINDERS
 
-- **This is NOT an action flow** -- action flows use Start: AI Agent trigger, Receive node, HTTP Request, and Flow Outcomes. This is the parent conversation flow that orchestrates the full customer interaction.
+- **This is NOT an action flow** -- action flows use a Start node with Trigger category: AI Agent, HTTP Request node(s), and an End node, with the returned payload configured in Flow Settings > Flow Outcomes (a settings area, not a node; there is no Receive node in an AI agent action flow) [`webex-connect.md` § AI agent action flows]. This is the parent conversation flow that orchestrates the full customer interaction.
 - **Flow Designer is NOT used** for digital inbound -- the entire flow lives in Webex Connect. Flow Designer is voice only.
 - **Queue Task, not Queue Contact** -- Queue Contact is for voice (Flow Designer). Queue Task is for digital (Connect).
 - **SessionId is essential** for multi-turn conversations -- store it from the first AI Agent call and pass it back on every subsequent call.
@@ -225,7 +225,7 @@ Remind the user:
 - **Channel-specific reply node** -- the reply node must match the Start trigger channel. WhatsApp Start -> WhatsApp Reply, SMS Start -> SMS Reply, etc.
 - **Gateway Submit** for Wait For on all reply nodes -- never use Delivery Report in conversation flows.
 - **Webex Engage nodes must be authorized** before use -- navigate to Assets → Integrations → Pre-built Integrations → Actions → Manage → Node Authorizations. The authorizing user must have a Contact Center License and Admin role.
-- **Custom Parameters and MessageMetadata** -- only available for scripted agents on digital, not autonomous agents.
+- **Custom Parameters and MessageMetadata** -- documented in this repo as scripted-agents-only on digital (⚠ "scripted-only" is UNVERIFIED — open item O8, see `docs/reference/ai-agent-studio-scripted.md` § Scripted-Only Features on Digital Channels); verify against the tenant before relying on the exclusivity.
 - **Customer Journey Data node** -- if the flow needs CJDS caller identification or journey tracking, use the native **Customer Journey Data** node (Flex 3 only). See `docs/playbooks/cjds-integration.md` for method-specific configuration, outcome branches, and output variables. Key gotcha: CJDS reads and writes use one host, `api.wxcc-{region}.cisco.com` (verified 2026-10-19 on `us1`). Until 2026-10-19 this line said reads use `api-jds.prod-{region}.ciscowxdap.com`; that host does not resolve (NXDOMAIN).
 - **Cross-channel escalation (chat → voice)** -- if the user wants to escalate from digital chat to a voice call with a human agent, use the **Fetch Conversation Transcript** node (Update Conversation, method: Fetch transcript) to retrieve the full chat history, write it to CJDS as a `chat:transcript` event, then trigger an outbound voice call. The voice agent sees the transcript in the Customer Journey Widget. See `docs/playbooks/cross-channel-escalation.md` for the full pattern and `docs/reference/digital-inbound.md` §4b for the Fetch Transcript node.
 

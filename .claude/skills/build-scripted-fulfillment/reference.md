@@ -60,12 +60,14 @@ VirtualAgentV2 (ENDED / Custom Event)
 
 ## Key Variable Syntax (Voice / Responses)
 
+> ⚠ **UNRESOLVED — `${}` vs `$()` in response templates.** The `${...}` forms below are preserved as written; whether AI Agent Studio response templates take `${variable}` or `$(variable)` is an open verification — confirm in the Response Designer on your tenant [source: `ai-agent-studio-scripted.md` § Response Variables].
+
 | Syntax | Source |
 |--------|--------|
 | `${entity.<name>}` | Collected slot value (in response templates) |
 | `${eventStore.<name>}` | Data from state_update event |
 | `${extra_params.<key>}` | Message parameters from flow |
-| `${consumerData.extra_params.<key>}` | Custom Parameters (digital only) |
+| `${consumerData.extra_params.<key>}` | Custom Parameters ("digital only" is UNVERIFIED — open item O8, see `ai-agent-studio-scripted.md` § Scripted-Only Features on Digital Channels) |
 
 ## Custom Event Payload (Voice)
 

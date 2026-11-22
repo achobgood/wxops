@@ -220,7 +220,7 @@ Before wiring it to an AI agent action:
 
 1. Use **curl** to test the raw Supabase URL with the same headers
 2. Verify the response shape matches what your output variables expect
-3. In Connect, use **Test Flow** (if available) or trigger via a test AI agent session
+3. Trigger the flow via a test AI agent session, then read the execution in **Flow Debug** (there is no flow-level "Test Flow" control) [`webex-connect.md` § Testing and Debugging a Flow]
 
 ---
 

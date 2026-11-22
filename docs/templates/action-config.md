@@ -17,7 +17,7 @@ Returns: "returned_variable_1", "returned_variable_2", "returned_variable_3"
 |-------------|-------------|-------------------|----------------|----------|
 | entity_name | String | Description the LLM reads to know what to collect | example_value | Yes |
 
-## 3. Configure AI Agent Event -- Sample JSON — `[Webex Connect → Receive node]`
+## 3. Configure AI Agent Event -- Sample JSON — `[Webex Connect → Start (trigger) node, trigger category AI Agent]`
 
 One key per input entity, with realistic example values:
 
@@ -70,11 +70,11 @@ Adjust per action:
 Notes:
 - Use `$.field_name` for single-object responses
 - Use `$` for whole array, `$[0].field_name` for first element (avoid if possible)
-- Rename `id` to a descriptive name after parsing (e.g., `customer_id`, `order_id`)
+- Rename `id` to a descriptive name after parsing (e.g., `customer_id`, `order_id`) (renaming not confirmed in official Cisco docs — use consistent field names in sample JSON as a reliable alternative)
 
 ## 8. Sample Response JSON — `[Webex Connect → HTTP Request node → Parse button]`
 
-Paste this into the Parse button on the HTTP node to auto-generate output variable rows. Rename `id` to a descriptive name after parsing.
+Paste this into the Parse button on the HTTP node to auto-generate output variable rows. Rename `id` to a descriptive name after parsing (renaming not confirmed in official Cisco docs — use consistent field names in sample JSON as a reliable alternative).
 
 ```json
 {

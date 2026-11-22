@@ -199,7 +199,7 @@ For each attachment, provide:
 
 ### MIME Encoding Overhead
 
-The total size sent through AWS SES includes email text, images, attachments, and MIME encoding combined. The static attachment field has a 10 MB UI limit; the error 7535 threshold for v5.63+ tenants is 40 MB total.
+The total size sent through AWS SES includes email text, images, attachments, and MIME encoding combined. The static attachment field has a 10 MB UI limit; the error 7535 threshold for v5.6.3+ tenants is 40 MB total.
 
 ### Dynamic Attachments
 
@@ -297,7 +297,7 @@ curl -X POST \
 | Variable shows literal `$(n3.order_id)` in email | Typed manually instead of using variable picker. Always use the picker. |
 | Error 7522: "Not verified" | SES sandbox — destination email not allowlisted. Allowlist in SES console, or move to production. |
 | Emails land in spam | Missing SPF/DKIM/DMARC DNS records. Configure all three; keep spam complaint rate below 0.10%. |
-| Attachment size error (7535) | For v5.63+ tenants, total email size exceeds 40 MB (includes email text, images, attachments, and MIME encoding). The static attachment field has a separate 10 MB UI limit. |
+| Attachment size error (7535) | For v5.6.3+ tenants, total email size exceeds 40 MB (includes email text, images, attachments, and MIME encoding). The static attachment field has a separate 10 MB UI limit. |
 | Read receipts not generated | Email Type set to "Text" (plain text), or using an SMTP asset. Use "HTML" or "Template" with an AWS SES asset — SMTP assets only track Sent and Failed, never Read. |
 
 Full gotcha list with causes: see `connect-email.md`.

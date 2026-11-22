@@ -37,7 +37,7 @@ For every platform question — every platform § Mandatory Grounding Rule names
 
 `docs/reference/` owns values — field names, valid values, limits, output variables, ports, error codes, restrictions, syntax. `docs/playbooks/` owns procedure — ordering, decisions, prerequisites, which-UI-next, judgment. The test: **would this still be true if the user's goal changed?** Yes → reference. No → playbook. A playbook cites reference facts rather than restating them. Full doctrine: `.codex/rules/doc-placement.md`.
 
-⚠ **Until the source repository's remediation backlog (`docs/plans/2026-07-25-documentation-remediation-backlog.md`, not shipped) is closed out, neither directory is reliably authoritative** — an April 2026 audit corrected the playbooks and skills but never swept `docs/reference/`. Where the two overlap, read both and treat any disagreement as a **finding**, not a coin flip: resolve it against the live API, official vendor documentation, or the platform owner. Never pick the more plausible one.
+⚠ **Some facts are still unsettled, and each is marked where it lives** (`UNRESOLVED`, `UNVERIFIED`, `open item`). Only a live-tenant check settles one: quote the marking; never choose the value from memory or from the more plausible copy. Where a playbook and a reference doc disagree, treat it as a **finding**, not a coin flip: resolve it against the live API, official vendor documentation, or the platform owner.
 
 **Hard rules.**
 - NEVER answer a platform question from training data or memory alone.
@@ -91,7 +91,7 @@ are hand-written and drift as the CLI regenerates. When a recipe and `--help` di
 **Platform facts follow a second order.** The ladder above is for `wxcli` (command names,
 flags, examples). A platform value (field, limit, port, error code) is owned by
 `docs/reference/`, which wins every disagreement; a playbook or skill that repeats it names
-that owner. Different questions, so keep both — subject to the interim ⚠ in § Answering
+that owner. Different questions, so keep both — subject to the ⚠ on unsettled facts in § Answering
 platform questions.
 
 **The ladder above does not apply to the `@webex/contact-center` JavaScript SDK** — `wxcli --help` cannot see `webex.cc` or `task.*`. Its own order (live observation first; its typedoc documents the `next` prerelease, ahead of stable; never conclude a field is missing by grepping the minified bundle) is `docs/reference/contact-center-agent-sdk.md` § Source of Truth for This Surface.

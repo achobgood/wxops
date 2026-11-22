@@ -87,7 +87,7 @@ Output Variables:
 
 | Field | Value |
 |-------|-------|
-| Destination Type | MSISDN |
+| Destination Type | msisdn |
 | Destination | `$(n1.inboundWebhook.customer_phone)` or paging DID |
 | From Number | [provisioned number] |
 | TTS Processor | Azure |
@@ -113,10 +113,10 @@ Output Variables:
 | Field | Value |
 |-------|-------|
 | Session Check | `abc_session_active == true` from DB |
-| Destination Type | User ID |
-| Destination | `$(nX.abc_user_id)` |
+| Destination Type | `AbcUser Id` (UNRESOLVED — Cisco prose says `User ID`; read the dropdown in your tenant; see `connect-apple-messages.md` § Node Configuration) |
+| Destination | Customer's `abcId` (opaque ID); read it off an inbound message with `$(nX.abc.abcUserId)` [`connect-apple-messages.md` § `abcUserId` vs `abcId`] |
 | Message Type | Rich Link / List Picker / Time Picker |
-| Wait For | Gateway Submit |
+| Wait For | GW submit |
 | SMS Fallback | [yes — always required] |
 
 **For WhatsApp:**

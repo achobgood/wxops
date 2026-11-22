@@ -642,7 +642,7 @@ Cisco publishes a complete per-node response-code table at https://help.webexcon
 | ExternalEvent | validation fail | invalid event occurs | — | — |
 | Transform | validation fail | transform exception | — | — |
 
-Additional tables exist on the same page for AddToQueue, CDR, Error, ReceiveSMS, Redirect, Repository and ServiceBundle.
+The table above covers only the seven nodes listed. Cisco's page also carries tables for AddToQueue, CDR, Error, ReceiveSMS, Redirect, Repository and ServiceBundle; those are not reproduced here, so read them at the Cisco page. These `3xxx` node codes are a separate numbering space from the inbound webhook / Event API response codes and the per-channel delivery codes, which are owned by `connect-response-codes.md` (see its § Scoping) and the per-channel `connect-*.md` § Status Codes.
 
 ---
 

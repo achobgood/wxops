@@ -207,6 +207,7 @@ Format for the user:
      "time": "${entity.appointment_time}"
    }
    ```
+   (⚠ `${...}` vs `$(...)` in AI Agent Studio response and payload templates is UNRESOLVED — confirm in the Response Designer on your tenant before hard-coding either form [source: `ai-agent-studio-scripted.md` § Response Variables])
 
 ### Step 5v: Wire Flow Designer — `[WxCC Flow Designer]`
 
@@ -307,7 +308,7 @@ The VAV2 activity's properties must reference these variables:
 - **eventName**: `{{ event_name }}`
 - **eventData**: `{{ event_data_string }}`
 
-The agent receives the data and can use `${eventStore.<key>}` in its response templates to deliver the result to the caller.
+The agent receives the data and can use `${eventStore.<key>}` in its response templates to deliver the result to the caller (⚠ `${}` vs `$()` syntax is UNRESOLVED — confirm in the Response Designer on your tenant [source: `ai-agent-studio-scripted.md` § Response Variables]).
 
 **On failure — two options:**
 
@@ -357,13 +358,13 @@ QUEUE_NAME=<your queue display name>
 ## CRITICAL REMINDERS
 
 - **NEVER type variable references manually** in Webex Connect — always use the variable picker
-- **SessionMetadata is scripted-only on digital** — autonomous agents don't have this output
+- **SessionMetadata on digital** — this repo states it is scripted-only (autonomous agents don't have this output), but that exclusivity is UNVERIFIED — the official AI Agent node docs list it with no agent-type qualifier (open item O8) [source: `ai-agent-studio-scripted.md` § Scripted-Only Features on Digital Channels]. Verify on the tenant before relying on it
 - **Data Parser node is required** to extract template_key and entity values from SessionMetadata JSON
 - **Custom Events are voice-only** — digital channels use the inline Branch pattern instead
 - **state_update can clear slots** by setting them to empty string `""` — this is the re-prompting mechanism
 - **Evaluate node** formats the user-facing message — do NOT send raw API JSON to customers
 - **Append Conversation** is required after Channel Reply on digital — without it, the conversation history breaks
-- **Prohibited nodes**: Delay, Social Hour Check, Receive Node, Call Workflow — these risk exceeding the 30-second execution time limit
+- **Prohibited nodes apply to autonomous-agent action flows, not scripted inline fulfillment**: Delay, Social Hour Check, Receive Node, Call Workflow risk exceeding the 30-second execution limit that applies to autonomous action flows. For Scripted (Digital) inline flows the owner lists "No separate limit" for execution [source: `ai-agent-studio-scripted.md` § Fulfillment Comparison — Execution limit row], and the multi-turn loop itself uses a Receive node [source: `digital-inbound.md`]. Do not extend the autonomous rule to the scripted inline flow
 - **Flow Designer Set Variable has no string functions** — `substring()`, `replace()`, `trim()` do not work. The literal text is appended to the variable value. Design API calls to accept raw variable formats. (Confirmed in `flow-designer-essentials.md`)
 - **Flow Designer Condition cannot compare to `""`** — use numeric checks instead (e.g., `{{resultCount}} > 0`). See `flow-designer-activities/condition.md` for the full limitations table and workarounds.
 

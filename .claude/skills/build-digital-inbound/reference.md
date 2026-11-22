@@ -10,7 +10,7 @@ Start (Channel Trigger) -> Search Conversation -> Create/Append Conversation -> 
 
 | Channel | Channel Section | Start Trigger | Message Variable | Customer ID |
 |---------|----------------|--------------|------------------|-------------|
-| SMS | Mobile Originated | Mobile Originated - MO | `$(n1.sms.message)` | `$(n1.sms.senderNumber)` |
+| SMS | Mobile Originated | Mobile Originated - MO ⚠ spelling unresolved — open item O5 (three spellings live; see `docs/reference/connect-sms.md` and `docs/reference/digital-inbound.md`; do not settle it from memory) | `$(n1.sms.message)` | `$(n1.sms.senderNumber)` |
 | WhatsApp | WhatsApp | Incoming Message | `$(n1.whatsapp.message)` | `$(n1.whatsapp.waId)` |
 | Live Chat | Mobile & Web App | Incoming Message | `$(n1.inappmessaging.message)` | `$(n1.inappmessaging.userId)` |
 | Email | Email | Incoming Message | `$(n1.email.message)` | `$(n1.email.emailId)` |
@@ -29,7 +29,7 @@ Start (Channel Trigger) -> Search Conversation -> Create/Append Conversation -> 
 | Message Variable | Channel-specific: `$(n1.{channel}.message)` (first turn), `$(nX.{channel}.message)` (subsequent — no `.receive.` segment) |
 | Channel | Channel name string (e.g., "WhatsApp", "SMS") |
 | User Identifier | Channel-specific customer ID |
-| Custom Parameters | Optional key-value pairs (scripted agents only on digital) |
+| Custom Parameters | Optional key-value pairs (⚠ "scripted-only" is UNVERIFIED — open item O8, see `docs/reference/ai-agent-studio-scripted.md` § Scripted-Only Features on Digital Channels) |
 
 ### Output Variables
 
@@ -186,6 +186,6 @@ Debug tools: Flow Debug (bug icon) for node-by-node logs, Transaction logs for v
 | Wrong reply channel | Mismatched reply node | Reply node must match Start trigger channel |
 | Rich content not rendering | Using TextResponse | Parse FullResponse for rich elements |
 | onTimeOut fires frequently | Agent response exceeds 15s | Check agent complexity, reduce action flow latency |
-| Custom Parameters ignored | Using autonomous agent | Custom Parameters only work with scripted agents on digital |
+| Custom Parameters ignored | Possibly using an autonomous agent (⚠ "scripted-only" is UNVERIFIED — open item O8, see `docs/reference/ai-agent-studio-scripted.md` § Scripted-Only Features on Digital Channels) | Verify against the tenant; if confirmed, use a scripted agent on digital |
 | Flow doesn't trigger | Flow not Made Live | Click Make Live after saving |
 | Variable arrives empty | Typed manually | Use the variable picker -- never type variable references |

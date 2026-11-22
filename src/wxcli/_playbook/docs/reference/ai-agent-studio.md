@@ -478,6 +478,6 @@ For a Webex AI Agent, Cisco documents only the *selection* — "Select **Webex A
 ## See Also
 
 - [ai-agent-studio-scripted.md](ai-agent-studio-scripted.md) — the scripted counterpart, for choosing between the two agent types
-- [webex-connect.md](webex-connect.md) — the Connect flow an agent action calls, where the action name must match the Connect event name
+- [webex-connect.md](webex-connect.md) — the Connect flow an agent action calls: the Start node uses Trigger category AI Agent (Configure AI Agent Event), whose event auto-populates and is not typed or matched to the action name, and Flow Outcomes is a Flow Settings area, not a node
 - [flow-designer-patterns.md](flow-designer-patterns.md) — how an agent is placed in a Flow Designer flow
 - [ai-agent-studio.md](../playbooks/ai-agent-studio.md) — the step-by-step setup that pairs with this reference

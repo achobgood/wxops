@@ -62,7 +62,7 @@ Sample Response JSON (paste into Parse button):
 
 | Field | Value |
 |-------|-------|
-| Destination Type | MSISDN |
+| Destination Type | msisdn |
 | Destination | `$(n1.inboundWebhook.customer_phone)` or `+15557500` (paging DID) |
 | From Number | [provisioned number or Dynamic] |
 | Expiry Time | [seconds or "not set"] |
@@ -91,11 +91,11 @@ Use the **variable picker** to insert all variable references. Never type them m
 | Exit Path | Wired To |
 |-----------|----------|
 | onAnswer | Voice Node Group → Play → End |
-| onBusy | [End / Log failure] |
-| onNoAnswer | [End / Log failure] |
-| onReject | [End / Log failure] |
+| onbusy | [End / Log failure] |
+| onnoanswer | [End / Log failure] |
+| onreject | [End / Log failure] |
 | onError | [End / Log failure] |
-| onCallFail | [End / Log failure] |
+| oncallfail | [End / Log failure] |
 | onPolicyFail | End |
 | onExpiry | End |
 

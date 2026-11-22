@@ -147,7 +147,10 @@ _HEADINGS_NOT_YET_WRITTEN: set[str] = set()
 GUARD_DOCTRINE = (
     "I don't have that documented", "Value question", "Procedure question",
     "[source: filename § section heading]", "<!-- ref-tag:", "Docs consulted:",
-    "docs/plans/2026-07-25-documentation-remediation-backlog.md",
+    # The ⚠ on unsettled facts. Until 2026-11-22 it pointed at the (unshipped)
+    # remediation backlog and waited on it closing; the narrowed note keeps the
+    # instruction: quote an UNRESOLVED/UNVERIFIED marking, never pick a value.
+    "quote the marking",
     ".claude/rules/doc-placement.md",
 )
 
