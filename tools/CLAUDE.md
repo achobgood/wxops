@@ -339,7 +339,7 @@ labels its findings by the visible name. Check 10 surfaced 2 real doc bugs, both
 **The no-ack trade-off, accepted on purpose.** Checks 29 and 30 use the spec as the oracle, and
 nothing can ack a finding. So an upstream spec that drops a key or retypes a value the live API
 still accepts fails the gate, and the weekly release stays blocked until a human edits the doc.
-An escape hatch the unattended routine could reach would defeat the point. For checks 23-28 and 31-33 the
+An escape hatch the unattended routine could reach would defeat the point. For checks 23-28, 31-33 and 36-42 the
 fix is in generator code or override keys, which `tools/sync_guard.py` keeps out of the routine
 (`FORBIDDEN_PATHS`, `yaml_key_findings`), so the routine fails closed and a human fixes it. For
 checks 29/30 the routine may spend its repair attempts on a finding ONLY when the finding's
