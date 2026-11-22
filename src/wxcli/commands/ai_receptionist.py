@@ -17,6 +17,7 @@ def cmd_list(
     location_id: str = typer.Option(None, "--location-id", help="Location identifier. If not specified, returns AI receptionists from all locations."),
     name: str = typer.Option(None, "--name", help="Search AI receptionists by name (contains match)."),
     phone_number: str = typer.Option(None, "--phone-number", help="Search (Contains) based on number or extension. Search cannot be performed based on esn."),
+    agent_id: str = typer.Option(None, "--agent-id", help="Filter AI receptionists by agent identifier."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
@@ -34,6 +35,8 @@ def cmd_list(
         params["name"] = name
     if phone_number is not None:
         params["phoneNumber"] = phone_number
+    if agent_id is not None:
+        params["agentId"] = agent_id
     if limit > 0:
         params["max"] = limit
     if offset > 0:

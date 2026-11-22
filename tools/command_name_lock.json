@@ -3485,6 +3485,26 @@
     "GET /events/{}"
    ]
   },
+  "export_schedule_usage_jobs": {
+   "create": [
+    "POST /telephony/config/jobs/schedules/exportUsage"
+   ],
+   "list": [
+    "GET /telephony/config/jobs/schedules/exportUsage"
+   ],
+   "list-errors": [
+    "GET /telephony/config/jobs/schedules/exportUsage/{}/errors"
+   ],
+   "pause-export-schedule": [
+    "POST /telephony/config/jobs/schedules/exportUsage/{}/actions/pause/invoke"
+   ],
+   "resume-export-schedule": [
+    "POST /telephony/config/jobs/schedules/exportUsage/{}/actions/resume/invoke"
+   ],
+   "show": [
+    "GET /telephony/config/jobs/schedules/exportUsage/{}"
+   ]
+  },
   "external_data_updates": {
    "update": [
     "PUT /data/updateExternal"
@@ -3786,6 +3806,12 @@
    "list": [
     "GET /telephony/config/locations/{}/schedules"
    ],
+   "list-usage": [
+    "GET /telephony/config/locations/{}/schedules/{}/{}/usage"
+   ],
+   "promote-a-location": [
+    "POST /telephony/config/locations/{}/schedules/{}/{}/actions/promote/invoke"
+   ],
    "show": [
     "GET /telephony/config/locations/{}/schedules/{}/{}"
    ],
@@ -3797,6 +3823,12 @@
    ],
    "update-events": [
     "PUT /telephony/config/locations/{}/schedules/{}/{}/events/{}"
+   ],
+   "validate-event-name": [
+    "POST /telephony/config/locations/{}/schedules/{}/{}/events/actions/validate/invoke"
+   ],
+   "validate-name": [
+    "POST /telephony/config/locations/{}/schedules/actions/validate/invoke"
    ]
   },
   "location_settings": {
@@ -4677,6 +4709,9 @@
    "show-schedules-me": [
     "GET /telephony/config/people/me/schedules/{}/{}"
    ],
+   "show-schedules-organization": [
+    "GET /telephony/config/people/me/organization/schedules/{}/{}"
+   ],
    "show-selected-caller-id-secondary-lines": [
     "GET /telephony/config/people/me/settings/secondaryLines/{}/selectedCallerId"
    ],
@@ -4919,6 +4954,44 @@
    ],
    "show": [
     "GET /settings/organizations/{}/settings/{}"
+   ]
+  },
+  "org_wide_schedules": {
+   "create": [
+    "POST /telephony/config/schedules"
+   ],
+   "create-events": [
+    "POST /telephony/config/schedules/{}/{}/events"
+   ],
+   "delete": [
+    "DELETE /telephony/config/schedules/{}/{}"
+   ],
+   "delete-events": [
+    "DELETE /telephony/config/schedules/{}/{}/events/{}"
+   ],
+   "list": [
+    "GET /telephony/config/schedules"
+   ],
+   "list-usage": [
+    "GET /telephony/config/schedules/{}/{}/usage"
+   ],
+   "show": [
+    "GET /telephony/config/schedules/{}/{}"
+   ],
+   "show-events": [
+    "GET /telephony/config/schedules/{}/{}/events/{}"
+   ],
+   "update": [
+    "PUT /telephony/config/schedules/{}/{}"
+   ],
+   "update-events": [
+    "PUT /telephony/config/schedules/{}/{}/events/{}"
+   ],
+   "validate-event-name": [
+    "POST /telephony/config/schedules/{}/{}/events/actions/validate/invoke"
+   ],
+   "validate-name": [
+    "POST /telephony/config/schedules/actions/validate/invoke"
    ]
   },
   "organizations": {
@@ -5377,6 +5450,9 @@
    "create-criteria-call-filtering": [
     "POST /telephony/config/people/{}/executive/callFiltering/criteria"
    ],
+   "create-criteria-priority-alert": [
+    "POST /telephony/config/people/{}/priorityAlert/criteria"
+   ],
    "create-criteria-selective-accept": [
     "POST /telephony/config/people/{}/selectiveAccept/criteria"
    ],
@@ -5412,6 +5488,9 @@
    ],
    "delete-criteria-call-filtering": [
     "DELETE /telephony/config/people/{}/executive/callFiltering/criteria/{}"
+   ],
+   "delete-criteria-priority-alert": [
+    "DELETE /telephony/config/people/{}/priorityAlert/criteria/{}"
    ],
    "delete-criteria-selective-accept": [
     "DELETE /telephony/config/people/{}/selectiveAccept/criteria/{}"
@@ -5536,6 +5615,9 @@
    "list-preferred-answer-endpoint": [
     "GET /telephony/config/people/{}/preferredAnswerEndpoint"
    ],
+   "list-priority-alert": [
+    "GET /telephony/config/people/{}/priorityAlert"
+   ],
    "list-privacy": [
     "GET /people/{}/features/privacy"
    ],
@@ -5623,6 +5705,9 @@
    "show-criteria-call-filtering": [
     "GET /telephony/config/people/{}/executive/callFiltering/criteria/{}"
    ],
+   "show-criteria-priority-alert": [
+    "GET /telephony/config/people/{}/priorityAlert/criteria/{}"
+   ],
    "show-criteria-selective-accept": [
     "GET /telephony/config/people/{}/selectiveAccept/criteria/{}"
    ],
@@ -5631,6 +5716,9 @@
    ],
    "show-criteria-selective-reject": [
     "GET /telephony/config/people/{}/selectiveReject/criteria/{}"
+   ],
+   "show-criteria-sequential-ring": [
+    "GET /telephony/config/people/{}/sequentialRing/criteria/{}"
    ],
    "show-criteria-simultaneous-ring": [
     "GET /telephony/config/people/{}/simultaneousRing/criteria/{}"
@@ -5645,7 +5733,7 @@
     "GET /people/{}/features/schedules/{}/{}/events/{}"
    ],
    "show-executive-assistant": [
-    "GET /people/{}/features/executiveAssistant"
+    "GET /telephony/config/people/{}/executive"
    ],
    "show-hoteling": [
     "GET /people/{}/features/hoteling"
@@ -5737,6 +5825,9 @@
    "update-criteria-call-filtering": [
     "PUT /telephony/config/people/{}/executive/callFiltering/criteria/{}"
    ],
+   "update-criteria-priority-alert": [
+    "PUT /telephony/config/people/{}/priorityAlert/criteria/{}"
+   ],
    "update-criteria-selective-accept": [
     "PUT /telephony/config/people/{}/selectiveAccept/criteria/{}"
    ],
@@ -5762,7 +5853,7 @@
     "PUT /people/{}/features/schedules/{}/{}/events/{}"
    ],
    "update-executive-assistant": [
-    "PUT /people/{}/features/executiveAssistant"
+    "PUT /telephony/config/people/{}/executive"
    ],
    "update-hoteling": [
     "PUT /people/{}/features/hoteling"
@@ -5811,6 +5902,9 @@
    ],
    "update-preferred-answer-endpoint": [
     "PUT /telephony/config/people/{}/preferredAnswerEndpoint"
+   ],
+   "update-priority-alert": [
+    "PUT /telephony/config/people/{}/priorityAlert"
    ],
    "update-privacy": [
     "PUT /people/{}/features/privacy"

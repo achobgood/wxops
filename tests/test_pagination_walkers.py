@@ -374,10 +374,23 @@ class TestDefaultsUnchanged:
     # rather than the count: its 200 declares a `Link` response header, the same
     # declaration its sibling GET /meetings carries, so it reaches the
     # `paginates` branch for the established reason and the move is correct.
+    #
+    # 56 -> 61 on 2026-11-22, deliberately (the 2026-11-16 weekly sync failed
+    # closed on exactly this, contract §2 D; redone by hand on the 2026-11-22
+    # specs). Upstream added organization-wide schedules and schedule usage
+    # export; five new lists land in this branch, and none left it:
+    #   org-wide-schedules list             GET /telephony/config/schedules
+    #   org-wide-schedules list-usage       GET …/schedules/{type}/{id}/usage
+    #   location-schedules list-usage       GET …/locations/{id}/schedules/{type}/{id}/usage
+    #   export-schedule-usage-jobs list     GET /telephony/config/jobs/schedules/exportUsage
+    #   export-schedule-usage-jobs list-errors  GET …/exportUsage/{jobId}/errors
+    # Checked the cause rather than the count: each one's 200 declares a `Link`
+    # response header in specs/webex-cloud-calling.json, the declaration that
+    # puts the 56 above in this branch, so the move is correct.
     # If this number changes again, confirm the new commands' 200 really
     # declares `Link` before touching it — a command reaching this branch
     # WITHOUT that header would be the actual defect this guard exists to catch.
-    DEFAULT_WALK_ALL_COMMANDS = 56
+    DEFAULT_WALK_ALL_COMMANDS = 61
 
     def test_the_default_walk_all_branch_did_not_grow(self):
         after = self._count(r"if limit > 0 and not all_pages:")

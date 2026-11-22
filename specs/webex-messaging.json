@@ -86,7 +86,7 @@
           }
         },
         "summary": "Create an Attachment Action",
-        "operationId": "Create an Attachment Action",
+        "operationId": "createAnAttachmentAction",
         "description": "Create a new attachment action.",
         "tags": [
           "Attachment Actions"
@@ -188,7 +188,7 @@
           }
         },
         "summary": "Get Attachment Action Details",
-        "operationId": "Get Attachment Action Details",
+        "operationId": "getAttachmentActionDetails",
         "description": "Shows details for a attachment action, by ID.\n\nSpecify the attachment action ID in the `id` URI parameter.",
         "tags": [
           "Attachment Actions"
@@ -290,7 +290,7 @@
           }
         },
         "summary": "List ECM folder",
-        "operationId": "List ECM folder",
+        "operationId": "listECMFolder",
         "description": "Lists the ECM folder of a room specified by the `roomId` query parameter.",
         "tags": [
           "ECM folder linking"
@@ -380,7 +380,7 @@
           }
         },
         "summary": "Create an ECM folder configuration",
-        "operationId": "Create an ECM folder configuration",
+        "operationId": "createAnECMFolderConfiguration",
         "description": "Adds an existing ECM folder to a room as (default or reference) file storage. There is no data validation happening for the request. Please ensure the correct `driveId` and `itemId.` These can be collected from the MS Graph API. The `contentUrl` and `displayName` are used only for user convenience. The folder will be configured with the MS folder name as `displayName`, and the `contentURL` may be updated or corrected as needed. To assess final configuration, please make a GET request on the linkedFolder.",
         "tags": [
           "ECM folder linking"
@@ -518,7 +518,7 @@
           }
         },
         "summary": "Get ECM Folder Details",
-        "operationId": "Get ECM Folder Details",
+        "operationId": "getECMFolderDetails",
         "description": "Get details for a room ECM folder with the specified folder id.",
         "tags": [
           "ECM folder linking"
@@ -608,7 +608,7 @@
           }
         },
         "summary": "Update an ECM Linked Folder",
-        "operationId": "Update an ECM Linked Folder",
+        "operationId": "updateAnECMLinkedFolder",
         "description": "Updates the configuration of the specified Room folder. There is no data validation happening for the request. Please ensure the correct `driveId` and `itemId.` These can be collected from the MS Graph API. The `contentUrl` and `displayName` are used only for user convenience. The folder will be configured with the MS folder name as `displayName`, and the `contentURL` may be updated or corrected as needed. To assess final configuration, please make a GET request on the linkedFolder.",
         "tags": [
           "ECM folder linking"
@@ -737,7 +737,7 @@
           }
         },
         "summary": "Unlink an ECM linked folder",
-        "operationId": "Unlink an ECM linked folder",
+        "operationId": "unlinkAnECMLinkedFolder",
         "description": "Unlinks the room-linked folder with the specified ID from the space.",
         "tags": [
           "ECM folder linking"
@@ -878,7 +878,7 @@
           }
         },
         "summary": "List Events",
-        "operationId": "List Events",
+        "operationId": "listEvents",
         "description": "List events in your organization. Several query parameters are available to filter the events returned in the response.\n\nLong result sets will be split into [pages](/docs/basics#pagination).",
         "tags": [
           "Events"
@@ -954,7 +954,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of events in the response. Value must be between 1 and 1000, inclusive.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 100
@@ -1087,7 +1087,7 @@
           }
         },
         "summary": "Get Event Details",
-        "operationId": "Get Event Details",
+        "operationId": "getEventDetails",
         "description": "Shows details for an event, by event ID.\n\nSpecify the event ID in the `eventId` parameter in the URI.",
         "tags": [
           "Events"
@@ -1115,7 +1115,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/orgDetailsResponse"
+                  "$ref": "#/components/schemas/OrgDetailsResponse"
                 },
                 "example": {
                   "orgId": "Y2lzY29zcGFyazovL3VzL09SR0FOSVpBVElPTi8yYzNjOWY5NS03M2Q5LTQ0NjAtYTY2OC0wNDcxNjJmZjFiYWQ",
@@ -1201,7 +1201,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/orgClustersResponse"
+                  "$ref": "#/components/schemas/OrgClustersResponse"
                 },
                 "example": {
                   "clusters": [
@@ -1319,7 +1319,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/clusterDetailsResponse"
+                  "$ref": "#/components/schemas/ClusterDetailsResponse"
                 },
                 "example": {
                   "context": {
@@ -1416,7 +1416,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/clusterNodesResponse"
+                  "$ref": "#/components/schemas/ClusterNodesResponse"
                 },
                 "example": {
                   "nodes": [
@@ -1548,7 +1548,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/nodeDetailsResponse"
+                  "$ref": "#/components/schemas/NodeDetailsResponse"
                 },
                 "example": {
                   "context": {
@@ -1652,7 +1652,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/databaseDetailsResponse"
+                  "$ref": "#/components/schemas/DatabaseDetailsResponse"
                 },
                 "example": {
                   "context": {
@@ -1739,7 +1739,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/multiTenantHDSOrgDetailsResponse"
+                  "$ref": "#/components/schemas/MultiTenantHDSOrgDetailsResponse"
                 },
                 "example": {
                   "context": {
@@ -1838,7 +1838,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/nodeAlarmsResponse"
+                  "$ref": "#/components/schemas/NodeAlarmsResponse"
                 },
                 "example": {
                   "context": {
@@ -1974,7 +1974,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/networkTestsResultsResponse"
+                  "$ref": "#/components/schemas/NetworkTestsResultsResponse"
                 },
                 "example": {
                   "context": {
@@ -2174,7 +2174,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/nodeResourceUsageResponse"
+                  "$ref": "#/components/schemas/NodeResourceUsageResponse"
                 },
                 "example": {
                   "context": {
@@ -2333,7 +2333,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/clustersAvailabilityDetailsResponse"
+                  "$ref": "#/components/schemas/ClustersAvailabilityDetailsResponse"
                 },
                 "example": {
                   "context": {
@@ -2535,7 +2535,7 @@
           }
         },
         "summary": "List Memberships",
-        "operationId": "List Memberships",
+        "operationId": "listMemberships",
         "description": "Lists all room memberships. By default, lists memberships for rooms to which the authenticated user belongs.\n\nUse query parameters to filter the response.\n\nUse `roomId` to list memberships for a room, by ID.\n\n**NOTE**: For moderated team spaces, the list of memberships will include only the space moderators if the user is a team member but not a direct participant of the space.\n\nUse either `personId` or `personEmail` to filter the results. The `roomId` parameter is required when using these parameters.\n\nWhen the requester is a compliance officer, they can query by `personId` or `personEmail` **WITHOUT** specifying a `roomId`. The response will include **ALL** memberships for the user where a space is owned by an org to which the user belongs.\n\nLong result sets will be split into [pages](/docs/basics#pagination).",
         "tags": [
           "Memberships"
@@ -2572,7 +2572,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of memberships in the response.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 100
@@ -2653,7 +2653,7 @@
           }
         },
         "summary": "Create a Membership",
-        "operationId": "Create a Membership",
+        "operationId": "createAMembership",
         "description": "Add someone to a room by Person ID or email address, optionally making them a moderator. Compliance Officers cannot add people to empty (team) spaces.",
         "tags": [
           "Memberships"
@@ -2775,7 +2775,7 @@
           }
         },
         "summary": "Get Membership Details",
-        "operationId": "Get Membership Details",
+        "operationId": "getMembershipDetails",
         "description": "Get details for a membership by ID.\n\nSpecify the membership ID in the `membershipId` URI parameter.",
         "tags": [
           "Memberships"
@@ -2866,7 +2866,7 @@
           }
         },
         "summary": "Update a Membership",
-        "operationId": "Update a Membership",
+        "operationId": "updateAMembership",
         "description": "Updates properties for a membership by ID.\n\nSpecify the membership ID in the `membershipId` URI parameter.",
         "tags": [
           "Memberships"
@@ -2966,7 +2966,7 @@
           }
         },
         "summary": "Delete a Membership",
-        "operationId": "Delete a Membership",
+        "operationId": "deleteAMembership",
         "description": "Deletes a membership by ID.\n\nSpecify the membership ID in the `membershipId` URI parameter.\n\nThe membership for the last moderator of a [Team](/docs/api/v1/teams)'s General space may not be deleted; [promote another user](/docs/api/v1/team-memberships/update-a-team-membership) to team moderator first.",
         "tags": [
           "Memberships"
@@ -3102,7 +3102,24 @@
           }
         },
         "summary": "List Messages",
-        "operationId": "List Messages",
+        "operationId": "listMessages",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:messages_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark-compliance:messages_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Lists all messages in a room.  Each message will include content attachments if present.\n\nThe list sorts the messages in descending order by creation date.\n\nLong result sets will be split into [pages](/docs/basics#pagination).",
         "tags": [
           "Messages"
@@ -3131,7 +3148,9 @@
             "name": "mentionedPeople",
             "in": "query",
             "description": "List messages with these people mentioned, by ID. Use `me` as a shorthand for the current API user. Only `me` or the person ID of the current user may be specified. Bots must include this parameter to list messages in group rooms (spaces).",
-            "example": "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8yNDlmNzRkOS1kYjhhLTQzY2EtODk2Yi04NzllZDI0MGFjNTM",
+            "example": [
+              "Y2lzY29zcGFyazovL3VzL1BFT1BMRS8yNDlmNzRkOS1kYjhhLTQzY2EtODk2Yi04NzllZDI0MGFjNTM"
+            ],
             "schema": {
               "type": "array",
               "items": {
@@ -3163,7 +3182,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of messages in the response. Cannot exceed 100 if used with `mentionedPeople`.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 50
@@ -3279,7 +3298,19 @@
           }
         },
         "summary": "Create a Message",
-        "operationId": "Create a Message",
+        "operationId": "createAMessage",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:messages_write"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Post a plain text or [rich text](/docs/basics#formatting-messages) message, and optionally, a [file attachment](/docs/basics#message-attachments) attachment, to a room.\n\nThe `files` parameter is an array, which accepts multiple values to allow for future expansion, but currently only one file may be included with the message. File previews are only rendered for attachments of 1MB or less.",
         "tags": [
           "Messages"
@@ -3482,7 +3513,24 @@
           }
         },
         "summary": "List Direct Messages",
-        "operationId": "List Direct Messages",
+        "operationId": "listDirectMessages",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:messages_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark-compliance:messages_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "List all messages in a 1:1 (direct) room. Use the `personId` or `personEmail` query parameter to specify the room. Each message will include content attachments if present.\n\nThe list sorts the messages in descending order by creation date.",
         "tags": [
           "Messages"
@@ -3625,7 +3673,19 @@
           }
         },
         "summary": "Edit a Message",
-        "operationId": "Edit a Message",
+        "operationId": "editAMessage",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:messages_write"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Update a message you have posted not more than 10 times.\n\nSpecify the `messageId` of the message you want to edit.\n\nEdits of messages containing files or attachments are not currently supported.\nIf a user attempts to edit a message containing files or attachments a `400 Bad Request` will be returned by the API with a message stating that the feature is currently unsupported.\n\nThere is also a maximum number of times a user can edit a message. The maximum currently supported is 10 edits per message.\n    If a user attempts to edit a message greater that the maximum times allowed the API will return 400 Bad Request with a message stating the edit limit has been reached.\n\nWhile only the `roomId` and `text` or `markdown` attributes are *required* in the request body, a common pattern for editing message is to first call `GET /messages/{id}` for the message you wish to edit and to then update the `text` or `markdown` attribute accordingly, passing the updated message object in the request body of the `PUT /messages/{id}` request.\nWhen this pattern is used on a message that included markdown, the `html` attribute must be deleted prior to making the `PUT` request.",
         "tags": [
           "Messages"
@@ -3778,7 +3838,24 @@
           }
         },
         "summary": "Get Message Details",
-        "operationId": "Get Message Details",
+        "operationId": "getMessageDetails",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:messages_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark-compliance:messages_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Show details for a message, by message ID.\n\nSpecify the message ID in the `messageId` parameter in the URI.",
         "tags": [
           "Messages"
@@ -3850,7 +3927,24 @@
           }
         },
         "summary": "Delete a Message",
-        "operationId": "Delete a Message",
+        "operationId": "deleteAMessage",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:messages_write"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark-compliance:messages_write"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Delete a message, by message ID.\n\nSpecify the message ID in the `messageId` parameter in the URI.",
         "tags": [
           "Messages"
@@ -4001,7 +4095,7 @@
           }
         },
         "summary": "List People",
-        "operationId": "List People",
+        "operationId": "listPeople",
         "description": "List people in your organization. For most users, either the `email` or `displayName` parameter is required. Admin users can omit these fields and list all users in their organization.\n\nResponse properties associated with a user's presence status, such as `status` or `lastActivity`, will only be returned for people within your organization or an organization you manage. Presence information will not be returned if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/). Calling /people frequently to poll `status` information for a large set of users will quickly lead to `429` errors and throttling of such requests and is therefore discouraged.\n\nAdmin users can include `Webex Calling` (BroadCloud) user details in the response by specifying `callingData` parameter as `true`. Admin users can list all users in a location. Admin users will receive an enriched payload with additional administrative fields like `licenses`,`roles`, `locations` etc. These fields are shown when accessing a user via GET /people/{id}, not when doing a GET /people?id=\n\nLookup by `email` is only supported for people within the same org or where a partner admin relationship is in place.\n\nLookup by `roles` is only supported for Admin users for the people within the same org.\n\nLong result sets will be split into [pages](/docs/basics#pagination).",
         "tags": [
           "People"
@@ -4213,7 +4307,7 @@
           }
         },
         "summary": "Create a Person",
-        "operationId": "Create a Person",
+        "operationId": "createAPerson",
         "description": "Create a new user account for a given organization. Only an admin can create a new user account.\n\nAt least one of the following body parameters is required to create a new user: `displayName`, `firstName`, `lastName`.\n\nCurrently, users may have only one email address associated with their account. The `emails` parameter is an array, which accepts multiple values to allow for future expansion, but currently only one email address will be used for the new user.\n\nAdmin users can include `Webex calling` (BroadCloud) user details in the response by specifying `callingData` parameter as true. It may happen that the POST request with calling data returns a 400 status, but the person was created still. One way to get into this state is if an invalid phone number is assigned to a user. The people API aggregates calls to several other microservices, and one may have failed. A best practice is to check if the user exists before retrying. This can be done with the user's email address and a GET /people.\n\nWhen doing attendee management, append `#attendee` to the `siteUrl` parameter (e.g. `mysite.webex.com#attendee`) to make the new user an attendee for a site.\n\n**NOTES**:\n\n* For creating a `Webex Calling` user, you must provide `phoneNumbers` or `extension`, `locationId`, and `licenses` string in the same request.\n\n* `SipAddresses` are asigned via an asynchronous process. This means that the POST response may not show the SIPAddresses immediately. Instead you can verify them with a separate GET to /people, after they were newly configured.\n\n* When assigning multiple licenses in a single request, the system will assign all valid and available licenses. If any requested licenses cannot be assigned, the operation will continue with the remaining licenses. As a result, it is possible that not all requested licenses are assigned to the user.",
         "tags": [
           "People"
@@ -4565,7 +4659,7 @@
           }
         },
         "summary": "Get Person Details",
-        "operationId": "Get Person Details",
+        "operationId": "getPersonDetails",
         "description": "Shows details for a person, by ID.\n\nResponse properties associated with a user's presence status, such as `status` or `lastActivity`, will only be displayed for people within your organization or an organization you manage. Presence information will not be shown if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/).\n\nAdmin users can include `Webex Calling` (BroadCloud) user details in the response by specifying `callingData` parameter as `true`.\n\nSpecify the person ID in the `personId` parameter in the URI.",
         "tags": [
           "People"
@@ -4718,7 +4812,7 @@
           }
         },
         "summary": "Update a Person",
-        "operationId": "Update a Person",
+        "operationId": "updateAPerson",
         "description": "Update details for a person, by ID.\n\nSpecify the person ID in the `personId` parameter in the URI. Only an admin can update a person details.\n\nInclude all details for the person. This action expects all user details to be present in the request. A common approach is to first [GET the person's details](/docs/api/v1/people/get-person-details), make changes, then PUT both the changed and unchanged values.\n\nAdmin users can include `Webex Calling` (BroadCloud) user details in the response by specifying `callingData` parameter as true.\n\nWhen doing attendee management, to update a user from host role to an attendee for a site append `#attendee` to the respective `siteUrl` and remove the meeting host license for this site from the license array.\nTo update a person from an attendee role to a host for a site, add the meeting license for this site in the meeting array, and remove that site from the `siteurl` parameter.\n\nTo remove the attendee privilege for a user on a meeting site, remove the `sitename#attendee` from the `siteUrl`s array. The `showAllTypes` parameter must be set to `true`.\n\n**NOTE**:\n\n* When assigning a Webex Calling license, either a telephone number or extension must already be assigned to the person or provided in the request payload.\n\n* When `callingData` is set to `true`, a Webex Calling license must be included in the `licenses` array.\n\n* The `locationId` can only be set when assigning a calling license to a user. It cannot be changed if a user is already an existing calling user.\n\n* The `extension` field should be used to update the Webex Calling extension for a person. The extension value should not include the location routing prefix. The `work_extension` type in the `phoneNumbers` object as seen in the response payload of [List People](/docs/api/v1/people/list-people) or [Get Person Details](/docs/api/v1/people/get-person-details), cannot be used to set the Webex Calling extension for a person.\n\n* When updating a user with multiple email addresses using a PUT request, ensure that the primary email address is listed first in the array. Note that the order of email addresses returned by a GET request is not guaranteed..\n\n* The People API is a combination of several microservices, each responsible for specific attributes of a person. As a result, a PUT request that returns an error response code may still have altered some values of the person's data. Therefore, it is recommended to perform a GET request after encountering an error to verify the current state of the resource. \n\n* Some licenses are implicitly assigned by the system and cannot be admin controlled. They are necessary for the baseline function of the Webex system. If you get an error about implicitly assigned licensed that cannot be removed, please ensure you have the corresponding license in your PUT request.\n\n* When assigning multiple licenses in a single request, the system will assign all valid and available licenses. If any requested licenses cannot be assigned, the operation will continue with the remaining licenses. As a result, it is possible that not all requested licenses are assigned to the user.",
         "tags": [
           "People"
@@ -5033,7 +5127,7 @@
           }
         },
         "summary": "Delete a Person",
-        "operationId": "Delete a Person",
+        "operationId": "deleteAPerson",
         "description": "Remove a person from the system.\n\n**Required Administrator Roles:**\n\nThe following administrators have permission to use this API:\n\n**Customer Organization:**\n- Full administrator\n- User administrator\n\n**Partner/External Access:**\n- External full administrator\n\n**Note:** External read-only administrators, provisioning administrators, and device administrators cannot delete users.\n\nSpecify the person ID in the `personId` parameter in the URI.",
         "tags": [
           "People"
@@ -5173,7 +5267,7 @@
           }
         },
         "summary": "Get My Own Details",
-        "operationId": "Get My Own Details",
+        "operationId": "getMyOwnDetails",
         "description": "Get profile details for the authenticated user. This is the same as GET `/people/{personId}` using the Person ID associated with your Auth token.\n\nAdmin users can include `Webex Calling` (BroadCloud) user details in the response by specifying `callingData` parameter as true.",
         "tags": [
           "People"
@@ -5272,7 +5366,7 @@
           }
         },
         "summary": "List Room Tabs",
-        "operationId": "List Room Tabs",
+        "operationId": "listRoomTabs",
         "description": "Lists all Room Tabs of a room specified by the `roomId` query parameter.",
         "tags": [
           "Room Tabs"
@@ -5359,7 +5453,7 @@
           }
         },
         "summary": "Create a Room Tab",
-        "operationId": "Create a Room Tab",
+        "operationId": "createARoomTab",
         "description": "Add a tab with a specified URL to a room.",
         "tags": [
           "Room Tabs"
@@ -5473,7 +5567,7 @@
           }
         },
         "summary": "Get Room Tab Details",
-        "operationId": "Get Room Tab Details",
+        "operationId": "getRoomTabDetails",
         "description": "Get details for a Room Tab with the specified room tab ID.",
         "tags": [
           "Room Tabs"
@@ -5560,7 +5654,7 @@
           }
         },
         "summary": "Update a Room Tab",
-        "operationId": "Update a Room Tab",
+        "operationId": "updateARoomTab",
         "description": "Updates the content URL of the specified Room Tab ID.",
         "tags": [
           "Room Tabs"
@@ -5668,7 +5762,7 @@
           }
         },
         "summary": "Delete a Room Tab",
-        "operationId": "Delete a Room Tab",
+        "operationId": "deleteARoomTab",
         "description": "Deletes a Room Tab with the specified ID.",
         "tags": [
           "Room Tabs"
@@ -5775,7 +5869,19 @@
           }
         },
         "summary": "List Rooms",
-        "operationId": "List Rooms",
+        "operationId": "listRooms",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:rooms_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "List rooms to which the authenticated user belongs to.\n\nThe `title` of the room for 1:1 rooms will be the display name of the other person. Please use the [memberships API](https://developer.webex.com/docs/api/v1/memberships) to list the people in the space.\n\nLong result sets will be split into [pages](/docs/basics#pagination).\n\nKnown Limitations:\nThe underlying database does not support natural sorting by `lastactivity` and will only sort on limited set of results, which are pulled from the database in order of `roomId`. For users or bots in more than 3000 spaces this can result in anomalies such as spaces that have had recent activity not being returned in the results when sorting by `lastacivity`.",
         "tags": [
           "Rooms"
@@ -5807,7 +5913,7 @@
             "name": "orgPublicSpaces",
             "in": "query",
             "description": "Shows the org's public spaces joined and unjoined. When set the result list is sorted by the `madePublic` timestamp.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -5848,7 +5954,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of rooms in the response. Value must be between 1 and 1000, inclusive.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 100
@@ -5933,7 +6039,19 @@
           }
         },
         "summary": "Create a Room",
-        "operationId": "Create a Room",
+        "operationId": "createARoom",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:rooms_write"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Creates a room. The authenticated user is automatically added as a member of the room. See the [Memberships API](/docs/api/v1/memberships) to learn how to add more people to the room.\n\nTo create a 1:1 room, use the [Create Messages](/docs/api/v1/messages/create-a-message) endpoint to send a message directly to another person by using the `toPersonId` or `toPersonEmail` parameters.\n\nBots are not able to create and simultaneously classify a room. A bot may update a space classification after a person of the same owning organization joined the space as the first human user.\nA space can only be put into announcement mode when it is locked.",
         "tags": [
           "Rooms"
@@ -6074,7 +6192,24 @@
           }
         },
         "summary": "Get Room Details",
-        "operationId": "Get Room Details",
+        "operationId": "getRoomDetails",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:rooms_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark-compliance:rooms_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Shows details for a room, by ID.\n\nThe `title` of the room for 1:1 rooms will be the display name of the other person. When a Compliance Officer lists 1:1 rooms, the \"other\" person cannot be determined. This means that the room's title may not be filled in and instead shows \"Empty Title\". Please use the [memberships API](https://developer.webex.com/docs/api/v1/memberships) to list the other person in the space.\n\nSpecify the room ID in the `roomId` parameter in the URI.",
         "tags": [
           "Rooms"
@@ -6169,7 +6304,24 @@
           }
         },
         "summary": "Update a Room",
-        "operationId": "Update a Room",
+        "operationId": "updateARoom",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:rooms_write"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark-compliance:rooms_write"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Updates details for a room, by ID.\n\nSpecify the room ID in the `roomId` parameter in the URI.\nA space can only be put into announcement mode when it is locked.\nAny space participant or compliance officer can convert a space from public to private. Only a compliance officer can convert a space from private to public and only if the space is classified with the lowest category (usually `public`), and the space has a description.\nTo remove a `description` please use a space character ` ` by itself.\n\n<div><Callout type=\"info\">When using this method for moving a space under a team, ensure that all moderators in the space are also team members. If a moderator is not part of the team, demote or remove them as a moderator. Alternatively, add the non-team moderators to the team. This ensures compliance with the requirement that all space moderators must be team members for successful operation execution.\n</Callout></div>\n\n<div><Callout type=\"info\">A Compliance Officer who is not a member of a space can only update the `classificationId`, `isAnnouncementOnly`, `description`, and `isPublic` fields.\n</Callout></div>",
         "tags": [
           "Rooms"
@@ -6301,7 +6453,19 @@
           }
         },
         "summary": "Delete a Room",
-        "operationId": "Delete a Room",
+        "operationId": "deleteARoom",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:rooms_write"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
         "description": "Deletes a room, by ID. Deleted rooms cannot be recovered.\nAs a security measure to prevent accidental deletion, when a non moderator deletes the room they are removed from the room instead.\n\nDeleting a room that is part of a team will archive the room instead.\n\nA Compliance Officer has no special privileges, i.e. they cannot delete rooms they are not part of.\n\nSpecify the room ID in the `roomId` parameter in the URI.",
         "tags": [
           "Rooms"
@@ -6390,7 +6554,20 @@
           }
         },
         "summary": "Get Room Meeting Details",
-        "operationId": "Get Room Meeting Details",
+        "operationId": "getRoomMeetingDetails",
+        "security": [
+          {
+            "webex-oauth": [
+              "spark:rooms_read"
+            ]
+          },
+          {
+            "webex-oauth": [
+              "spark:all"
+            ]
+          }
+        ],
+        "deprecated": true,
         "description": "<div>\n<callout type=\"warning\">\nThe meetingInfo API is deprecated and will be EOL on Jan 31, 2025. Meetings in the WSMP must be scheduled and licensed via the meetings backend.\nThe [Create a Meeting](/docs/api/v1/meetings/create-a-meeting) endpoint will provide the SIP address for the meeting to call.\n</callout>\n</div>\n\nShows Webex meeting details for a room such as the SIP address, meeting URL, toll-free and toll dial-in numbers.\n\nSpecify the room ID in the `roomId` parameter in the URI.",
         "tags": [
           "Rooms"
@@ -6707,7 +6884,7 @@
           }
         },
         "summary": "Get Team Membership Details",
-        "operationId": "Get Team Membership Details",
+        "operationId": "getTeamMembershipDetails",
         "description": "Shows details for a team membership, by ID.\n\nSpecify the team membership ID in the `membershipId` URI parameter.",
         "tags": [
           "Team Memberships"
@@ -6795,7 +6972,7 @@
           }
         },
         "summary": "Update a Team Membership",
-        "operationId": "Update a Team Membership",
+        "operationId": "updateATeamMembership",
         "description": "Updates a team membership, by ID.\n\nSpecify the team membership ID in the `membershipId` URI parameter.",
         "tags": [
           "Team Memberships"
@@ -6889,7 +7066,7 @@
           }
         },
         "summary": "Delete a Team Membership",
-        "operationId": "Delete a Team Membership",
+        "operationId": "deleteATeamMembership",
         "description": "Deletes a team membership, by ID.\n\nSpecify the team membership ID in the `membershipId` URI parameter.\n\nThe team membership for the last moderator of a team may not be deleted; [promote another user](/docs/api/v1/team-memberships/update-a-team-membership) to team moderator first.",
         "tags": [
           "Team Memberships"
@@ -6985,7 +7162,7 @@
           }
         },
         "summary": "List Teams",
-        "operationId": "List Teams",
+        "operationId": "listTeams",
         "description": "Lists teams to which the authenticated user belongs.",
         "tags": [
           "Teams"
@@ -6995,7 +7172,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of teams in the response.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 100
@@ -7069,7 +7246,7 @@
           }
         },
         "summary": "Create a Team",
-        "operationId": "Create a Team",
+        "operationId": "createATeam",
         "description": "Creates a team.\n\nThe authenticated user is automatically added as a member of the team. See the [Team Memberships API](/docs/api/v1/team-memberships) to learn how to add more people to the team.",
         "tags": [
           "Teams"
@@ -7172,7 +7349,7 @@
           }
         },
         "summary": "Get Team Details",
-        "operationId": "Get Team Details",
+        "operationId": "getTeamDetails",
         "description": "Shows details for a team, by ID.\n\nSpecify the team ID in the `teamId` parameter in the URI.",
         "tags": [
           "Teams"
@@ -7265,7 +7442,7 @@
           }
         },
         "summary": "Update a Team",
-        "operationId": "Update a Team",
+        "operationId": "updateATeam",
         "description": "Updates details for a team, by ID.\n\nSpecify the team ID in the `teamId` parameter in the URI.",
         "tags": [
           "Teams"
@@ -7365,7 +7542,7 @@
           }
         },
         "summary": "Delete a Team",
-        "operationId": "Delete a Team",
+        "operationId": "deleteATeam",
         "description": "Deletes a team, by ID.\n\nSpecify the team ID in the `teamId` parameter in the URI.",
         "tags": [
           "Teams"
@@ -7467,7 +7644,7 @@
           }
         },
         "summary": "List Webhooks",
-        "operationId": "List Webhooks",
+        "operationId": "listWebhooks",
         "description": "List all of your webhooks.",
         "tags": [
           "Webhooks"
@@ -7477,7 +7654,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of webhooks in the response.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 100
@@ -7566,7 +7743,7 @@
           }
         },
         "summary": "Create a Webhook",
-        "operationId": "Create a Webhook",
+        "operationId": "createAWebhook",
         "description": "Creates a webhook.\n\nTo learn more about how to create and use webhooks, see The [Webhooks Guide](/docs/api/guides/webhooks).",
         "tags": [
           "Webhooks"
@@ -7737,7 +7914,7 @@
           }
         },
         "summary": "Get Webhook Details",
-        "operationId": "Get Webhook Details",
+        "operationId": "getWebhookDetails",
         "description": "Shows details for a webhook, by ID.\n\nSpecify the webhook ID in the `webhookId` parameter in the URI.",
         "tags": [
           "Webhooks"
@@ -7827,7 +8004,7 @@
           }
         },
         "summary": "Update a Webhook",
-        "operationId": "Update a Webhook",
+        "operationId": "updateAWebhook",
         "description": "Updates a webhook, by ID. You cannot use this call to deactivate a webhook, only to activate a webhook that was auto deactivated.\nThe fields that can be updated are `name`, `targetURL`, `secret` and `status`. All other fields, if supplied, are ignored.\n\nSpecify the webhook ID in the `webhookId` parameter in the URI.",
         "tags": [
           "Webhooks"
@@ -7948,7 +8125,7 @@
           }
         },
         "summary": "Delete a Webhook",
-        "operationId": "Delete a Webhook",
+        "operationId": "deleteAWebhook",
         "description": "Deletes a webhook, by ID.\n\nSpecify the webhook ID in the `webhookId` parameter in the URI.",
         "tags": [
           "Webhooks"
@@ -7983,7 +8160,11 @@
             "description": "Indicates whether the ACD object is enabled."
           },
           "displayCallqueueAgentSoftkeys": {
-            "$ref": "#/components/schemas/DisplayCallqueueAgentSoftkeysObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayCallqueueAgentSoftkeysObject"
+              }
+            ],
             "description": "Indicates the call queue agent soft key value of an ACD object."
           }
         }
@@ -8001,7 +8182,11 @@
             "description": "Indicates whether the ACD object is enabled."
           },
           "displayCallqueueAgentSoftkeys": {
-            "$ref": "#/components/schemas/DisplayCallqueueAgentSoftkeysObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayCallqueueAgentSoftkeysObject"
+              }
+            ],
             "description": "Indicates the call queue agent soft key value of an ACD object."
           }
         }
@@ -8028,7 +8213,11 @@
             "description": "Indicates if all the devices within this location will be customized with new requested customizations(if set to `true`) or will be overridden with the one at organization level (if set to `false` or any other value). This field has no effect when the job is being triggered at organization level."
           },
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationObject"
+              }
+            ],
             "description": "Indicates the settings for ATA devices, DECT devices and MPP devices."
           }
         }
@@ -8060,7 +8249,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of an Audio Codec Priority Object."
           },
           "primary": {
@@ -8090,7 +8283,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of an Audio Codec Priority Object."
           },
           "primary": {
@@ -8303,15 +8500,27 @@
         "type": "object",
         "properties": {
           "ata": {
-            "$ref": "#/components/schemas/ataObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaObject"
+              }
+            ],
             "description": "Applicable device settings for an ATA device."
           },
           "mpp": {
-            "$ref": "#/components/schemas/mppObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppObject"
+              }
+            ],
             "description": "Applicable device settings for an MPP device."
           },
           "wifi": {
-            "$ref": "#/components/schemas/wifiObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiObject"
+              }
+            ],
             "description": "Applicable device settings for a WiFi device."
           }
         }
@@ -8320,15 +8529,27 @@
         "type": "object",
         "properties": {
           "ata": {
-            "$ref": "#/components/schemas/ataObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaObjectDevice"
+              }
+            ],
             "description": "Applicable device settings for an ATA device."
           },
           "mpp": {
-            "$ref": "#/components/schemas/mppObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppObjectDevice"
+              }
+            ],
             "description": "Applicable device settings for an MPP device."
           },
           "wifi": {
-            "$ref": "#/components/schemas/wifiObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiObjectDevice"
+              }
+            ],
             "description": "Applicable device settings for a WiFi device."
           }
         }
@@ -8337,19 +8558,35 @@
         "type": "object",
         "properties": {
           "ata": {
-            "$ref": "#/components/schemas/ataObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaObject"
+              }
+            ],
             "description": "Settings that are applicable to ATA devices."
           },
           "dect": {
-            "$ref": "#/components/schemas/dectObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DectObject"
+              }
+            ],
             "description": "Settings that are applicable to DECT devices."
           },
           "mpp": {
-            "$ref": "#/components/schemas/mppObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppObject"
+              }
+            ],
             "description": "Settings that are applicable to MPP devices."
           },
           "wifi": {
-            "$ref": "#/components/schemas/wifiObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiObject"
+              }
+            ],
             "description": "Settings that are applicable to WiFi."
           }
         }
@@ -8364,7 +8601,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of an Audio Codec Priority Object."
           },
           "primary": {
@@ -8463,7 +8704,11 @@
         ],
         "properties": {
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationDeviceLevelObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationDeviceLevelObject"
+              }
+            ],
             "description": "Indicates the customization object of the device settings."
           },
           "customEnabled": {
@@ -8499,7 +8744,11 @@
         ],
         "properties": {
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationDeviceLevelObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationDeviceLevelObjectDevice"
+              }
+            ],
             "description": "Indicates the customization object of the device settings."
           },
           "customEnabled": {
@@ -8602,7 +8851,11 @@
         ],
         "properties": {
           "hoteling": {
-            "$ref": "#/components/schemas/HotelingRequest",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HotelingRequest"
+              }
+            ],
             "description": "Modify person Device Hoteling Setting."
           }
         }
@@ -8783,7 +9036,11 @@
             "description": "Sets the values needed to enable use of the LDAP service on the phone."
           },
           "commSecurityType": {
-            "$ref": "#/components/schemas/CommSecurityType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommSecurityType"
+              }
+            ],
             "description": "Indicates the selection of the protocol for LDAP service on the phone."
           },
           "bindDn": {
@@ -8834,7 +9091,11 @@
             "description": "Sets the values needed to enable use of the LDAP service on the phone."
           },
           "commSecurityType": {
-            "$ref": "#/components/schemas/CommSecurityType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommSecurityType"
+              }
+            ],
             "description": "Indicates the selection of the protocol for LDAP service on the phone."
           },
           "bindDn": {
@@ -8923,7 +9184,11 @@
         ],
         "properties": {
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationObject"
+              }
+            ],
             "description": "Customization object of the device settings."
           },
           "updateInProgress": {
@@ -9064,7 +9329,11 @@
             "description": "T.38 Fax Compression setting and is available only for ATA Devices. Choose T.38 fax compression if the device requires this option. This will override user level compression options."
           },
           "lineType": {
-            "$ref": "#/components/schemas/LineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineType"
+              }
+            ],
             "description": "Line type is used to differentiate Primary and SCA, at which endpoint it is assigned."
           },
           "lineWeight": {
@@ -9108,11 +9377,19 @@
             "description": "SIP username used in SIP signaling, for example, in registration."
           },
           "memberType": {
-            "$ref": "#/components/schemas/MemberType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberType"
+              }
+            ],
             "description": "Indicates if the member is of type `PEOPLE` or `PLACE`."
           },
           "location": {
-            "$ref": "#/components/schemas/location",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              }
+            ],
             "description": "Location object having a unique identifier for the location and its name."
           }
         }
@@ -9167,7 +9444,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of the Audio Codec Priority Object for an MPP object."
           },
           "primary": {
@@ -9394,7 +9675,11 @@
         ],
         "properties": {
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationDeviceLevelObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationDeviceLevelObjectDevice"
+              }
+            ],
             "description": "Indicates the customization object of the device settings."
           },
           "customEnabled": {
@@ -9437,7 +9722,11 @@
             "description": "Whether the user is the owner of the device or not, and points to a primary Line/Port of device."
           },
           "lineType": {
-            "$ref": "#/components/schemas/LineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineType"
+              }
+            ],
             "description": "Line type is used to differentiate Primary and SCA, at which endpoint it is assigned."
           },
           "lineWeight": {
@@ -9532,7 +9821,11 @@
             "description": "T.38 Fax Compression setting and available only for ATA Devices. Choose T.38 fax compression if the device requires this option. this will override user level compression options."
           },
           "lineType": {
-            "$ref": "#/components/schemas/LineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineType"
+              }
+            ],
             "description": "Line type is used to differentiate Primary and SCA, at which endpoint it is assigned."
           },
           "allowCallDeclineEnabled": {
@@ -9541,11 +9834,19 @@
             "description": "Set how a person's device behaves when a call is declined. When set to true, a call decline request is extended to all the endpoints on the device. When set to false, a call decline request only declines the current endpoint."
           },
           "memberType": {
-            "$ref": "#/components/schemas/MemberType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberType"
+              }
+            ],
             "description": "Indicates if member is of type `PEOPLE` or `PLACE`."
           },
           "location": {
-            "$ref": "#/components/schemas/location",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              }
+            ],
             "description": "Location object having a unique identifier for the location and its name."
           }
         }
@@ -9615,19 +9916,35 @@
         ],
         "properties": {
           "softKeyMenu": {
-            "$ref": "#/components/schemas/SoftKeyMenuObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SoftKeyMenuObject"
+              }
+            ],
             "description": "Customize SoftKey menu settings."
           },
           "psk": {
-            "$ref": "#/components/schemas/PskObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PskObject"
+              }
+            ],
             "description": "Customize PSK."
           },
           "softKeyMenuDefaults": {
-            "$ref": "#/components/schemas/SoftKeyMenuObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SoftKeyMenuObject"
+              }
+            ],
             "description": "Default SoftKey menu settings."
           },
           "pskDefaults": {
-            "$ref": "#/components/schemas/PskObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PskObject"
+              }
+            ],
             "description": "Default PSK."
           }
         }
@@ -9808,7 +10125,11 @@
             "description": "Unique location identifier for which the numbers have been moved."
           },
           "counts": {
-            "$ref": "#/components/schemas/CountObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountObject"
+              }
+            ],
             "description": "Job statistics."
           }
         }
@@ -9962,7 +10283,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of the Audio Codec Priority Object for an WiFi object."
           },
           "primary": {
@@ -10027,7 +10352,11 @@
             "description": "Indicates whether the wifi network is enabled."
           },
           "authenticationMethod": {
-            "$ref": "#/components/schemas/AuthenticationMethodObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodObject"
+              }
+            ],
             "description": "Authentication method of wifi network."
           },
           "ssidName": {
@@ -10056,7 +10385,11 @@
             "description": "Indicates whether the wifi network is enabled."
           },
           "authenticationMethod": {
-            "$ref": "#/components/schemas/AuthenticationMethodObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodObject"
+              }
+            ],
             "description": "Authentication method of the WiFi network."
           },
           "ssidName": {
@@ -10071,7 +10404,7 @@
           }
         }
       },
-      "ataObject": {
+      "AtaObject": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -10087,15 +10420,27 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/AudioCodecPriorityObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AudioCodecPriorityObject"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "ataDtmfMode": {
-            "$ref": "#/components/schemas/AtaDtmfModeObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaDtmfModeObject"
+              }
+            ],
             "description": "DTMF Detection Tx Mode selection for Cisco ATA devices."
           },
           "ataDtmfMethod": {
-            "$ref": "#/components/schemas/AtaDtmfMethodObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaDtmfMethodObject"
+              }
+            ],
             "description": "Method for transmitting DTMF signals to the far end."
           },
           "cdpEnabled": {
@@ -10114,7 +10459,11 @@
             "description": "Enable/disable quality of service tagging of packets from the local device to the Webex Calling platform."
           },
           "vlan": {
-            "$ref": "#/components/schemas/VlanObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VlanObject"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "webAccessEnabled": {
@@ -10128,12 +10477,16 @@
             "description": "Enable/disable the automatic nightly configuration resync of the MPP device."
           },
           "snmp": {
-            "$ref": "#/components/schemas/SnmpObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SnmpObject"
+              }
+            ],
             "description": "Specify values needed to enable use of the SNMP service from the phone."
           }
         }
       },
-      "ataObjectDevice": {
+      "AtaObjectDevice": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -10149,15 +10502,27 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/AudioCodecPriorityObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AudioCodecPriorityObjectDevice"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "ataDtmfMode": {
-            "$ref": "#/components/schemas/AtaDtmfModeObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaDtmfModeObject"
+              }
+            ],
             "description": "DTMF Detection Tx Mode selection for Cisco ATA devices."
           },
           "ataDtmfMethod": {
-            "$ref": "#/components/schemas/AtaDtmfMethodObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaDtmfMethodObject"
+              }
+            ],
             "description": "Method for transmitting DTMF signals to the far end."
           },
           "cdpEnabled": {
@@ -10176,7 +10541,11 @@
             "description": "Enable/disable quality of service tagging of packets from the local device to the Webex Calling platform."
           },
           "vlan": {
-            "$ref": "#/components/schemas/VlanObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VlanObjectDevice"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "webAccessEnabled": {
@@ -10190,12 +10559,16 @@
             "description": "Enable/disable the automatic nightly configuration resync of the MPP device."
           },
           "snmp": {
-            "$ref": "#/components/schemas/SnmpObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SnmpObject"
+              }
+            ],
             "description": "Specify values needed to enable use of the SNMP service from the phone."
           }
         }
       },
-      "dectObject": {
+      "DectObject": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -10210,7 +10583,11 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/DectAudioCodecPriorityObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DectAudioCodecPriorityObject"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "cdpEnabled": {
@@ -10237,7 +10614,11 @@
             "description": "Enable/disable quality of service tagging of packets from the local device to the Webex Calling platform."
           },
           "vlan": {
-            "$ref": "#/components/schemas/DectVlanObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DectVlanObject"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "webAccessEnabled": {
@@ -10252,7 +10633,7 @@
           }
         }
       },
-      "deviceList": {
+      "DeviceList": {
         "type": "object",
         "required": [
           "devices",
@@ -10263,7 +10644,7 @@
           "devices": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/devices"
+              "$ref": "#/components/schemas/Devices"
             },
             "description": "Array of devices available to person."
           },
@@ -10277,7 +10658,7 @@
           }
         }
       },
-      "deviceOwner": {
+      "DeviceOwner": {
         "type": "object",
         "required": [
           "id",
@@ -10289,7 +10670,11 @@
             "description": "Unique identifier of a person or a workspace."
           },
           "type": {
-            "$ref": "#/components/schemas/MemberType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberType"
+              }
+            ],
             "description": "Enumeration that indicates if the member is of type `PEOPLE` or `PLACE`."
           },
           "firstName": {
@@ -10302,7 +10687,7 @@
           }
         }
       },
-      "devices": {
+      "Devices": {
         "type": "object",
         "required": [
           "id",
@@ -10330,7 +10715,11 @@
             "description": "Identifier for device model."
           },
           "modelType": {
-            "$ref": "#/components/schemas/DeviceType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceType"
+              }
+            ],
             "description": "Identifier for device model type."
           },
           "mac": {
@@ -10346,19 +10735,35 @@
             "description": "Indicates whether the person or the workspace is the owner of the device, and points to a primary Line/Port of the device."
           },
           "type": {
-            "$ref": "#/components/schemas/DeviceLineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceLineType"
+              }
+            ],
             "description": "Indicates if the line is acting as a primary line or a shared line for this device."
           },
           "hoteling": {
-            "$ref": "#/components/schemas/HotelingRequest",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HotelingRequest"
+              }
+            ],
             "description": "Hoteling login settings, which are available when the device is the owner's primary device and device type is PRIMARY. Hoteling login settings are set at the owner level."
           },
           "owner": {
-            "$ref": "#/components/schemas/deviceOwner",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceOwner"
+              }
+            ],
             "description": "Owner of device."
           },
           "activationState": {
-            "$ref": "#/components/schemas/ActivationStates",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActivationStates"
+              }
+            ],
             "description": "Activation state of device."
           }
         }
@@ -10376,7 +10781,7 @@
         ],
         "description": " * `MPP` - Cisco Multiplatform Phone\n * `ATA` - Analog Telephone Adapters\n * `GENERIC_SIP` - GENERIC Session Initiation Protocol\n * `ESIM` - Esim Supported Webex Go\n * `ROOM_OS` - Cisco Webex Room OS and the Room Series device\n * `MOBILE` - Mobile\n * `DESK_PHONE` - Desk Phone\n"
       },
-      "jobIdResponseObject": {
+      "JobIdResponseObject": {
         "type": "object",
         "required": [
           "name",
@@ -10471,31 +10876,72 @@
             "description": "The location name for which the numbers have been moved."
           },
           "counts": {
-            "$ref": "#/components/schemas/CountObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountObject"
+              }
+            ],
             "description": "Job statistics."
           }
         }
       },
-      "location": {
+      "Location": {
         "type": "object",
         "required": [
-          "id",
-          "name"
+          "address",
+          "countryCode",
+          "latitude",
+          "longitude"
         ],
         "properties": {
           "id": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
-            "description": "Location identifier associated with the members."
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "description": "Unique identifier for the location."
           },
-          "name": {
+          "locationId": {
             "type": "string",
-            "example": "MainOffice",
-            "description": "Location name associated with the member."
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzA2OWEzMDY2LTgwNjMtNDI0Zi05YmE0LTBhZDdhMmYxMzNjNQ",
+            "description": "The ID to use for this location in the [/locations API](/docs/api/v1/locations)"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Cisco Barcelona",
+            "description": "A friendly name for the location."
+          },
+          "address": {
+            "type": "string",
+            "example": "Carrer de Pere IV, Barcelona, Spain",
+            "description": "The location address."
+          },
+          "countryCode": {
+            "type": "string",
+            "example": "ES",
+            "description": "The location country code (ISO 3166-1)."
+          },
+          "cityName": {
+            "type": "string",
+            "example": "Barcelona",
+            "description": "The location city name."
+          },
+          "latitude": {
+            "type": "number",
+            "example": 41.406615,
+            "description": "The location latitude."
+          },
+          "longitude": {
+            "type": "number",
+            "example": 2.200717,
+            "description": "The location longitude."
+          },
+          "notes": {
+            "type": "string",
+            "example": "A note about the location",
+            "description": "Notes associated with the location."
           }
         }
       },
-      "mppObject": {
+      "MppObject": {
         "type": "object",
         "required": [
           "pnacEnabled",
@@ -10551,11 +10997,19 @@
             "description": "Indicates whether the PNAC of MPP object is enabled or not."
           },
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/MppAudioCodecPriorityObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppAudioCodecPriorityObject"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "backlightTimer": {
-            "$ref": "#/components/schemas/BacklightTimerObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BacklightTimerObject"
+              }
+            ],
             "description": "Choose the length of time (in minutes) for the phone's backlight to remain on."
           },
           "background": {
@@ -10570,7 +11024,11 @@
             }
           },
           "displayNameFormat": {
-            "$ref": "#/components/schemas/DisplayNameSelection",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayNameSelection"
+              }
+            ],
             "description": "The display name that appears on the phone screen."
           },
           "cdpEnabled": {
@@ -10578,7 +11036,11 @@
             "description": "Allows you to enable/disable CDP for local devices."
           },
           "defaultLoggingLevel": {
-            "$ref": "#/components/schemas/DefaultLoggingLevelObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DefaultLoggingLevelObject"
+              }
+            ],
             "description": "Choose the desired logging level for an MPP devices."
           },
           "dndServicesEnabled": {
@@ -10587,7 +11049,11 @@
             "description": "Enable/disable Do-Not-Disturb capabilities for Multi-Platform Phones."
           },
           "acd": {
-            "$ref": "#/components/schemas/AcdObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AcdObject"
+              }
+            ],
             "description": "Holds the Acd object value."
           },
           "shortInterdigitTimer": {
@@ -10601,11 +11067,19 @@
             "description": "Indicates the long inter digit timer value.."
           },
           "lineKeyLabelFormat": {
-            "$ref": "#/components/schemas/LineKeyLabelSelection",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyLabelSelection"
+              }
+            ],
             "description": "Line key labels define the format of what's shown next to line keys."
           },
           "lineKeyLEDPattern": {
-            "$ref": "#/components/schemas/LineKeyLEDPattern",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyLEDPattern"
+              }
+            ],
             "description": "LED patterns define lighting schemes for the line keys on the MPP devices. Note that this parameter is not supported on the MPP 8875"
           },
           "lldpEnabled": {
@@ -10626,7 +11100,11 @@
             "description": "Select up to 10 Multicast Group URLs (each with a unique Listening Port)."
           },
           "enhancedMulticast": {
-            "$ref": "#/components/schemas/EnhancedMulticastObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EnhancedMulticastObject"
+              }
+            ],
             "description": "Specify the enhanced multicast settings for the MPP device."
           },
           "offHookTimer": {
@@ -10635,11 +11113,19 @@
             "description": "Specify the amount of time (in seconds) that a phone can remain off-hook."
           },
           "phoneLanguage": {
-            "$ref": "#/components/schemas/PhoneLanguage",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhoneLanguage"
+              }
+            ],
             "description": "Select the language for your MPP phone. Setting this overrides the default language setting in place for your provisioned location."
           },
           "poeMode": {
-            "$ref": "#/components/schemas/PoeMode",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PoeMode"
+              }
+            ],
             "description": "Enable/disable the Power-Over-Ethernet mode for Multi-Platform Phones."
           },
           "qosEnabled": {
@@ -10648,7 +11134,11 @@
             "description": "Allows you to enable/disable tagging of packets from the local device to the Webex Calling platform."
           },
           "screenTimeout": {
-            "$ref": "#/components/schemas/ScreenTimeoutObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScreenTimeoutObject"
+              }
+            ],
             "description": "Specify the amount of inactive time needed (in seconds) before the phone's screen saver activates."
           },
           "usbPortsEnabled": {
@@ -10657,19 +11147,35 @@
             "description": "Enable/disable the use of the USB ports on Multi-Platform phones."
           },
           "vlan": {
-            "$ref": "#/components/schemas/MppVlanObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppVlanObject"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "wifiNetwork": {
-            "$ref": "#/components/schemas/WifiNetworkObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiNetworkObject"
+              }
+            ],
             "description": "Specify the Wi-Fi SSID and password for wireless-enabled MPP phones."
           },
           "callHistory": {
-            "$ref": "#/components/schemas/CallHistoryMethod",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallHistoryMethod"
+              }
+            ],
             "description": "Specify the call history information to use. Only applies to user devices."
           },
           "contacts": {
-            "$ref": "#/components/schemas/DirectoryMethod",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectoryMethod"
+              }
+            ],
             "description": "Specify the directory services to use."
           },
           "webexMeetingsEnabled": {
@@ -10678,19 +11184,35 @@
             "description": "Enable/disable the availability of the webex meetings functionality from the phone."
           },
           "volumeSettings": {
-            "$ref": "#/components/schemas/VolumeSettingsObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VolumeSettingsObject"
+              }
+            ],
             "description": "Specify all volume level values on the phone."
           },
           "cfExpandedSoftKey": {
-            "$ref": "#/components/schemas/CallForwardExpandedSoftKey",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallForwardExpandedSoftKey"
+              }
+            ],
             "description": "Specify the call forward expanded soft key behavior."
           },
           "httpProxy": {
-            "$ref": "#/components/schemas/HttpProxyObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HttpProxyObject"
+              }
+            ],
             "description": "Specify HTTP Proxy values."
           },
           "bluetooth": {
-            "$ref": "#/components/schemas/BluetoothObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BluetoothObject"
+              }
+            ],
             "description": "Enable/disable the visibility of the bluetooth menu on the MPP device."
           },
           "passThroughPortEnabled": {
@@ -10714,7 +11236,11 @@
             "description": "Enable/disable peer firmware sharing."
           },
           "noiseCancellation": {
-            "$ref": "#/components/schemas/NoiseCancellationObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NoiseCancellationObject"
+              }
+            ],
             "description": "Enable/disable local noise cancellation on active calls from the device."
           },
           "voiceFeedbackAccessibilityEnabled": {
@@ -10743,15 +11269,27 @@
             "description": "Enable/disable the visual indication of missed calls."
           },
           "softKeyLayout": {
-            "$ref": "#/components/schemas/SoftKeyLayoutObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SoftKeyLayoutObject"
+              }
+            ],
             "description": "Specify the softkey layout per phone menu state."
           },
           "backgroundImage8875": {
-            "$ref": "#/components/schemas/BackgroundImageColor",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundImageColor"
+              }
+            ],
             "description": "Specify the image option for the MPP 8875 phone background."
           },
           "backlightTimer68XX78XX": {
-            "$ref": "#/components/schemas/BacklightTimer68XX",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BacklightTimer68XX"
+              }
+            ],
             "description": "Specify the use of the backlight feature on 6800 nad 7800 series devices."
           },
           "allowMonitorLinesEnabled": {
@@ -10765,7 +11303,7 @@
           }
         }
       },
-      "mppObjectDevice": {
+      "MppObjectDevice": {
         "type": "object",
         "required": [
           "pnacEnabled",
@@ -10822,11 +11360,19 @@
             "description": "Indicates whether the PNAC of MPP object is enabled or not."
           },
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/MppAudioCodecPriorityObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppAudioCodecPriorityObjectDevice"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "backlightTimer": {
-            "$ref": "#/components/schemas/BacklightTimerObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BacklightTimerObjectDevice"
+              }
+            ],
             "description": "Choose the length of time (in minutes) for the phone's backlight to remain on."
           },
           "background": {
@@ -10841,7 +11387,11 @@
             }
           },
           "displayNameFormat": {
-            "$ref": "#/components/schemas/DisplayNameSelection",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayNameSelection"
+              }
+            ],
             "description": "The display name that appears on the phone screen."
           },
           "cdpEnabled": {
@@ -10849,7 +11399,11 @@
             "description": "Allows you to enable/disable CDP for local devices."
           },
           "defaultLoggingLevel": {
-            "$ref": "#/components/schemas/DefaultLoggingLevelObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DefaultLoggingLevelObject"
+              }
+            ],
             "description": "Choose the desired logging level for an MPP devices."
           },
           "dndServicesEnabled": {
@@ -10858,7 +11412,11 @@
             "description": "Enable/disable Do-Not-Disturb capabilities for Multi-Platform Phones."
           },
           "acd": {
-            "$ref": "#/components/schemas/AcdObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AcdObjectDevice"
+              }
+            ],
             "description": "Holds the Acd object value."
           },
           "shortInterdigitTimer": {
@@ -10872,11 +11430,19 @@
             "description": "Indicates the long inter digit timer value.."
           },
           "lineKeyLabelFormat": {
-            "$ref": "#/components/schemas/LineKeyLabelSelection",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyLabelSelection"
+              }
+            ],
             "description": "Line key labels define the format of what's shown next to line keys."
           },
           "lineKeyLEDPattern": {
-            "$ref": "#/components/schemas/LineKeyLEDPattern",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyLEDPattern"
+              }
+            ],
             "description": "LED patterns define lighting schemes for the line keys on the MPP devices. Note that this parameter is not supported on the MPP 8875"
           },
           "lldpEnabled": {
@@ -10897,7 +11463,11 @@
             "description": "Select up to 10 Multicast Group URLs (each with a unique Listening Port)."
           },
           "enhancedMulticast": {
-            "$ref": "#/components/schemas/EnhancedMulticastObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EnhancedMulticastObject"
+              }
+            ],
             "description": "Specify the enhanced multicast settings for the MPP device."
           },
           "offHookTimer": {
@@ -10906,11 +11476,19 @@
             "description": "Specify the amount of time (in seconds) that a phone can remain off-hook."
           },
           "phoneLanguage": {
-            "$ref": "#/components/schemas/PhoneLanguage",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhoneLanguage"
+              }
+            ],
             "description": "Select the language for your MPP phone. Setting this overrides the default language setting in place for your provisioned location."
           },
           "poeMode": {
-            "$ref": "#/components/schemas/PoeMode",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PoeMode"
+              }
+            ],
             "description": "Enable/disable the Power-Over-Ethernet mode for Multi-Platform Phones."
           },
           "qosEnabled": {
@@ -10919,7 +11497,11 @@
             "description": "Allows you to enable/disable tagging of packets from the local device to the Webex Calling platform."
           },
           "screenTimeout": {
-            "$ref": "#/components/schemas/ScreenTimeoutObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScreenTimeoutObject"
+              }
+            ],
             "description": "Specify the amount of inactive time needed (in seconds) before the phone's screen saver activates."
           },
           "usbPortsEnabled": {
@@ -10928,23 +11510,43 @@
             "description": "Enable/disable the use of the USB ports on Multi-Platform phones."
           },
           "usbPorts": {
-            "$ref": "#/components/schemas/UsbPortsObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsbPortsObject"
+              }
+            ],
             "description": "By default the Side USB port is enabled to support KEMs and other peripheral devices. Use the option to disable use of this port."
           },
           "vlan": {
-            "$ref": "#/components/schemas/MppVlanObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppVlanObjectDevice"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "wifiNetwork": {
-            "$ref": "#/components/schemas/WifiNetworkObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiNetworkObjectDevice"
+              }
+            ],
             "description": "Specify the Wi-Fi SSID and password for wireless-enabled MPP phones."
           },
           "callHistory": {
-            "$ref": "#/components/schemas/CallHistoryMethod",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallHistoryMethod"
+              }
+            ],
             "description": "Specify the call history information to use. Only applies to user devices."
           },
           "contacts": {
-            "$ref": "#/components/schemas/DirectoryMethod",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectoryMethod"
+              }
+            ],
             "description": "Specify the directory services to use."
           },
           "webexMeetingsEnabled": {
@@ -10953,19 +11555,35 @@
             "description": "Enable/disable the availability of the webex meetings functionality from the phone."
           },
           "volumeSettings": {
-            "$ref": "#/components/schemas/VolumeSettingsObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VolumeSettingsObject"
+              }
+            ],
             "description": "Specify all volume level values on the phone."
           },
           "cfExpandedSoftKey": {
-            "$ref": "#/components/schemas/CallForwardExpandedSoftKey",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallForwardExpandedSoftKey"
+              }
+            ],
             "description": "Specify the call forward expanded soft key behavior."
           },
           "httpProxy": {
-            "$ref": "#/components/schemas/HttpProxyObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HttpProxyObjectDevice"
+              }
+            ],
             "description": "Specify HTTP Proxy values."
           },
           "bluetooth": {
-            "$ref": "#/components/schemas/BluetoothObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BluetoothObjectDevice"
+              }
+            ],
             "description": "Enable/disable the visibility of the bluetooth menu on the MPP device."
           },
           "passThroughPortEnabled": {
@@ -10989,7 +11607,11 @@
             "description": "Enable/disable peer firmware sharing."
           },
           "noiseCancellation": {
-            "$ref": "#/components/schemas/NoiseCancellationObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NoiseCancellationObject"
+              }
+            ],
             "description": "Enable/disable local noise cancellation on active calls from the device."
           },
           "voiceFeedbackAccessibilityEnabled": {
@@ -11018,15 +11640,27 @@
             "description": "Enable/disable the visual indication of missed calls."
           },
           "softKeyLayout": {
-            "$ref": "#/components/schemas/SoftKeyLayoutObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SoftKeyLayoutObject"
+              }
+            ],
             "description": "Specify the softkey layout per phone menu state."
           },
           "backgroundImage8875": {
-            "$ref": "#/components/schemas/BackgroundImageColor",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundImageColor"
+              }
+            ],
             "description": "Specify the image option for the MPP 8875 phone background."
           },
           "backlightTimer68XX78XX": {
-            "$ref": "#/components/schemas/BacklightTimer68XXDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BacklightTimer68XXDevice"
+              }
+            ],
             "description": "Specify the use of the backlight feature on 6800 nad 7800 series devices."
           },
           "allowMonitorLinesEnabled": {
@@ -11040,7 +11674,7 @@
           }
         }
       },
-      "placeDeviceList": {
+      "PlaceDeviceList": {
         "type": "object",
         "required": [
           "devices",
@@ -11051,7 +11685,7 @@
           "devices": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/placeDevices"
+              "$ref": "#/components/schemas/PlaceDevices"
             },
             "description": "Array of devices associated with a workspace."
           },
@@ -11065,7 +11699,7 @@
           }
         }
       },
-      "placeDevices": {
+      "PlaceDevices": {
         "type": "object",
         "required": [
           "id",
@@ -11105,24 +11739,40 @@
             "description": "Indicates whether the person or the workspace is the owner of the device and points to a primary Line/Port of the device."
           },
           "type": {
-            "$ref": "#/components/schemas/LineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineType"
+              }
+            ],
             "description": "Indicates if the line is acting as a primary line or a shared line for this device."
           },
           "hoteling": {
-            "$ref": "#/components/schemas/Hoteling",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Hoteling"
+              }
+            ],
             "description": "Indicates Hoteling details of a device."
           },
           "owner": {
-            "$ref": "#/components/schemas/deviceOwner",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceOwner"
+              }
+            ],
             "description": "Owner of the device."
           },
           "activationState": {
-            "$ref": "#/components/schemas/DeviceActivationStates",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceActivationStates"
+              }
+            ],
             "description": "Activation state of a device."
           }
         }
       },
-      "wifiObject": {
+      "WifiObject": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -11132,15 +11782,27 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/WifiAudioCodecPriorityObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiAudioCodecPriorityObject"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "ldap": {
-            "$ref": "#/components/schemas/LdapObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LdapObject"
+              }
+            ],
             "description": "Set the values needed to enable use of the LDAP service on the phone."
           },
           "webAccess": {
-            "$ref": "#/components/schemas/WebAccessObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WebAccessObject"
+              }
+            ],
             "description": "Set the availability of the local end user web access for an 840/860 WiFi phone."
           },
           "phoneSecurityPwd": {
@@ -11150,7 +11812,7 @@
           }
         }
       },
-      "wifiObjectDevice": {
+      "WifiObjectDevice": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -11160,15 +11822,27 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/WifiAudioCodecPriorityObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiAudioCodecPriorityObjectDevice"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "ldap": {
-            "$ref": "#/components/schemas/LdapObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LdapObjectDevice"
+              }
+            ],
             "description": "Set the values needed to enable use of the LDAP service on the phone."
           },
           "webAccess": {
-            "$ref": "#/components/schemas/WebAccessObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WebAccessObject"
+              }
+            ],
             "description": "Set the availability of the local end user web access for an 840/860 WiFi phone."
           },
           "phoneSecurityPwd": {
@@ -11342,7 +12016,11 @@
             "description": "Unique identifier to track the HTTP requests."
           },
           "error": {
-            "$ref": "#/components/schemas/ErrorMessageObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ErrorMessageObject"
+              }
+            ],
             "description": "Description of errors in the job."
           }
         }
@@ -11423,7 +12101,11 @@
             "description": "Exclude devices with these tags."
           },
           "advisoryTypes": {
-            "$ref": "#/components/schemas/LineKeyTemplateAdvisoryTypes",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyTemplateAdvisoryTypes"
+              }
+            ],
             "description": "Refine search with advisories."
           }
         }
@@ -11474,7 +12156,11 @@
             "description": "An index representing a Line Key. Index starts from 1 representing the first key on the left side of the phone."
           },
           "lineKeyType": {
-            "$ref": "#/components/schemas/LineKeyType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyType"
+              }
+            ],
             "description": "The action that would be performed when the Line Key is pressed."
           },
           "lineKeyLabel": {
@@ -11514,7 +12200,7 @@
           }
         }
       },
-      "lineKeyTemplatesResponse": {
+      "LineKeyTemplatesResponse": {
         "type": "object",
         "required": [
           "id",
@@ -11587,7 +12273,11 @@
             "description": "A model type of the device."
           },
           "activationState": {
-            "$ref": "#/components/schemas/ActivationStates",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActivationStates"
+              }
+            ],
             "description": "Activation state of the device. This field is only populated for a device added by a unique activation code generated by Control Hub for use with Webex."
           },
           "description": {
@@ -11653,7 +12343,11 @@
         ],
         "properties": {
           "layoutMode": {
-            "$ref": "#/components/schemas/LayoutMode",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LayoutMode"
+              }
+            ],
             "description": "Defines the layout mode of the device, i.e. DEFAULT or CUSTOM."
           },
           "userReorderEnabled": {
@@ -11669,7 +12363,11 @@
             "description": "Contains a mapping of Line Keys and their corresponding actions. This field is required when `layoutMode` is CUSTOM. When `layoutMode` is DEFAULT, this field is not returned in GET responses and should not be included in PUT requests, as the system uses the default line-key assignments."
           },
           "kemModuleType": {
-            "$ref": "#/components/schemas/KemModuleType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KemModuleType"
+              }
+            ],
             "description": "Type of KEM module."
           },
           "kemKeys": {
@@ -11701,7 +12399,11 @@
             "description": "An index representing a KEM Key. The Index starts from 1 representing the first key on the left side of the phone."
           },
           "kemKeyType": {
-            "$ref": "#/components/schemas/LineKeyType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyType"
+              }
+            ],
             "description": "The action that would be performed when the KEM Key is pressed."
           },
           "kemKeyLabel": {
@@ -11814,7 +12516,11 @@
             "description": "Displays the most recent step's execution status. Contains execution statuses of all the steps involved in the execution of the job."
           },
           "latestExecutionStatus": {
-            "$ref": "#/components/schemas/LatestExecutionStatus",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LatestExecutionStatus"
+              }
+            ],
             "description": "Indicates the most recent status of the job at the time of invocation."
           },
           "latestExecutionExitCode": {
@@ -11894,7 +12600,7 @@
           }
         }
       },
-      "listBackgroundImagesObject": {
+      "ListBackgroundImagesObject": {
         "type": "object",
         "required": [
           "backgroundImageUrl",
@@ -11913,7 +12619,7 @@
           }
         }
       },
-      "deleteImageResponseObject": {
+      "DeleteImageResponseObject": {
         "type": "object",
         "required": [
           "fileName",
@@ -11961,7 +12667,7 @@
           }
         }
       },
-      "deleteImageResponseSuccessObject": {
+      "DeleteImageResponseSuccessObject": {
         "type": "object",
         "required": [
           "fileName",
@@ -11989,7 +12695,7 @@
           }
         }
       },
-      "deleteImageRequestObject": {
+      "DeleteImageRequestObject": {
         "type": "object",
         "required": [
           "fileName"
@@ -12007,7 +12713,7 @@
           }
         }
       },
-      "userDeviceCount": {
+      "UserDeviceCount": {
         "type": "object",
         "required": [
           "totalDeviceCount",
@@ -12735,7 +13441,7 @@
           "stepExecutionStatuses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/stepExecutionStatusesObject"
+              "$ref": "#/components/schemas/StepExecutionStatusesObject"
             },
             "description": "Status of each step within a job."
           }
@@ -12773,7 +13479,7 @@
           }
         }
       },
-      "stepExecutionStatusesObject": {
+      "StepExecutionStatusesObject": {
         "type": "object",
         "required": [
           "id"
@@ -12996,7 +13702,7 @@
           }
         }
       },
-      "supportedDevicesObject": {
+      "SupportedDevicesObject": {
         "type": "object",
         "required": [
           "devices",
@@ -13687,11 +14393,19 @@
             "description": "The unique identifier for the event."
           },
           "resource": {
-            "$ref": "#/components/schemas/EventResourceEnum",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventResourceEnum"
+              }
+            ],
             "description": "The type of resource in the event."
           },
           "type": {
-            "$ref": "#/components/schemas/EventTypeEnum",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventTypeEnum"
+              }
+            ],
             "description": "The action which took place in the event."
           },
           "appId": {
@@ -13990,62 +14704,6 @@
             "type": "string",
             "example": "2024-08-29T20:00:00Z",
             "description": "The end time of the booking."
-          }
-        }
-      },
-      "Location": {
-        "type": "object",
-        "required": [
-          "address",
-          "countryCode",
-          "latitude",
-          "longitude"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
-            "description": "Unique identifier for the location."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzA2OWEzMDY2LTgwNjMtNDI0Zi05YmE0LTBhZDdhMmYxMzNjNQ",
-            "description": "The ID to use for this location in the [/locations API](/docs/api/v1/locations)"
-          },
-          "displayName": {
-            "type": "string",
-            "example": "Cisco Barcelona",
-            "description": "A friendly name for the location."
-          },
-          "address": {
-            "type": "string",
-            "example": "Carrer de Pere IV, Barcelona, Spain",
-            "description": "The location address."
-          },
-          "countryCode": {
-            "type": "string",
-            "example": "ES",
-            "description": "The location country code (ISO 3166-1)."
-          },
-          "cityName": {
-            "type": "string",
-            "example": "Barcelona",
-            "description": "The location city name."
-          },
-          "latitude": {
-            "type": "number",
-            "example": 41.406615,
-            "description": "The location latitude."
-          },
-          "longitude": {
-            "type": "number",
-            "example": 2.200717,
-            "description": "The location longitude."
-          },
-          "notes": {
-            "type": "string",
-            "example": "A note about the location",
-            "description": "Notes associated with the location."
           }
         }
       },
@@ -17996,7 +18654,7 @@
           }
         }
       },
-      "orgDetailsResponse": {
+      "OrgDetailsResponse": {
         "type": "object",
         "properties": {
           "orgId": {
@@ -18021,19 +18679,19 @@
           }
         }
       },
-      "orgClustersResponse": {
+      "OrgClustersResponse": {
         "type": "object",
         "properties": {
           "clusters": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/clusterDetailsResponse"
+              "$ref": "#/components/schemas/ClusterDetailsResponse"
             },
             "description": "List of clusters in the organization."
           }
         }
       },
-      "clusterDetailsResponse": {
+      "ClusterDetailsResponse": {
         "type": "object",
         "properties": {
           "context": {
@@ -18098,19 +18756,19 @@
           }
         }
       },
-      "clusterNodesResponse": {
+      "ClusterNodesResponse": {
         "type": "object",
         "properties": {
           "nodes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/nodeDetailsResponse"
+              "$ref": "#/components/schemas/NodeDetailsResponse"
             },
             "description": "List of nodes in the cluster."
           }
         }
       },
-      "nodeDetailsResponse": {
+      "NodeDetailsResponse": {
         "type": "object",
         "properties": {
           "context": {
@@ -18208,7 +18866,7 @@
           }
         }
       },
-      "databaseDetailsResponse": {
+      "DatabaseDetailsResponse": {
         "type": "object",
         "properties": {
           "context": {
@@ -18234,7 +18892,7 @@
           }
         }
       },
-      "multiTenantHDSOrgDetailsResponse": {
+      "MultiTenantHDSOrgDetailsResponse": {
         "type": "object",
         "properties": {
           "context": {
@@ -18251,13 +18909,13 @@
           "tenants": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/tenantDetails"
+              "$ref": "#/components/schemas/TenantDetails"
             },
             "description": "List of tenant organizations under the partner organization."
           }
         }
       },
-      "tenantDetails": {
+      "TenantDetails": {
         "type": "object",
         "properties": {
           "tenantOrgId": {
@@ -18282,7 +18940,7 @@
           }
         }
       },
-      "networkTestsResultsResponse": {
+      "NetworkTestsResultsResponse": {
         "type": "object",
         "properties": {
           "context": {
@@ -18324,13 +18982,13 @@
           "testResults": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/networkTestResult"
+              "$ref": "#/components/schemas/NetworkTestResult"
             },
             "description": "List of network test results."
           }
         }
       },
-      "networkTestResult": {
+      "NetworkTestResult": {
         "type": "object",
         "properties": {
           "timestamp": {
@@ -18347,13 +19005,13 @@
           "result": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/networkTestTypeResult"
+              "$ref": "#/components/schemas/NetworkTestTypeResult"
             },
             "description": "List of results per test type."
           }
         }
       },
-      "networkTestTypeResult": {
+      "NetworkTestTypeResult": {
         "type": "object",
         "properties": {
           "type": {
@@ -18364,13 +19022,13 @@
           "results": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/serviceTestResults"
+              "$ref": "#/components/schemas/ServiceTestResults"
             },
             "description": "List of service type test results."
           }
         }
       },
-      "serviceTestResults": {
+      "ServiceTestResults": {
         "type": "object",
         "properties": {
           "serviceType": {
@@ -18381,13 +19039,13 @@
           "services": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/singleServiceTestResult"
+              "$ref": "#/components/schemas/SingleServiceTestResult"
             },
             "description": "List of individual service test results."
           }
         }
       },
-      "singleServiceTestResult": {
+      "SingleServiceTestResult": {
         "type": "object",
         "properties": {
           "serviceName": {
@@ -18401,11 +19059,11 @@
             "description": "Result of the test for the service."
           },
           "failureDetails": {
-            "$ref": "#/components/schemas/networkTestFailureDetails"
+            "$ref": "#/components/schemas/NetworkTestFailureDetails"
           }
         }
       },
-      "networkTestFailureDetails": {
+      "NetworkTestFailureDetails": {
         "type": "object",
         "properties": {
           "possibleFailureReason": {
@@ -18431,7 +19089,7 @@
         },
         "description": "Failure details for a failed network test, present only when testResult is Failed."
       },
-      "clustersAvailabilityDetailsResponse": {
+      "ClustersAvailabilityDetailsResponse": {
         "type": "object",
         "properties": {
           "context": {
@@ -18458,7 +19116,7 @@
           "availabilitySegments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/availabilitySegment"
+              "$ref": "#/components/schemas/AvailabilitySegment"
             },
             "description": "List of availability segments for the cluster."
           },
@@ -18482,7 +19140,7 @@
           }
         }
       },
-      "availabilitySegment": {
+      "AvailabilitySegment": {
         "type": "object",
         "properties": {
           "segmentStartTime": {
@@ -18514,7 +19172,7 @@
           }
         }
       },
-      "nodeAlarmsResponse": {
+      "NodeAlarmsResponse": {
         "type": "object",
         "properties": {
           "context": {
@@ -18551,7 +19209,7 @@
           "alarms": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/nodeAlarm"
+              "$ref": "#/components/schemas/NodeAlarm"
             },
             "description": "List of alarms raised for the node."
           },
@@ -18575,7 +19233,7 @@
           }
         }
       },
-      "nodeAlarm": {
+      "NodeAlarm": {
         "type": "object",
         "properties": {
           "alarmId": {
@@ -18619,7 +19277,7 @@
               "details": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/alarmOccurrence"
+                  "$ref": "#/components/schemas/AlarmOccurrence"
                 },
                 "description": "List of individual alarm occurrence details."
               }
@@ -18628,7 +19286,7 @@
           }
         }
       },
-      "alarmOccurrence": {
+      "AlarmOccurrence": {
         "type": "object",
         "properties": {
           "raisedAt": {
@@ -18645,7 +19303,7 @@
           }
         }
       },
-      "nodeResourceUsageResponse": {
+      "NodeResourceUsageResponse": {
         "type": "object",
         "properties": {
           "context": {
@@ -18682,7 +19340,7 @@
           "resourceUsage": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/nodeResourceUsageSegment"
+              "$ref": "#/components/schemas/NodeResourceUsageSegment"
             },
             "description": "List of resource usage segments over the requested time range."
           },
@@ -18706,7 +19364,7 @@
           }
         }
       },
-      "nodeResourceUsageSegment": {
+      "NodeResourceUsageSegment": {
         "type": "object",
         "properties": {
           "startTime": {
@@ -19117,7 +19775,11 @@
         "type": "object",
         "properties": {
           "content": {
-            "$ref": "#/components/schemas/File",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/File"
+              }
+            ],
             "description": "Enterprise Content Management file."
           }
         }
@@ -19514,6 +20176,27 @@
           }
         },
         "type": "oauth2"
+      },
+      "webex-oauth": {
+        "type": "oauth2",
+        "description": "Webex OAuth access token. Each operation lists the scopes it accepts: any one entry in its `security` list is enough, and every scope inside an entry is required.",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://webexapis.com/v1/authorize",
+            "tokenUrl": "https://webexapis.com/v1/access_token",
+            "scopes": {
+              "spark:all": "Full access to your Webex account. Doesn't include the spark-compliance scopes.",
+              "spark:messages_read": "Read the content of rooms that you are in.",
+              "spark:messages_write": "Post and delete messages on your behalf.",
+              "spark-compliance:messages_read": "Read messages in your user's organization. The token's user must have the Compliance Officer role. Not included in spark:all.",
+              "spark-compliance:messages_write": "Delete messages in all spaces in your user's organization. The token's user must have the Compliance Officer role. Not included in spark:all.",
+              "spark:rooms_read": "List the titles of rooms that you are in.",
+              "spark:rooms_write": "Manage rooms on your behalf.",
+              "spark-compliance:rooms_read": "Read rooms in your user's organization. The token's user must have the Compliance Officer role. Not included in spark:all.",
+              "spark-compliance:rooms_write": "Modify rooms in your user's organization. The token's user must have the Compliance Officer role. Not included in spark:all."
+            }
+          }
+        }
       }
     },
     "parameters": {},

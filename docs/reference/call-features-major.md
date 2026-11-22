@@ -241,6 +241,18 @@ wxcli auto-attendant show-call-forwarding Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFya
 wxcli auto-attendant list-announcements Y2lzY29zcGFyazovL_LOC_ID Y2lzY29zcGFyazovL_AA_ID
 ```
 
+#### Organization-level schedules on an auto attendant
+
+> **Unverified:** (spec only, 2026-11-16) — the 2026-11-16 spec added these fields alongside the new `org-wide-schedules` group; nothing below has been tested live.
+
+- **`businessScheduleLevel`** (`auto-attendant create`, `auto-attendant update`) — which scope the schedule named in `businessSchedule` belongs to: `LOCATION` (the schedule belongs to the location) or `ORGANIZATION` (the schedule belongs to the organization). Defaults to the location level when omitted. A non-blank `businessSchedule` is required when this field is set.
+- **`holidayScheduleLevel`** (`auto-attendant create`, `auto-attendant update`) — the same for `holidaySchedule`: `LOCATION` or `ORGANIZATION`, defaults to the location level, and needs a non-blank `holidaySchedule`.
+
+```bash
+# Unverified (spec only, 2026-11-16): point an auto attendant at an organization-level business schedule
+wxcli auto-attendant update LOC_ID AA_ID --json-body '{"businessSchedule": "Corporate Hours", "businessScheduleLevel": "ORGANIZATION"}'
+```
+
 ---
 
 ## 2. Call Queues
@@ -1022,6 +1034,18 @@ wxcli hunt-group switch-mode-for LOC_ID HG_ID
 > `{"callForwarding":{"always":{"enabled":true,"destination":"+12094571613"}}}` took effect on the
 > read-back (`show-call-forwarding`); without it, `{"always":{"enabled":false}}` returned
 > `{"status": "updated"}` and changed nothing. A 2xx here is not evidence the setting applied.
+
+#### Schedule level on selective forwarding rules
+
+> **Unverified:** (spec only, 2026-11-16) — added to the spec with the new `org-wide-schedules` group; not tested live.
+
+- **`businessScheduleLevel`** (`auto-attendant create-selective-rules`, `call-queue create-selective-rules`, `hunt-group create-selective-rules`, `hunt-group update-selective-rules`) — scope of the schedule named in `businessSchedule`: `LOCATION` (belongs to the location) or `ORGANIZATION` (belongs to the organization). Requires a non-blank `businessSchedule`.
+- **`holidayScheduleLevel`** (same four commands) — scope of the schedule named in `holidaySchedule`: `LOCATION` or `ORGANIZATION`. Requires a non-blank `holidaySchedule`.
+
+```bash
+# Unverified (spec only, 2026-11-16): a selective forwarding rule driven by an organization-level holiday schedule
+wxcli hunt-group create-selective-rules LOC_ID HG_ID --json-body '{"name": "Org holidays", "enabled": true, "holidaySchedule": "Company Holidays", "holidayScheduleLevel": "ORGANIZATION", "forwardTo": {"selection": "FORWARD_TO_SPECIFIED_NUMBER", "phoneNumber": "+15559876543"}, "callsFrom": {"selection": "ANY"}, "callsTo": {"selection": "ANY"}}'
+```
 
 ---
 

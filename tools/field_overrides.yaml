@@ -1627,6 +1627,22 @@ tag_overrides:
         # Derived from "Validate Country for AI Receptionist" and truncated
         # mid-phrase, leaving a dangling preposition that reads as a bug.
         "validate-country-for": "validate-country"
+    # Upstream moved the executive-assistant setting between 2026-11-16 and
+    # 2026-11-22: GET/PUT /people/{personId}/features/executiveAssistant became
+    # GET/PUT /telephony/config/people/{personId}/executive. Same summary, tag,
+    # description, parameters (personId, orgId) and request/response schema
+    # (`type` only), compared in the spec diff; only the path and the operationId
+    # changed (a summary string became retrieve/modifyExecutiveAssistantSettings
+    # ForAPerson), and the new id derives `show-executive` / `update-executive`.
+    # Pin the moved operations to the names that have shipped (11 doc and skill
+    # citations), so nothing a caller types changes. The derived names never
+    # shipped, so the generator adds no hidden alias for them
+    # (generate_commands.shipped_command_names). Lock refreshed with --force for
+    # exactly these two MOVED entries.
+    "User Call Settings":
+      command_name_overrides:
+        "show-executive": "show-executive-assistant"
+        "update-executive": "update-executive-assistant"
     # Upstream (2026-09-28) added two sibling history endpoints —
     # /telephony/calls/members/me/history and
     # /telephony/calls/members/{memberId}/history — next to the long-standing
@@ -1848,6 +1864,20 @@ tag_overrides:
         "update-pin": "update-voicemail-pin"
         "show-guest": "show-hoteling-guest"
         "update-guest": "update-hoteling-guest"
+    # Spec sync 2026-11-16: upstream added name validators for schedules and
+    # schedule events at both scopes. Two ops per tag derived the same base
+    # name, so one got a meaningless `-1` (drift check 12). None has shipped
+    # yet, so name all four for what they validate (summaries:
+    # "Validate a Location Schedule [Event] Name",
+    # "Validate an Organization Schedule [Event] Name").
+    "Location Call Settings:  Schedules":
+      command_name_overrides:
+        "validate-a-location-invoke": "validate-event-name"
+        "validate-a-location-invoke-1": "validate-name"
+    "Org-Wide Schedules":
+      command_name_overrides:
+        "validate-an-organization-invoke": "validate-name"
+        "validate-an-organization-invoke-1": "validate-event-name"
   webex-contact-center.json:
     # Plan 2 Task 15. The spec's `fields` query param on GET /v1/{orgId}/functions
     # ("id,name,status", evaluated by the API) is not wxcli's client-side --fields

@@ -81,7 +81,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_UPDATE = '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}],"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}],"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"...","businessScheduleLevel":"LOCATION","holidayScheduleLevel":"LOCATION"}'
 
 @app.command("update", short_help="Update an Auto Attendant.")
 def update(
@@ -99,6 +99,8 @@ def update(
     name_dialing: str = typer.Option(None, "--name-dialing", help="Choices: ENTERPRISE, GROUP"),
     time_zone: str = typer.Option(None, "--time-zone", help="Time zone defined for the auto attendant."),
     dial_by_name: str = typer.Option(None, "--dial-by-name", help="Sets or clears the name to be used for dial by name functions. To clear the `dialByName`, the attribute must be set to null or empty string. Characters of `%`, `+`, `\\`, `\"` and Unicode characters are not allowed."),
+    business_schedule_level: str = typer.Option(None, "--business-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
+    holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -106,7 +108,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update LOCATION_ID AUTO_ATTENDANT_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Update an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update LOCATION_ID AUTO_ATTENDANT_ID\n\n\b\nExample --json-body: '{"name":"...","phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}],"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}],"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"...","businessScheduleLevel":"LOCATION","holidayScheduleLevel":"LOCATION"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)
@@ -144,6 +146,10 @@ def update(
             body["timeZone"] = time_zone
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
+        if business_schedule_level is not None:
+            body["businessScheduleLevel"] = business_schedule_level
+        if holiday_schedule_level is not None:
+            body["holidayScheduleLevel"] = holiday_schedule_level
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -194,7 +200,7 @@ def delete(
 
 
 
-_BODY_SKELETON_CREATE = '{"name":"...","businessSchedule":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_CREATE = '{"name":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}],"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}],"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","businessScheduleLevel":"LOCATION","holidaySchedule":"...","holidayScheduleLevel":"LOCATION","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("create", short_help="Create an Auto Attendant.")
 def create(
@@ -205,8 +211,10 @@ def create(
     first_name: str = typer.Option(None, "--first-name", help="First name defined for an auto attendant. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     last_name: str = typer.Option(None, "--last-name", help="Last name defined for an auto attendant. This field has been deprecated. Please use `directLineCallerIdName` and `dialByName` instead."),
     language_code: str = typer.Option(None, "--language-code", help="Announcement language code for the auto attendant."),
-    business_schedule: str = typer.Option(None, "--business-schedule", help="(required) Business hours defined for the auto attendant."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Business hours defined for the auto attendant."),
+    business_schedule_level: str = typer.Option(None, "--business-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
     holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Holiday defined for the auto attendant."),
+    holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
     extension_dialing: str = typer.Option(None, "--extension-dialing", help="Choices: ENTERPRISE, GROUP"),
     name_dialing: str = typer.Option(None, "--name-dialing", help="Choices: ENTERPRISE, GROUP"),
     time_zone: str = typer.Option(None, "--time-zone", help="Time zone defined for the auto attendant."),
@@ -217,7 +225,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant create LOCATION_ID --json-body '{"name":"...","businessSchedule":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT"}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT"}}}'\n\n\b\nExample --json-body: '{"name":"...","businessSchedule":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}},"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","holidaySchedule":"...","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Create an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant create LOCATION_ID --json-body '{"name":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT"}]},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT"}]}}'\n\n\b\nExample --json-body: '{"name":"...","businessHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}],"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"afterHoursMenu":{"greeting":"DEFAULT","extensionEnabled":true,"keyConfigurations":[{"key":"0","action":"PLAY_ANNOUNCEMENT","description":"...","value":"...","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"}}],"audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"callTreatment":{"retryAttemptForNoInput":"NO_REPEAT","noInputTimer":"...","actionToBePerformed":{"action":"PLAY_MESSAGE_AND_DISCONNECT","greeting":"DEFAULT","audioAnnouncementFile":{"id":"...","fileName":"...","mediaFileType":"WAV","level":"ORGANIZATION"},"transferCallTo":"..."}}},"phoneNumber":"...","extension":"...","firstName":"...","lastName":"...","alternateNumbers":[{"phoneNumber":"...","ringPattern":"NORMAL","tollFreeNumber":true}],"languageCode":"...","businessSchedule":"...","businessScheduleLevel":"LOCATION","holidaySchedule":"...","holidayScheduleLevel":"LOCATION","extensionDialing":"ENTERPRISE","nameDialing":"ENTERPRISE","timeZone":"...","directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -245,8 +253,12 @@ def create(
             body["languageCode"] = language_code
         if business_schedule is not None:
             body["businessSchedule"] = business_schedule
+        if business_schedule_level is not None:
+            body["businessScheduleLevel"] = business_schedule_level
         if holiday_schedule is not None:
             body["holidaySchedule"] = holiday_schedule
+        if holiday_schedule_level is not None:
+            body["holidayScheduleLevel"] = holiday_schedule_level
         if extension_dialing is not None:
             body["extensionDialing"] = extension_dialing
         if name_dialing is not None:
@@ -255,7 +267,7 @@ def create(
             body["timeZone"] = time_zone
         if dial_by_name is not None:
             body["dialByName"] = dial_by_name
-        _missing = [f for f in ['name', 'businessSchedule'] if f not in body or body[f] is None]
+        _missing = [f for f in ['name'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -346,7 +358,7 @@ def update_call_forwarding(
 
 
 
-_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"enabled":true,"businessSchedule":"...","holidaySchedule":"...","callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
+_BODY_SKELETON_CREATE_SELECTIVE_RULES = '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"enabled":true,"businessSchedule":"...","businessScheduleLevel":"LOCATION","holidaySchedule":"...","holidayScheduleLevel":"LOCATION","callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
 
 @app.command("create-selective-rules", short_help="Create a Selective Call Forwarding Rule for an Auto Attendant.")
 def create_selective_rules(
@@ -354,15 +366,17 @@ def create_selective_rules(
     auto_attendant_id: str = typer.Argument(help="Webex AUTO_ATTENDANT id, from: wxcli auto-attendant list"),
     name: str = typer.Option(None, "--name", help="(required) Unique name for the selective rule in the auto attendant."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
-    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the business schedule which determines when this selective call forwarding rule is in effect."),
+    business_schedule_level: str = typer.Option(None, "--business-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the holiday schedule which determines when this selective call forwarding rule is in effect."),
+    holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create a Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant create-selective-rules LOCATION_ID AUTO_ATTENDANT_ID --json-body '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER"},"callsFrom":{"selection":"ANY"}}'\n\n\b\nExample --json-body: '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"enabled":true,"businessSchedule":"...","holidaySchedule":"...","callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
+    """Create a Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant create-selective-rules LOCATION_ID AUTO_ATTENDANT_ID --json-body '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER"},"callsFrom":{"selection":"ANY"}}'\n\n\b\nExample --json-body: '{"name":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"enabled":true,"businessSchedule":"...","businessScheduleLevel":"LOCATION","holidaySchedule":"...","holidayScheduleLevel":"LOCATION","callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -382,8 +396,12 @@ def create_selective_rules(
             body["enabled"] = enabled
         if business_schedule is not None:
             body["businessSchedule"] = business_schedule
+        if business_schedule_level is not None:
+            body["businessScheduleLevel"] = business_schedule_level
         if holiday_schedule is not None:
             body["holidaySchedule"] = holiday_schedule
+        if holiday_schedule_level is not None:
+            body["holidayScheduleLevel"] = holiday_schedule_level
         _missing = [f for f in ['name'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
@@ -432,7 +450,7 @@ def show_selective_rules(
 
 
 
-_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"businessSchedule":"...","holidaySchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
+_BODY_SKELETON_UPDATE_SELECTIVE_RULES = '{"name":"...","enabled":true,"businessSchedule":"...","businessScheduleLevel":"LOCATION","holidaySchedule":"...","holidayScheduleLevel":"LOCATION","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'
 
 @app.command("update-selective-rules", short_help="Update Selective Call Forwarding Rule for an Auto Attendant.")
 def update_selective_rules(
@@ -441,8 +459,10 @@ def update_selective_rules(
     rule_id: str = typer.Argument(help="Webex CALL_FORWARDING_SELECTIVE_RULE id"),
     name: str = typer.Option(None, "--name", help="Unique name for the selective rule in the auto attendant."),
     enabled: bool = typer.Option(None, "--enabled/--no-enabled", help="Reflects if rule is enabled."),
-    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the location's business schedule which determines when this selective call forwarding rule is in effect."),
-    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the location's holiday schedule which determines when this selective call forwarding rule is in effect."),
+    business_schedule: str = typer.Option(None, "--business-schedule", help="Name of the business schedule which determines when this selective call forwarding rule is in effect."),
+    business_schedule_level: str = typer.Option(None, "--business-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
+    holiday_schedule: str = typer.Option(None, "--holiday-schedule", help="Name of the holiday schedule which determines when this selective call forwarding rule is in effect. Omit to keep the current schedule. Send `null` or an empty string to clear it."),
+    holiday_schedule_level: str = typer.Option(None, "--holiday-schedule-level", help="Choices: LOCATION, ORGANIZATION"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -450,7 +470,7 @@ def update_selective_rules(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update-selective-rules LOCATION_ID AUTO_ATTENDANT_ID RULE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"businessSchedule":"...","holidaySchedule":"...","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
+    """Update Selective Call Forwarding Rule for an Auto Attendant.\n\n\b\nExample: wxcli auto-attendant update-selective-rules LOCATION_ID AUTO_ATTENDANT_ID RULE_ID --name NAME\n\n\b\nExample --json-body: '{"name":"...","enabled":true,"businessSchedule":"...","businessScheduleLevel":"LOCATION","holidaySchedule":"...","holidayScheduleLevel":"LOCATION","forwardTo":{"selection":"FORWARD_TO_DEFAULT_NUMBER","phoneNumber":"..."},"callsFrom":{"selection":"ANY","customNumbers":{"privateNumberEnabled":true,"unavailableNumberEnabled":true,"numbers":["..."]}},"callsTo":{"numbers":[{"type":"PRIMARY","phoneNumber":"...","extension":"..."}]}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_SELECTIVE_RULES), indent=2))
         raise typer.Exit(0)
@@ -470,8 +490,12 @@ def update_selective_rules(
             body["enabled"] = enabled
         if business_schedule is not None:
             body["businessSchedule"] = business_schedule
+        if business_schedule_level is not None:
+            body["businessScheduleLevel"] = business_schedule_level
         if holiday_schedule is not None:
             body["holidaySchedule"] = holiday_schedule
+        if holiday_schedule_level is not None:
+            body["holidayScheduleLevel"] = holiday_schedule_level
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:

@@ -109,7 +109,7 @@
           }
         },
         "summary": "List Meeting Chats",
-        "operationId": "List Meeting Chats",
+        "operationId": "listMeetingChats",
         "description": "Lists the meeting chats of a finished [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) specified by `meetingId`. You can set a maximum number of chats to return.\n\nUse this operation to list the chats of a finished [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) when they are ready. Please note that only **meeting instances** in state `ended` are supported for `meetingId`. **Meeting series**, **scheduled meetings** and `in-progress` **meeting instances** are not supported.",
         "tags": [
           "Chats"
@@ -129,7 +129,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of meeting chats in the response, up to 100.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 10
@@ -139,7 +139,7 @@
             "name": "offset",
             "in": "query",
             "description": "Offset from the first result that you want to fetch.",
-            "example": "0",
+            "example": 0,
             "schema": {
               "type": "number"
             }
@@ -197,7 +197,7 @@
           }
         },
         "summary": "Delete Meeting Chats",
-        "operationId": "Delete Meeting Chats",
+        "operationId": "deleteMeetingChats",
         "description": "Deletes the meeting chats of a finished [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) specified by `meetingId`.\n\nUse this operation to delete the chats of a finished [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) when they are ready. Please note that only **meeting instances** in state `ended` are supported for `meetingId`. **Meeting series**, **scheduled meetings** and `in-progress` **meeting instances** are not supported.",
         "tags": [
           "Chats"
@@ -645,7 +645,7 @@
           }
         },
         "summary": "List Meeting Invitees",
-        "operationId": "List Meeting Invitees",
+        "operationId": "listMeetingInvitees",
         "description": "Lists meeting invitees for a meeting with a specified `meetingId`. You can set a maximum number of invitees to return.\n\nThis operation can be used for meeting series, scheduled meetings, and ended or ongoing meeting instance objects. If the specified `meetingId` is for a meeting series, the invitees for the series will be listed; if the `meetingId` is for a scheduled meeting, the invitees for the particular scheduled meeting will be listed; if the `meetingId` is for an ended or ongoing meeting instance, the invitees for the particular meeting instance will be listed. See the [Webex Meetings](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) guide for more information about the types of meetings.\n\nThe list returned is sorted in ascending order by email address.\n\nLong result sets are split into [pages](/docs/basics#pagination).",
         "tags": [
           "Invitees"
@@ -665,7 +665,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of meeting invitees in the response, up to 100.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 10
@@ -795,7 +795,7 @@
           }
         },
         "summary": "Create a Meeting Invitee",
-        "operationId": "Create a Meeting Invitee",
+        "operationId": "createAMeetingInvitee",
         "description": "* Invite a person to attend a meeting.\n\n* Identify the invitee in the request body, by email address.\n\n* The `sendEmail` parameter is `true` by default and the meeting emails will be sent to the invitee's `email`. Please set `sendEmail` to `false` to prevent the invitee from receiving emails.",
         "tags": [
           "Invitees"
@@ -922,7 +922,7 @@
           }
         },
         "summary": "Create Meeting Invitees",
-        "operationId": "Create Meeting Invitees",
+        "operationId": "createMeetingInvitees",
         "description": "* Invite people to attend a meeting in bulk.\n\n* Identify each invitee by the email address of each item in the `items` of the request body.\n\n* Each invitee should have a unique `email`.\n\n* This API limits the maximum size of `items` in the request body to 100.\n\n* The `sendEmail` parameter for each invitee is `true` by default and the meeting emails will be sent to the invitee's `email`. Please set `sendEmail` to `false` to prevent an invitee from receiving emails.",
         "tags": [
           "Invitees"
@@ -1028,7 +1028,7 @@
           }
         },
         "summary": "Get a Meeting Invitee",
-        "operationId": "Get a Meeting Invitee",
+        "operationId": "getAMeetingInvitee",
         "description": "Retrieve details for a meeting invitee identified by a `meetingInviteeId` in the URI.",
         "tags": [
           "Invitees"
@@ -1159,7 +1159,7 @@
           }
         },
         "summary": "Update a Meeting Invitee",
-        "operationId": "Update a Meeting Invitee",
+        "operationId": "updateAMeetingInvitee",
         "description": "Update details for a meeting invitee identified by a `meetingInviteeId` in the URI.",
         "tags": [
           "Invitees"
@@ -1250,7 +1250,7 @@
           }
         },
         "summary": "Delete a Meeting Invitee",
-        "operationId": "Delete a Meeting Invitee",
+        "operationId": "deleteAMeetingInvitee",
         "description": "Removes a meeting invitee identified by a `meetingInviteeId` specified in the URI. The deleted meeting invitee cannot be recovered.\n\nIf the meeting invitee is associated with a meeting series, the invitee will be removed from the entire meeting series. If the invitee is associated with a scheduled meeting, the invitee will be removed from only that scheduled meeting.",
         "tags": [
           "Invitees"
@@ -1279,10 +1279,10 @@
             "name": "sendEmail",
             "in": "query",
             "description": "If `true`, send an email to the invitee.",
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean",
-              "default": "true"
+              "default": true
             }
           }
         ]
@@ -1343,7 +1343,7 @@
           }
         },
         "summary": "Delete a Meeting Message",
-        "operationId": "Delete a Meeting Message",
+        "operationId": "deleteAMeetingMessage",
         "description": "Deletes a Meeting Message from the In Meeting Chat, using its ID.\n\nThis ID can be retrieved by a Compliance Officer using the [events API](/docs/api/v1/events/list-events) filtering on the `meetingMessages` resource type.\n\nNOTE: When viewing the response from the events API, there are 2 `id` fields. The ID to be used here can be found under the `data` field in the response.\n\nSpecify the `meetingMessage` ID in the `meetingMessageId` parameter in the URI.",
         "tags": [
           "Messages"
@@ -1476,7 +1476,7 @@
           }
         },
         "summary": "List Meeting Participants",
-        "operationId": "List Meeting Participants",
+        "operationId": "listMeetingParticipants",
         "description": "List all participants in an in-progress meeting or an ended meeting. The `meetingId` parameter is required, which is the unique identifier for the meeting.\n\nThe authenticated user calling this API must either have an Administrator role with the `meeting:admin_participants_read` scope, or be the meeting host.\n\n* If the `meetingId` value specified is for a meeting series, the operation returns participants' details for the last instance in the meeting series. If the `meetingStartTimeFrom` value and the `meetingStartTimeTo` value are specified, the operation returns participants' details for the last instance in the meeting series in the time range.\n\n* If the `meetingId` value specified is for a scheduled meeting from a meeting series, the operation returns participants' details for that scheduled meeting. If the `meetingStartTimeFrom` value and the `meetingStartTimeTo` value are specified, the operation returns participants' details for the last instance in the scheduled meeting in the time range.\n\n* If the `meetingId` value specified is for a meeting instance which is in progress or ended, the operation returns participants' details for that meeting instance.\n\n* If the meeting is in progress, the operation returns all the real-time participants. If the meeting is ended, the operation returns all the participants that have joined the meeting.\n\n* If the `breakoutSessionId` parameter is specified, the operation returns participants who joined the specified breakout session. It only applies to end meeting instances.\n\n* The `breakoutSessionsAttended` attribute is only returned for a participant of an ended meeting instance if the participant joined breakout sessions in the meeitng.\n\n* The `meetingStartTimeFrom` and `meetingStartTimeTo` only apply when `meetingId` is a series ID or an occurrence ID.\n\n* If the webinar is in progress when the attendee has ever been unmuted to speak in the webinar, this attendee becomes a panelist. The operation returns include the people who have been designated as panelists when the webinar is created and have joined the webinar, and the attendees who have joined the webinar and are unmuted to speak in the webinar temporarily. If the webinar is ended, the operation returns all the participants, including all panelists and all attendees who are not panelists.\n\n#### Request Header\n\n* `timezone`: Time zone for time stamps in the response body, defined in conformance with the [IANA time zone database](https://www.iana.org/time-zones).",
         "tags": [
           "Participants"
@@ -1486,7 +1486,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of participants in the response, up to 100.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 10
@@ -1683,7 +1683,7 @@
           }
         },
         "summary": "Query Meeting Participants with Email",
-        "operationId": "Query Meeting Participants with Email",
+        "operationId": "queryMeetingParticipantsWithEmail",
         "description": "Query participants in a live meeting, or after the meeting, using participant's email. The `meetingId` parameter is the unique identifier for the meeting and is required.\n\nThe authenticated user calling this API must either have an Administrator role with the `meeting:admin_participants_read` scope, or be the meeting host.\n\n* If the `meetingId` value specified is for a meeting series, the operation returns participants' details for the last instance in the meeting series. If the `meetingStartTimeFrom` value and the `meetingStartTimeTo` value are specified, the operation returns participants' details for the last instance in the meeting series in the time range.\n\n* If the `meetingId` value specified is for a scheduled meeting from a meeting series, the operation returns participants' details for that scheduled meeting. If the `meetingStartTimeFrom` value and the `meetingStartTimeTo` value are specified, the operation returns participants' details for the last instance in the scheduled meeting in the time range.\n\n* If the `meetingId` value specified is for a meeting instance which is in progress or ended, the operation returns participants' details for that meeting instance.\n\n* The `meetingStartTimeFrom` and `meetingStartTimeTo` only apply when `meetingId` is a series ID or an occurrence ID.\n\n#### Request Header\n\n* `timezone`: Time zone for time stamps in the response body, defined in conformance with the [IANA time zone database](https://www.iana.org/time-zones).",
         "tags": [
           "Participants"
@@ -1879,7 +1879,7 @@
           }
         },
         "summary": "Get Meeting Participant Details",
-        "operationId": "Get Meeting Participant Details",
+        "operationId": "getMeetingParticipantDetails",
         "description": "Get a meeting participant details of a live or post meeting. The `participantId` is required to identify the meeting and the participant.\n\nThe authenticated user calling this API must either have an Administrator role with the `meeting:admin_participants_read` scope, or be the meeting host.",
         "tags": [
           "Participants"
@@ -1991,7 +1991,7 @@
           }
         },
         "summary": "Update a Participant",
-        "operationId": "Update a Participant",
+        "operationId": "updateAParticipant",
         "description": "Mute, un-mute, expel, or admit a participant in a live meeting. The `participantId` is required to identify the meeting and the participant.\n\nNotes:\n\n* The owner of the OAuth token calling this API needs to be the meeting host or co-host.\n\n* The `expel` attribute always takes precedence over `admit` and `muted`. The request can have all `expel`, `admit` and `muted` or any of them.\n\n<div><Callout type=\"warning\">There is an inconsistent behavior in Webex Meetings App when all active meeting participants join using Webex Meetings App and the host attempts to change meeting participant status using this API. Requests to mute, un-mute, admit, or expel a meeting participant return a successful response and update the state in the API, but the changes will not be applied to the Webex Meetings App participants. The inconsistent behavior in Webex Meetings App will be corrected in a future release.\n**Workaround**: [Enable closed captions](https://help.webex.com/en-us/article/WBX47352/How-Do-I-Enable-Closed-Captions?) or enable the [Webex Assistant](https://help.webex.com/en-us/article/n91uf2x/Turn-on-or-turn-off-Webex-Assistant-during-a-meeting-or-webinar).</Callout></div>",
         "tags": [
           "Participants"
@@ -2091,7 +2091,7 @@
           }
         },
         "summary": "Admit Participants",
-        "operationId": "Admit Participants",
+        "operationId": "admitParticipants",
         "description": "To admit participants into a live meeting or its breakout sessions in bulk. If `breakoutSessionId` is null for all the requested participants, they are admitted into the main session of the meeting. If `breakoutSessionId` is not null for all the requested participants, they are admitted into the breakout sessions specified by each `breakoutSessionId`. It's not allowed that some requested participants have `breakoutSessionId` and the others haven't.\n\nThis API limits the maximum size of `items` in the request body to 100.\n\nEach `participantId` of `items` in the request body should have the same prefix of `meetingId`.",
         "tags": [
           "Participants"
@@ -2191,7 +2191,7 @@
           }
         },
         "summary": "Call Out a SIP Participant",
-        "operationId": "Call Out a SIP Participant",
+        "operationId": "callOutASIPParticipant",
         "description": "Initiate a call to a SIP participant to join a meeting.\n\nIf a user invoking the API is not a [Service App](/docs/service-apps), the user must join the meeting before invoking the API. If a user is a [Service App](/docs/service-apps), the service app can invoke the API without joining the meeting. In both cases, the normal user or the service app that invokes the API must be the meeting host or cohost. If the meeting is created by the service app on behalf of the real host, the service app cannot use the admin on behalf function to invoke this API. Instead the host or cohost must execute the action.\n\nThe authenticated user calling this API must have the `meeting:participants_write` scope.\n\nThe ringing on the invited SIP device stops in 30 seconds if there is no response.",
         "tags": [
           "Participants"
@@ -2270,7 +2270,7 @@
           }
         },
         "summary": "Cancel Calling Out a SIP Participant",
-        "operationId": "Cancel Calling Out a SIP Participant",
+        "operationId": "cancelCallingOutASIPParticipant",
         "description": "Cancel the call to a SIP participant before the ringing on the invited SIP device stops. The ringing on the invited SIP device stops in 30 seconds if there is no response.\n\nIf a user invoking the API is not a [Service App](/docs/service-apps), the user must join the meeting before invoking the API. If a user is a [Service App](/docs/service-apps), the service app can invoke the API without joining the meeting. In both cases, the normal user or the service app that invokes the API must be the meeting host or cohost. If the meeting is created by the service app on behalf of the real host, the service app cannot use the admin on behalf function to invoke this API. Instead the host or cohost must execute the action.\n\nThe authenticated user calling this API must have the `meeting:participants_write` scope.",
         "tags": [
           "Participants"
@@ -2380,7 +2380,7 @@
           }
         },
         "summary": "List Meeting Polls",
-        "operationId": "List Meeting Polls",
+        "operationId": "listMeetingPolls",
         "description": "Lists all the polls and the poll questions in a meeting when ready.\n\n* Only [meeting instances](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) in state `ended` or `inProgress` are supported for `meetingId`.\n\n* No pagination for this API because we don't expect a large number of questions for each meeting.\n\n<div><Callout type=\"info\">Polls are available within 15 minutes following the meeting.</Callout></div>",
         "tags": [
           "Meeting Polls"
@@ -2514,7 +2514,7 @@
           }
         },
         "summary": "Get Meeting PollResults",
-        "operationId": "Get Meeting PollResults",
+        "operationId": "getMeetingPollResults",
         "description": "List the meeting polls, the poll's questions, and answers from the meeting when ready.\n\n* Only [meeting instances](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) in state `ended` or `inProgress` are supported for `meetingId`.\n\n* Long result sets will be split into [pages](/docs/basics#pagination).\n\n* This API is paginated by the sum of respondents from all questions in a meeting, these pagination links are returned in the response header.\n\n<div><Callout type=\"info\">Polls results are available within 15 minutes following the meeting.</Callout></div>",
         "tags": [
           "Meeting Polls"
@@ -2534,7 +2534,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of respondents in a meeting in the response, up to 100.",
-            "example": "10",
+            "example": 10,
             "schema": {
               "type": "number",
               "default": 10
@@ -2621,7 +2621,7 @@
           }
         },
         "summary": "List Respondents of a Question",
-        "operationId": "List Respondents of a Question",
+        "operationId": "listRespondentsOfAQuestion",
         "description": "Lists the respondents to a specific questions in a poll.\n\n* Only [meeting instances](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) in state `ended` or `inProgress` are supported for `meetingId`.\n\n* Long result sets are split into [pages](/docs/basics#pagination).\n\n<div><Callout type=\"info\">The list of poll respondents are available within 15 minutes following the meeting.</Callout></div>",
         "tags": [
           "Meeting Polls"
@@ -2661,7 +2661,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of respondents in a specified question in the response, up to 100.",
-            "example": "10",
+            "example": 10,
             "schema": {
               "type": "number",
               "default": 10
@@ -2868,7 +2868,7 @@
           }
         },
         "summary": "Get Meeting Preference Details",
-        "operationId": "Get Meeting Preference Details",
+        "operationId": "getMeetingPreferenceDetails",
         "description": "Retrieves meeting preferences for the authenticated user.",
         "tags": [
           "Preferences"
@@ -3029,7 +3029,7 @@
           }
         },
         "summary": "Get Personal Meeting Room Options",
-        "operationId": "Get Personal Meeting Room Options",
+        "operationId": "getPersonalMeetingRoomOptions",
         "description": "Retrieves the Personal Meeting Room options for the authenticated user.",
         "tags": [
           "Preferences"
@@ -3188,7 +3188,7 @@
           }
         },
         "summary": "Update Personal Meeting Room Options",
-        "operationId": "Update Personal Meeting Room Options",
+        "operationId": "updatePersonalMeetingRoomOptions",
         "description": "Updates Personal Meeting Room options for the authenticated user.",
         "tags": [
           "Preferences"
@@ -3358,7 +3358,7 @@
           }
         },
         "summary": "Get Audio Options",
-        "operationId": "Get Audio Options",
+        "operationId": "getAudioOptions",
         "description": "Retrieves audio options for the authenticated user.",
         "tags": [
           "Preferences"
@@ -3500,7 +3500,7 @@
           }
         },
         "summary": "Update Audio Options",
-        "operationId": "Update Audio Options",
+        "operationId": "updateAudioOptions",
         "description": "Updates audio options for the authenticated user.",
         "tags": [
           "Preferences"
@@ -3667,7 +3667,7 @@
           }
         },
         "summary": "Get Video Options",
-        "operationId": "Get Video Options",
+        "operationId": "getVideoOptions",
         "description": "Retrieves video options for the authenticated user.",
         "tags": [
           "Preferences"
@@ -3803,7 +3803,7 @@
           }
         },
         "summary": "Update Video Options",
-        "operationId": "Update Video Options",
+        "operationId": "updateVideoOptions",
         "description": "Updates video options for the authenticated user.",
         "tags": [
           "Preferences"
@@ -3960,7 +3960,7 @@
           }
         },
         "summary": "Get Scheduling Options",
-        "operationId": "Get Scheduling Options",
+        "operationId": "getSchedulingOptions",
         "description": "Retrieves scheduling options for the authenticated user.",
         "tags": [
           "Preferences"
@@ -4092,7 +4092,7 @@
           }
         },
         "summary": "Update Scheduling Options",
-        "operationId": "Update Scheduling Options",
+        "operationId": "updateSchedulingOptions",
         "description": "Updates scheduling options for the authenticated user.\n\n* If `delegateEmails` is null or not specified, the user's delegate emails are not changed. If `delegateEmails` is specified and not empty, the user's delegate emails are updated with the specified emails. If `delegateEmails` is specified as an empty array, the user's existing delegate emails are removed.",
         "tags": [
           "Preferences"
@@ -4248,7 +4248,7 @@
           }
         },
         "summary": "Insert Delegate Emails",
-        "operationId": "Insert Delegate Emails",
+        "operationId": "insertDelegateEmails",
         "description": "Insert delegate emails for the authenticated user.",
         "tags": [
           "Preferences"
@@ -4344,7 +4344,7 @@
           }
         },
         "summary": "Delete Delegate Emails",
-        "operationId": "Delete Delegate Emails",
+        "operationId": "deleteDelegateEmails",
         "description": "Delete delegate emails for the authenticated user.",
         "tags": [
           "Preferences"
@@ -4502,7 +4502,7 @@
           }
         },
         "summary": "Get Site List",
-        "operationId": "Get Site List",
+        "operationId": "getSiteList",
         "description": "Retrieves the list of Webex sites that the authenticated user is set up to use.\nWhen the admin tries to get the site list via `userEmail`, if `siteUrl` is not specified, the API searches the user ID from the admin's default site. If `siteUrl` is specified, the API searches the user ID from the specified site.",
         "tags": [
           "Preferences"
@@ -4628,7 +4628,7 @@
           }
         },
         "summary": "Update Default Site",
-        "operationId": "Update Default Site",
+        "operationId": "updateDefaultSite",
         "description": "Updates the default site for the authenticated user.",
         "tags": [
           "Preferences"
@@ -4639,7 +4639,7 @@
             "in": "query",
             "description": "Whether or not to change user's default site. ***Note***: `defaultSite` should be set to true for the user's single default site",
             "required": true,
-            "example": "true",
+            "example": true,
             "schema": {
               "type": "boolean"
             }
@@ -4781,7 +4781,7 @@
           }
         },
         "summary": "Batch Refresh Personal Meeting Room ID",
-        "operationId": "Batch Refresh Personal Meeting Room ID",
+        "operationId": "batchRefreshPersonalMeetingRoomID",
         "description": "Refreshes personal room IDs automatically according to the current personal room ID rule of the target site or by the values specified by the admin user.\n\nThe new personal room IDs are generated by the site's settings automatically if `systemGenerated` is true; otherwise, replace the existing personal room IDs with the specified values if `systemGenerated` is false or not specified.\n\nIt may take up to 30 minutes to see the updated personal room ID on the Webex meeting page after refreshing the personal room ID due to cache.\n\nEither all items in `personalMeetingRoomIds` have `personalMeetingRoomId`, or they all have `systemGenerated` which equals true. `personalMeetingRoomId` and `systemGenerated: true` cannot be specified at the same time.\n\nThe items in `personalMeetingRoomIds` either all have `personId` or all have `email` in a single request. Partial `personId` and partial `email` is not allowed in the same request.",
         "tags": [
           "Preferences"
@@ -4927,7 +4927,7 @@
           }
         },
         "summary": "List Meeting Q and A",
-        "operationId": "List Meeting Q and A",
+        "operationId": "listMeetingQAndA",
         "description": "Lists questions and answers from a meeting, when ready.\n\nNotes:\n\n* Only [meeting instances](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) in state `ended` or `inProgress` are supported for `meetingId`.\n\n* Long result sets will be split into [pages](/docs/basics#pagination).\n\n* This API is paginated by the sum of answers in a meeting, These pagination links are returned in the response header.",
         "tags": [
           "Meeting Q and A"
@@ -4947,7 +4947,7 @@
             "name": "max",
             "in": "query",
             "description": "Limits the maximum number of answers in the response, up to 100.",
-            "example": "10",
+            "example": 10,
             "schema": {
               "type": "number",
               "default": 10
@@ -5050,7 +5050,7 @@
           }
         },
         "summary": "List Answers of a Question",
-        "operationId": "List Answers of a Question",
+        "operationId": "listAnswersOfAQuestion",
         "description": "Lists the answers to a specific question asked in a meeting.\n\n* Only [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) in state `ended` or `inProgress` are supported for `meetingId`.\n\n* Long result sets will be split into [pages](/docs/basics#pagination).",
         "tags": [
           "Meeting Q and A"
@@ -5080,7 +5080,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of Q&A's answers in the response, up to 100.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 10
@@ -5424,7 +5424,7 @@
           }
         },
         "summary": "List Site Session Types",
-        "operationId": "List Site Session Types",
+        "operationId": "listSiteSessionTypes",
         "description": "List session types for a specific site.",
         "tags": [
           "Session Types"
@@ -5535,7 +5535,7 @@
           }
         },
         "summary": "List User Session Type",
-        "operationId": "List User Session Type",
+        "operationId": "listUserSessionType",
         "description": "List session types for a specific user.",
         "tags": [
           "Session Types"
@@ -5650,7 +5650,7 @@
           }
         },
         "summary": "Update User Session Types",
-        "operationId": "Update User Session Types",
+        "operationId": "updateUserSessionTypes",
         "description": "Assign session types to specific users.\n\n* At least one of the following body parameters is required to update a specific user session type: `personId`, `email`.",
         "tags": [
           "Session Types"
@@ -6069,7 +6069,7 @@
           }
         },
         "summary": "List Meeting Transcripts",
-        "operationId": "List Meeting Transcripts",
+        "operationId": "listMeetingTranscripts",
         "description": "Lists available transcripts of an ended [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances).\n\nUse this operation to list transcripts of an ended [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) when they are ready. Please note that only **meeting instances** in state `ended` are supported for `meetingId`. **Meeting series**, **scheduled meetings** and `in-progress` **meeting instances** are not supported.\n\n#### Request Header\n\n* `timezone`: [Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default is UTC if `timezone` is not defined.",
         "tags": [
           "Transcripts"
@@ -6236,7 +6236,7 @@
           }
         },
         "summary": "List Meeting Transcripts For Compliance Officer",
-        "operationId": "List Meeting Transcripts For Compliance Officer",
+        "operationId": "listMeetingTranscriptsForComplianceOfficer",
         "description": "Lists available or deleted transcripts of an ended [meeting instance](/docs/meetings#meeting-series-scheduled-meetings-and-meeting-instances) for a specific site.\n\nThe returned list is sorted in descending order by the date and time that the transcript was created.\n\n#### Request Header\n\n* `timezone`: [Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default is UTC if `timezone` is not defined.",
         "tags": [
           "Transcripts"
@@ -6349,7 +6349,7 @@
           }
         },
         "summary": "Download a Meeting Transcript",
-        "operationId": "Download a Meeting Transcript",
+        "operationId": "downloadAMeetingTranscript",
         "description": "Download a meeting transcript from the meeting transcript specified by `transcriptId`.",
         "tags": [
           "Transcripts"
@@ -6473,7 +6473,7 @@
           }
         },
         "summary": "List Snippets of a Meeting Transcript",
-        "operationId": "List Snippets of a Meeting Transcript",
+        "operationId": "listSnippetsOfAMeetingTranscript",
         "description": "Lists snippets of a meeting transcript specified by `transcriptId`.\n\nUse this operation to list snippets of a meeting transcript when they are ready.",
         "tags": [
           "Transcripts"
@@ -6570,7 +6570,7 @@
           }
         },
         "summary": "Get a Transcript Snippet",
-        "operationId": "Get a Transcript Snippet",
+        "operationId": "getATranscriptSnippet",
         "description": "Retrieves details for a transcript snippet specified by `snippetId` from the meeting transcript specified by `transcriptId`.",
         "tags": [
           "Transcripts"
@@ -6666,7 +6666,7 @@
           }
         },
         "summary": "Update a Transcript Snippet",
-        "operationId": "Update a Transcript Snippet",
+        "operationId": "updateATranscriptSnippet",
         "description": "Updates details for a transcript snippet specified by `snippetId` from the meeting transcript specified by `transcriptId`.",
         "tags": [
           "Transcripts"
@@ -6763,7 +6763,7 @@
           }
         },
         "summary": "Delete a Transcript",
-        "operationId": "Delete a Transcript",
+        "operationId": "deleteATranscript",
         "description": "Removes a transcript with a specified transcript ID. The deleted transcript cannot be recovered. If a Compliance Officer deletes another user's transcript, the transcript will be inaccessible to regular users (host, attendees), but will be still available to the Compliance Officer.",
         "tags": [
           "Transcripts"
@@ -6910,7 +6910,7 @@
           }
         },
         "summary": "List Meeting Usage Reports",
-        "operationId": "List Meeting Usage Reports",
+        "operationId": "listMeetingUsageReports",
         "description": "List meeting usage reports of all the users on the specified site by an admin. You can specify a date range and the maximum number of meeting usage reports to return.\n\nThe list returned is sorted in descending order by the date and time the meetings were started.\n\nLong result sets are split into [pages](/docs/basics#pagination).\n\n* `siteUrl` is required, and the meeting usage reports of the specified site are listed. All available Webex sites can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API.\n\n#### Request Header\n\n* `timezone`: [Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default timezone is `UTC` if not defined.",
         "tags": [
           "Meetings Summary Report"
@@ -7007,14 +7007,14 @@
                   "items": [
                     {
                       "meetingId": "089b137c3cf34b578896941e2d49dfe8_I_146987372776523573",
-                      "meetingNumber": "123456789",
+                      "meetingNumber": 123456789,
                       "meetingTitle": "John's Meeting",
                       "displayName": "John Andersen",
                       "email": "john.andersen@example.com",
                       "joinedTime": "2023-01-18T10:26:30+08:00",
                       "leftTime": "2023-01-18T10:46:30+08:00",
                       "duration": 20,
-                      "participantType": "ATTENDEE",
+                      "participantType": "attendee",
                       "ipAddress": "172.16.244.151",
                       "clientAgent": "WINDOWS,IE",
                       "company": "ExampleCompany",
@@ -7080,7 +7080,7 @@
           }
         },
         "summary": "List Meeting Attendee Reports",
-        "operationId": "List Meeting Attendee Reports",
+        "operationId": "listMeetingAttendeeReports",
         "description": "Lists of meeting attendee reports by a date range, the maximum number of meeting attendee reports, a meeting ID, a meeting number or a meeting title.\n\nIf the requesting user is an admin, the API returns meeting attendee reports of the meetings hosted by all the users on the specified site filtered by meeting ID, meeting number or meeting title.\n\nIf it's a normal meeting host, the API returns meeting attendee reports of the meetings hosted by the user himself on the specified site filtered by meeting ID, meeting number or meeting title.\n\nThe list returned is grouped by meeting instances. Both the groups and items of each group are sorted in descending order of `joinedTime`. For example, if `meetingId` is specified and it's a meeting series ID, the returned list is grouped by meeting instances of that series. The groups are sorted in descending order of `joinedTime`, and within each group the items are also sorted in descending order of `joinedTime`. Please refer to [Meetings Overview](/docs/meetings) for details of meeting series, scheduled meeting and meeting instance.\n\nLong result sets are split into [pages](/docs/basics#pagination).\n\n* `siteUrl` is required, and the meeting attendee reports of the specified site are listed. All available Webex sites can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API.\n\n* `meetingId`, `meetingNumber` and `meetingTitle` are optional parameters to query the meeting attendee reports, but at least one of them should be specified. If more than one parameter in the sequence of `meetingId`, `meetingNumber`, and `meetingTitle` are specified, the first one in the sequence is used. Currently, only ended meeting instance IDs and meeting series IDs are supported for `meetingId`. IDs of scheduled meetings or personal room meetings are not supported.\n\n#### Request Header\n\n* `timezone`: [Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default timezone is `UTC` if not defined.",
         "tags": [
           "Meetings Summary Report"
@@ -13347,7 +13347,7 @@
                 ]
               },
               "schema": {
-                "$ref": "#/components/schemas/queryRegistrants"
+                "$ref": "#/components/schemas/QueryRegistrants"
               }
             }
           }
@@ -16245,7 +16245,7 @@
           }
         },
         "summary": "List Tracking Codes",
-        "operationId": "List Tracking Codes",
+        "operationId": "listTrackingCodes",
         "description": "Lists tracking codes on a site by an admin user.\n\n* If `siteUrl` is specified, tracking codes of the specified site will be listed; otherwise, tracking codes of the user's preferred site will be listed. All available Webex sites and the preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API.\n\n* Admins can switch any Control Hub managed site from using classic tracking codes to mapped tracking codes in Control Hub. This is a one-time irreversible operation. Once the tracking codes are mapped to custom or user profile attributes, the response returns the mapped tracking codes.",
         "tags": [
           "Tracking Codes"
@@ -16401,7 +16401,7 @@
           }
         },
         "summary": "Create a Tracking Code",
-        "operationId": "Create a Tracking Code",
+        "operationId": "createATrackingCode",
         "description": "Create a new tracking code by an admin user.\n\n* The `siteUrl` is required. The operation creates a tracking code for the specified site. All or a user's available Webex sites can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API.\n\n* The `inputMode` of `hostProfileSelect` is only available for a host profile and sign-up pages and does not apply to the meeting scheduler page or the meeting start page. The value for `scheduleStartCodes` must be `null` or the value for all services must be `notUsed` when the `inputMode` is `hostProfileSelect`.\n\n* The `hostProfileCode` of `required` is only allowed for a Site Admin managed site, and not for a Control Hub managed site.\n\n* When the `hostProfileCode` is `adminSet`, only `adminSet`, `notUsed`, and `notApplicable` are available for the types of `scheduleStartCodes`. When the `hostProfileCode` is not `adminSet`, only `optional`, `required`, `notUsed`, and `notApplicable` are available for `scheduleStartCodes`.\n\n* If the type of the `All` service has a value other than `notApplicable`, and another service, e.g. `EventCenter`, is missing from the `scheduleStartCodes`, then the type of this missing `EventCenter` service shares the same type as the `All` service. If the type of `All` service has a value other than `notApplicable`, and another service, e.g. `EventCenter`, has a type, then the type specified should be the same as the `All` service.\n\n* If the `All` service is missing from the `scheduleStartCodes`, any of the other four services, e.g. `EventCenter`, have a default type of `notUsed` if it is also missing from the `scheduleStartCodes`.\n\n* Admins can switch any Control Hub managed site from using classic tracking codes to mapped tracking codes in Control Hub, this is a one-time irreversible operation. Once the tracking codes are mapped to custom or user profile attributes, they cannot create tracking codes when the mapping process is in progress or the mapping process is completed.",
         "tags": [
           "Tracking Codes"
@@ -16566,7 +16566,7 @@
           }
         },
         "summary": "Get a Tracking Code",
-        "operationId": "Get a Tracking Code",
+        "operationId": "getATrackingCode",
         "description": "Retrieves details for a tracking code by an admin user.\n\n* If `siteUrl` is specified, the tracking code is retrieved from the specified site; otherwise, the tracking code is retrieved from the user's preferred site. All available Webex sites and the preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API.\n\n* Admins can switch any Control Hub managed site from using classic tracking codes to mapped tracking codes in Control Hub, this is a one-time irreversible operation. Once the tracking codes are mapped to custom or user profile attributes, the response returns details for a mapped tracking code.",
         "tags": [
           "Tracking Codes"
@@ -16732,7 +16732,7 @@
           }
         },
         "summary": "Update a Tracking Code",
-        "operationId": "Update a Tracking Code",
+        "operationId": "updateATrackingCode",
         "description": "Updates details for a tracking code by an admin user.\n\n* The `siteUrl` is required. The operation updates a tracking code for the specified site. All of a user's available Webex sites can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API.\n\n* The `inputMode` of `hostProfileSelect` is only available for the host profile and sign-up pages and it doesn't apply to the meeting scheduler page or meeting start page. Therefore, `scheduleStartCodes` must be `null` or type of all services must be `notUsed` when the `inputMode` is `hostProfileSelect`.\n\n* Currently, the `hostProfileCode` of `required` is only allowed for a Site Admin managed site, and not allowed for a Control Hub managed site.\n\n* When the `hostProfileCode` is `adminSet`, only `adminSet`, `notUsed` and `notApplicable` are available for the types of `scheduleStartCodes`. When the `hostProfileCode` is not `adminSet`, only `optional`, `required`, `notUsed` and `notApplicable` are available for types of `scheduleStartCodes`.\n\n* If the type of the `All` service has a value other than `notApplicable`, and another service, e.g. `EventCenter`, is missing from the `scheduleStartCodes`, then the type of this missing `EventCenter` service shares the same type as the `All` service silently. If the type of `All` service has a value other than `notApplicable`, and another service, e.g. `EventCenter`, has a type, then the type specified should be the same as the `All` service.\n\n* If the `All` service is missing from the `scheduleStartCodes`, any of the other four services, e.g. `EventCenter`, has a default type of `notUsed` if that service is also missing from the `scheduleStartCodes`.\n\n* Admins can switch any Control Hub managed site from using classic tracking codes to mapped tracking codes in Control Hub, this is a one-time irreversible operation. Once the tracking codes are mapped to custom or user profile attributes, they cannot update tracking codes when the mapping process is in progress or the mapping process is completed.",
         "tags": [
           "Tracking Codes"
@@ -16846,7 +16846,7 @@
           }
         },
         "summary": "Delete a Tracking Code",
-        "operationId": "Delete a Tracking Code",
+        "operationId": "deleteATrackingCode",
         "description": "Deletes a tracking code by an admin user.\n\n* The `siteUrl` is required. The operation deletes a tracking code for the specified site. All of a user's available Webex sites can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API.\n\n* Admins can switch any Control Hub managed site from using classic tracking codes to mapped tracking codes in Control Hub, this is a one-time irreversible operation. Once the tracking codes are mapped to custom or user profile attributes, they cannot delete tracking codes when the mapping process is in progress or the mapping process is completed.",
         "tags": [
           "Tracking Codes"
@@ -16955,7 +16955,7 @@
           }
         },
         "summary": "Get User Tracking Codes",
-        "operationId": "Get User Tracking Codes",
+        "operationId": "getUserTrackingCodes",
         "description": "Lists user's tracking codes by an admin user.\n\n* At least one parameter, either `personId`, or `email` is required. `personId` must come before `email` if both are specified. Please note that `email` is specified in the request header.\n\n* If `siteUrl` is specified, the tracking codes of the specified site will be listed; otherwise, the tracking codes of a user's preferred site are listed. All available Webex sites and preferred sites of a user can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API. Please note that the user here is the admin user who invokes the API, not the user specified by `personId` or email.\n\n* Admins can switch any Control Hub managed site from using classic tracking codes to mapped tracking codes in Control Hub, this is a one-time irreversible operation. Once the tracking codes are mapped to custom or user profile attributes, the response returns the user's mapped tracking codes.\n\n#### Request Header\n\n* `email`: Email address for the user whose tracking codes are being retrieved. The admin users can specify the email of a user on a site they manage and the API returns details for the user's tracking codes. At least one parameter of `personId` or `email` is required.",
         "tags": [
           "Tracking Codes"
@@ -17104,7 +17104,7 @@
           }
         },
         "summary": "Update User Tracking Codes",
-        "operationId": "Update User Tracking Codes",
+        "operationId": "updateUserTrackingCodes",
         "description": "Updates tracking codes for a specified user by an admin user.\n\n* The `siteUrl` is required. The operation updates a user's tracking code on the specified site. All a user's available Webex sites can be retrieved by the [Get Site List](/docs/api/v1/meeting-preferences/get-site-list) API. Please note that the user here is the admin user who invokes the API, not the user specified by `personId` or `email`.\n\n* A name that is not found in the site-level tracking codes cannot be set for a user's tracking codes. All available site-level tracking codes for a site can be retrieved by the [List Tracking Codes](/docs/api/v1/tracking-codes/list-tracking-codes) API.\n\n* If the `inputMode` of a user's tracking code is `select` or `hostProfileSelect`, its value must be one of the site-level options of that tracking code. All available site-level tracking codes for a site can be retrieved by the [List Tracking Codes](/docs/api/v1/tracking-codes/list-tracking-codes) API.\n\n* Admins can switch any Control Hub managed site from using classic tracking codes to mapped tracking codes in Control Hub, this is a one-time irreversible operation. Once the tracking codes are mapped to custom or user profile attributes, they cannot update user's tracking codes when the mapping process is in progress or the mapping process is completed.",
         "tags": [
           "Tracking Codes"
@@ -17268,7 +17268,7 @@
           }
         },
         "summary": "List People",
-        "operationId": "List People",
+        "operationId": "listPeople",
         "description": "List people in your organization. For most users, either the `email` or `displayName` parameter is required. Admin users can omit these fields and list all users in their organization.\n\nResponse properties associated with a user's presence status, such as `status` or `lastActivity`, will only be returned for people within your organization or an organization you manage. Presence information will not be returned if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/). Calling /people frequently to poll `status` information for a large set of users will quickly lead to `429` errors and throttling of such requests and is therefore discouraged.\n\nAdmin users can include `Webex Calling` (BroadCloud) user details in the response by specifying `callingData` parameter as `true`. Admin users can list all users in a location. Admin users will receive an enriched payload with additional administrative fields like `licenses`,`roles`, `locations` etc. These fields are shown when accessing a user via GET /people/{id}, not when doing a GET /people?id=\n\nLookup by `email` is only supported for people within the same org or where a partner admin relationship is in place.\n\nLookup by `roles` is only supported for Admin users for the people within the same org.\n\nLong result sets will be split into [pages](/docs/basics#pagination).",
         "tags": [
           "People"
@@ -17480,7 +17480,7 @@
           }
         },
         "summary": "Create a Person",
-        "operationId": "Create a Person",
+        "operationId": "createAPerson",
         "description": "Create a new user account for a given organization. Only an admin can create a new user account.\n\nAt least one of the following body parameters is required to create a new user: `displayName`, `firstName`, `lastName`.\n\nCurrently, users may have only one email address associated with their account. The `emails` parameter is an array, which accepts multiple values to allow for future expansion, but currently only one email address will be used for the new user.\n\nAdmin users can include `Webex calling` (BroadCloud) user details in the response by specifying `callingData` parameter as true. It may happen that the POST request with calling data returns a 400 status, but the person was created still. One way to get into this state is if an invalid phone number is assigned to a user. The people API aggregates calls to several other microservices, and one may have failed. A best practice is to check if the user exists before retrying. This can be done with the user's email address and a GET /people.\n\nWhen doing attendee management, append `#attendee` to the `siteUrl` parameter (e.g. `mysite.webex.com#attendee`) to make the new user an attendee for a site.\n\n**NOTES**:\n\n* For creating a `Webex Calling` user, you must provide `phoneNumbers` or `extension`, `locationId`, and `licenses` string in the same request.\n\n* `SipAddresses` are asigned via an asynchronous process. This means that the POST response may not show the SIPAddresses immediately. Instead you can verify them with a separate GET to /people, after they were newly configured.\n\n* When assigning multiple licenses in a single request, the system will assign all valid and available licenses. If any requested licenses cannot be assigned, the operation will continue with the remaining licenses. As a result, it is possible that not all requested licenses are assigned to the user.",
         "tags": [
           "People"
@@ -17832,7 +17832,7 @@
           }
         },
         "summary": "Get Person Details",
-        "operationId": "Get Person Details",
+        "operationId": "getPersonDetails",
         "description": "Shows details for a person, by ID.\n\nResponse properties associated with a user's presence status, such as `status` or `lastActivity`, will only be displayed for people within your organization or an organization you manage. Presence information will not be shown if the authenticated user has [disabled status sharing](https://help.webex.com/nkzs6wl/).\n\nAdmin users can include `Webex Calling` (BroadCloud) user details in the response by specifying `callingData` parameter as `true`.\n\nSpecify the person ID in the `personId` parameter in the URI.",
         "tags": [
           "People"
@@ -17985,7 +17985,7 @@
           }
         },
         "summary": "Update a Person",
-        "operationId": "Update a Person",
+        "operationId": "updateAPerson",
         "description": "Update details for a person, by ID.\n\nSpecify the person ID in the `personId` parameter in the URI. Only an admin can update a person details.\n\nInclude all details for the person. This action expects all user details to be present in the request. A common approach is to first [GET the person's details](/docs/api/v1/people/get-person-details), make changes, then PUT both the changed and unchanged values.\n\nAdmin users can include `Webex Calling` (BroadCloud) user details in the response by specifying `callingData` parameter as true.\n\nWhen doing attendee management, to update a user from host role to an attendee for a site append `#attendee` to the respective `siteUrl` and remove the meeting host license for this site from the license array.\nTo update a person from an attendee role to a host for a site, add the meeting license for this site in the meeting array, and remove that site from the `siteurl` parameter.\n\nTo remove the attendee privilege for a user on a meeting site, remove the `sitename#attendee` from the `siteUrl`s array. The `showAllTypes` parameter must be set to `true`.\n\n**NOTE**:\n\n* When assigning a Webex Calling license, either a telephone number or extension must already be assigned to the person or provided in the request payload.\n\n* When `callingData` is set to `true`, a Webex Calling license must be included in the `licenses` array.\n\n* The `locationId` can only be set when assigning a calling license to a user. It cannot be changed if a user is already an existing calling user.\n\n* The `extension` field should be used to update the Webex Calling extension for a person. The extension value should not include the location routing prefix. The `work_extension` type in the `phoneNumbers` object as seen in the response payload of [List People](/docs/api/v1/people/list-people) or [Get Person Details](/docs/api/v1/people/get-person-details), cannot be used to set the Webex Calling extension for a person.\n\n* When updating a user with multiple email addresses using a PUT request, ensure that the primary email address is listed first in the array. Note that the order of email addresses returned by a GET request is not guaranteed..\n\n* The People API is a combination of several microservices, each responsible for specific attributes of a person. As a result, a PUT request that returns an error response code may still have altered some values of the person's data. Therefore, it is recommended to perform a GET request after encountering an error to verify the current state of the resource. \n\n* Some licenses are implicitly assigned by the system and cannot be admin controlled. They are necessary for the baseline function of the Webex system. If you get an error about implicitly assigned licensed that cannot be removed, please ensure you have the corresponding license in your PUT request.\n\n* When assigning multiple licenses in a single request, the system will assign all valid and available licenses. If any requested licenses cannot be assigned, the operation will continue with the remaining licenses. As a result, it is possible that not all requested licenses are assigned to the user.",
         "tags": [
           "People"
@@ -18300,7 +18300,7 @@
           }
         },
         "summary": "Delete a Person",
-        "operationId": "Delete a Person",
+        "operationId": "deleteAPerson",
         "description": "Remove a person from the system.\n\n**Required Administrator Roles:**\n\nThe following administrators have permission to use this API:\n\n**Customer Organization:**\n- Full administrator\n- User administrator\n\n**Partner/External Access:**\n- External full administrator\n\n**Note:** External read-only administrators, provisioning administrators, and device administrators cannot delete users.\n\nSpecify the person ID in the `personId` parameter in the URI.",
         "tags": [
           "People"
@@ -18440,7 +18440,7 @@
           }
         },
         "summary": "Get My Own Details",
-        "operationId": "Get My Own Details",
+        "operationId": "getMyOwnDetails",
         "description": "Get profile details for the authenticated user. This is the same as GET `/people/{personId}` using the Person ID associated with your Auth token.\n\nAdmin users can include `Webex Calling` (BroadCloud) user details in the response by specifying `callingData` parameter as true.",
         "tags": [
           "People"
@@ -18566,7 +18566,7 @@
           }
         },
         "summary": "List of Recording Audit Report Summaries",
-        "operationId": "List of Recording Audit Report Summaries",
+        "operationId": "listOfRecordingAuditReportSummaries",
         "description": "Lists of recording audit report summaries. You can specify a date range and the maximum number of recording audit report summaries to return.\n\nOnly recording audit report summaries of meetings hosted by or shared with the authenticated user will be listed.\n\nThe list returned is sorted in descending order by the date and time that the recordings were created.\n\nLong result sets are split into [pages](/docs/basics#pagination).\n\n* If `siteUrl` is specified, the recording audit report summaries of the specified site will be listed; otherwise, recording audit report summaries of the user's preferred site will be listed. All available Webex sites and the preferred site of the user can be retrieved by the `Get Site List` API.\n\n#### Request Header\n\n* `timezone`: [Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default is UTC if `timezone` is not defined.",
         "tags": [
           "Recording Report"
@@ -18739,7 +18739,7 @@
           }
         },
         "summary": "Get Recording Audit Report Details",
-        "operationId": "Get Recording Audit Report Details",
+        "operationId": "getRecordingAuditReportDetails",
         "description": "Retrieves details for a recording audit report with a specified recording ID.\n\nOnly recording audit report details of meetings hosted by or shared with the authenticated user may be retrieved.\n\n#### Request Header\n\n* `timezone`: [Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default is UTC if `timezone` is not defined.",
         "tags": [
           "Recording Report"
@@ -18890,7 +18890,7 @@
           }
         },
         "summary": "List Meeting Archive Summaries",
-        "operationId": "List Meeting Archive Summaries",
+        "operationId": "listMeetingArchiveSummaries",
         "description": "Lists of meeting archive summaries. You can specify a date range and the maximum number of meeting archive summaries to return.\n\nMeeting archive summaries are only available to full administrators, not even the meeting host.\n\nThe list returned is sorted in descending order by the date and time that the archives were created.\n\nLong result sets are split into [pages](/docs/basics#pagination).\n\n* If `siteUrl` is specified, the meeting archive summaries of the specified site will be listed; otherwise, meeting archive summaries of the user's preferred site will be listed. All available Webex sites and the preferred site of the user can be retrieved by the `Get Site List` API.\n\n#### Request Header\n\n* `timezone`: [Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default is UTC if `timezone` is not defined.",
         "tags": [
           "Recording Report"
@@ -19175,7 +19175,7 @@
           }
         },
         "summary": "Get Meeting Archive Details",
-        "operationId": "Get Meeting Archive Details",
+        "operationId": "getMeetingArchiveDetails",
         "description": "Retrieves details for a meeting archive report with a specified archive ID, which contains recording metadata.\n\nMeeting archive details are only available to full administrators, not even the meeting host.\n\n#### Request Header\n\n* `timezone`: [Time zone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List) in conformance with the [IANA time zone database](https://www.iana.org/time-zones). The default is UTC if `timezone` is not defined.",
         "tags": [
           "Recording Report"
@@ -21640,7 +21640,7 @@
           }
         },
         "summary": "Update Meeting Common Settings Configuration",
-        "operationId": "Update Meeting Common Settings Configuration",
+        "operationId": "updateMeetingCommonSettingsConfiguration",
         "description": "Site administrators can use this API to update the option of features, options and privileges that are configured for their WebEx service sites.",
         "tags": [
           "Site"
@@ -22892,7 +22892,7 @@
           }
         },
         "summary": "List Clusters Availability",
-        "operationId": "List Clusters Availability",
+        "operationId": "listClustersAvailability",
         "description": "Returns the availability details for all Video Mesh clusters in an organization.",
         "tags": [
           "Video Mesh"
@@ -23025,7 +23025,7 @@
           }
         },
         "summary": "Get Cluster Availability",
-        "operationId": "Get Cluster Availability",
+        "operationId": "getClusterAvailability",
         "description": "Returns the availability details of a single Video Mesh cluster in an organization.",
         "tags": [
           "Video Mesh"
@@ -23162,7 +23162,7 @@
           }
         },
         "summary": "List Node Availability",
-        "operationId": "List Node Availability",
+        "operationId": "listNodeAvailability",
         "description": "Returns the availability details of all nodes in a Video Mesh cluster.",
         "tags": [
           "Video Mesh"
@@ -23293,7 +23293,7 @@
           }
         },
         "summary": "Get Node Availability",
-        "operationId": "Get Node Availability",
+        "operationId": "getNodeAvailability",
         "description": "Returns the availability details of a single node in a Video Mesh cluster.",
         "tags": [
           "Video Mesh"
@@ -23596,7 +23596,7 @@
           }
         },
         "summary": "List Media Health Monitoring Tool Test results V2",
-        "operationId": "List Media Health Monitoring Tool Test results V2",
+        "operationId": "listMediaHealthMonitoringToolTestResultsV2",
         "description": "Returns the test results of the Media Health Monitoring Tool tests for an organization.\n\n<br/>\n\nChanges in V2:\n\n<br/>\n\nOn-demand test results can be obtained along with the periodic tests that are executed on Video Mesh nodes.",
         "tags": [
           "Video Mesh"
@@ -23818,7 +23818,7 @@
           }
         },
         "summary": "Get Media Health Monitoring Tool Test results for clusters V2",
-        "operationId": "Get Media Health Monitoring Tool Test results for clusters V2",
+        "operationId": "getMediaHealthMonitoringToolTestResultsForClustersV2",
         "description": "Returns the test results of the Media Health Monitoring Tool tests for a single Video Mesh cluster.\n\n<br/>\n\nChanges in V2:\n\n<br/>\n\nOn-demand test results can be obtained along with the periodic tests that are executed on Video Mesh nodes.",
         "tags": [
           "Video Mesh"
@@ -23995,7 +23995,7 @@
           }
         },
         "summary": "Get Media Health Monitoring Tool Test results for node V2",
-        "operationId": "Get Media Health Monitoring Tool Test results for node V2",
+        "operationId": "getMediaHealthMonitoringToolTestResultsForNodeV2",
         "description": "Returns the test results of the Media Health Monitoring Tool tests for a single Video Mesh node.\n\n<br/>\n\nChanges in V2:\n\n<br/>\n\nOn-demand test results can be obtained along with the periodic tests that are executed on Video Mesh nodes.",
         "tags": [
           "Video Mesh"
@@ -24147,7 +24147,7 @@
           }
         },
         "summary": "List Overflow to Cloud details",
-        "operationId": "List Overflow to Cloud details",
+        "operationId": "listOverflowToCloudDetails",
         "description": "Returns details of overflows to the cloud in an organization.",
         "tags": [
           "Video Mesh"
@@ -24318,7 +24318,7 @@
           }
         },
         "summary": "List Cluster Redirect details",
-        "operationId": "List Cluster Redirect details",
+        "operationId": "listClusterRedirectDetails",
         "description": "Returns the redirect details of all Video Mesh clusters in an organization.",
         "tags": [
           "Video Mesh"
@@ -24467,7 +24467,7 @@
           }
         },
         "summary": "Get Cluster Redirect details",
-        "operationId": "Get Cluster Redirect details",
+        "operationId": "getClusterRedirectDetails",
         "description": "Returns details of cluster redirects for a single Video Mesh cluster.",
         "tags": [
           "Video Mesh"
@@ -24629,7 +24629,7 @@
           }
         },
         "summary": "List Clusters Utilization",
-        "operationId": "List Clusters Utilization",
+        "operationId": "listClustersUtilization",
         "description": "Returns the utilization details of all Video Mesh clusters in an organization.",
         "tags": [
           "Video Mesh"
@@ -24771,7 +24771,7 @@
           }
         },
         "summary": "Get Cluster Utilization details",
-        "operationId": "Get Cluster Utilization details",
+        "operationId": "getClusterUtilizationDetails",
         "description": "Returns the utilization details for a single Video Mesh cluster.",
         "tags": [
           "Video Mesh"
@@ -25170,7 +25170,7 @@
           }
         },
         "summary": "List Reachability Test results V2",
-        "operationId": "List Reachability Test results V2",
+        "operationId": "listReachabilityTestResultsV2",
         "description": "Returns the test results of the Reachability tests for an organization.\n\n<br/>\n\nChanges in V2:\n\n<br/>\n\n1. On-demand test results can be obtained along with the periodic tests that are executed on Video Mesh nodes.\n\n<br/>\n\n2. You can now view the destination IP address of the destination cluster in the JSON response.",
         "tags": [
           "Video Mesh"
@@ -25440,7 +25440,7 @@
           }
         },
         "summary": "Get Reachability Test results for cluster V2",
-        "operationId": "Get Reachability Test results for cluster V2",
+        "operationId": "getReachabilityTestResultsForClusterV2",
         "description": "Returns the test results of the Reachability tests for a single Video Mesh cluster.\n\n<br/>\n\nChanges in V2:\n\n<br/>\n\n1. On-demand test results can be obtained along with the periodic tests that are executed on Video Mesh nodes.\n\n<br/>\n\n2. You can now view the destination IP address of the destination cluster in the JSON response.",
         "tags": [
           "Video Mesh"
@@ -25641,7 +25641,7 @@
           }
         },
         "summary": "Get Reachability Test results for node V2",
-        "operationId": "Get Reachability Test results for node V2",
+        "operationId": "getReachabilityTestResultsForNodeV2",
         "description": "Returns the test results of the Reachability tests for a single Video Mesh node.\n\n<br/>\n\nChanges in V2:\n\n<br/>\n\n1. On-demand test results can be obtained along with the periodic tests that are executed on Video Mesh nodes.\n\n<br/>\n\n2. You can now view the destination IP address of the destination cluster in the JSON response.",
         "tags": [
           "Video Mesh"
@@ -25837,7 +25837,7 @@
           }
         },
         "summary": "List Cluster Details",
-        "operationId": "List Cluster Details",
+        "operationId": "listClusterDetails",
         "description": "Returns the cluster details of all Video Mesh clusters in an organization.",
         "tags": [
           "Video Mesh"
@@ -25962,7 +25962,7 @@
           }
         },
         "summary": "Get Cluster Details",
-        "operationId": "Get Cluster Details",
+        "operationId": "getClusterDetails",
         "description": "Returns the cluster details for a single Video Mesh cluster.",
         "tags": [
           "Video Mesh"
@@ -26057,7 +26057,7 @@
           }
         },
         "summary": "Trigger on-demand test for cluster",
-        "operationId": "Trigger on-demand test for cluster",
+        "operationId": "triggerOnDemandTestForCluster",
         "description": "Triggers an on-demand test for a cluster.\nThe test is run on a maximum of 10 nodes present in the cluster, chosen at random, or based on input from the user.",
         "tags": [
           "Video Mesh"
@@ -26085,7 +26085,7 @@
                 ]
               },
               "schema": {
-                "$ref": "#/components/schemas/TriggerOn-DemandBodyCluster"
+                "$ref": "#/components/schemas/TriggerOnDemandBodyCluster"
               }
             }
           }
@@ -26164,7 +26164,7 @@
           }
         },
         "summary": "Trigger on-demand test for node",
-        "operationId": "Trigger on-demand test for node",
+        "operationId": "triggerOnDemandTestForNode",
         "description": "Triggers an on-demand test for a node.",
         "tags": [
           "Video Mesh"
@@ -26271,7 +26271,7 @@
           }
         },
         "summary": "Get Triggered test status",
-        "operationId": "Get Triggered test status",
+        "operationId": "getTriggeredTestStatus",
         "description": "Returns the status of the test triggered using the Trigger on-demand test API.",
         "tags": [
           "Video Mesh"
@@ -26394,7 +26394,7 @@
           }
         },
         "summary": "Get Triggered test results",
-        "operationId": "Get Triggered test results",
+        "operationId": "getTriggeredTestResults",
         "description": "Returns the results of the test triggered using the command ID.<br/>\n<b>NOTE:</b> The response format depends on the type of test triggered and it is the same as that of [NetworkTest API](/docs/api/v1/video-mesh/list-network-test-results), [MediaHealthMonitorTest API](/docs/api/v1/video-mesh/list-media-health-monitoring-tool-test-results-v2), and [ReachabilityTest API](/docs/api/v1/video-mesh/list-reachability-test-results-v2) respectively.",
         "tags": [
           "Video Mesh"
@@ -26752,7 +26752,7 @@
           }
         },
         "summary": "List Network Test results",
-        "operationId": "List Network Test results",
+        "operationId": "listNetworkTestResults",
         "description": "Returns the test results of the Network tests triggered for an organization. The tests listed below are run as a part of the Network Test execution on the node.\n\n<b>Bandwidth Test</b> - Tests the bandwidth parameters of the Video Mesh node's network. The test is run between the Video Mesh node and cloud services.<br/>\n<b>DNS Resolution Test</b> - Tests the resolution of IP addresses related to cloud services, against the DNS servers configured on the Video Mesh node's network.<br/>\n<b>HTTPS Connectivity Test</b> - Tests whether the Video Mesh node is able to connect to cloud services via HTTPS protocol.<br/>\n<b>Websocket Connectivity Test</b> - Tests whether the Video Mesh node is able to connect to Webex cloud services via Websocket.<br/>",
         "tags": [
           "Video Mesh"
@@ -26969,7 +26969,7 @@
           }
         },
         "summary": "Get Network Test results for cluster",
-        "operationId": "Get Network Test results for cluster",
+        "operationId": "getNetworkTestResultsForCluster",
         "description": "Returns the test results of the Network tests triggered for a single Video Mesh cluster. The tests listed below are run as a part of the Network Test execution on the node.\n\n<b>Bandwidth Test</b> - Tests the bandwidth parameters of the Video Mesh node's network. The test is run between the Video Mesh node and cloud services.<br/>\n<b>DNS Resolution Test</b> - Tests the resolution of IP addresses related to cloud services, against the DNS servers configured on the Video Mesh node's network.<br/>\n<b>HTTPS Connectivity Test</b> - Tests whether the Video Mesh node is able to connect to cloud services via HTTPS protocol.<br/>\n<b>Websocket Connectivity Test</b> - Tests whether the Video Mesh node is able to connect to Webex cloud services via Websocket.<br/>",
         "tags": [
           "Video Mesh"
@@ -27186,7 +27186,7 @@
           }
         },
         "summary": "Get Network Test results for node",
-        "operationId": "Get Network Test results for node",
+        "operationId": "getNetworkTestResultsForNode",
         "description": "Returns the test results of the Network tests triggered for a single Video Mesh node. The tests listed below are run as a part of the Network Test execution on the node.\n\n<b>Bandwidth Test</b> - Tests the bandwidth parameters of the Video Mesh node's network. The test is run between the Video Mesh node and cloud services.<br/>\n<b>DNS Resolution Test</b> - Tests the resolution of IP addresses related to cloud services, against the DNS servers configured on the Video Mesh node's network.<br/>\n<b>HTTPS Connectivity Test</b> - Tests whether the Video Mesh node is able to connect to cloud services via HTTPS protocol.<br/>\n<b>Websocket Connectivity Test</b> - Tests whether the Video Mesh node is able to connect to Webex cloud services via Websocket.<br/>",
         "tags": [
           "Video Mesh"
@@ -27372,7 +27372,7 @@
           }
         },
         "summary": "List Cluster Client Type Distribution details",
-        "operationId": "List Cluster Client Type Distribution details",
+        "operationId": "listClusterClientTypeDistributionDetails",
         "description": "Returns the client type distribution details for all Video Mesh clusters in an organization.",
         "tags": [
           "Video Mesh"
@@ -27531,7 +27531,7 @@
           }
         },
         "summary": "Get Cluster Client Type Distribution details",
-        "operationId": "Get Cluster Client Type Distribution details",
+        "operationId": "getClusterClientTypeDistributionDetails",
         "description": "Returns the client type distribution details for a single Video Mesh cluster.",
         "tags": [
           "Video Mesh"
@@ -27666,7 +27666,7 @@
           }
         },
         "summary": "List Event Threshold Configuration",
-        "operationId": "List Event Threshold Configuration",
+        "operationId": "listEventThresholdConfiguration",
         "description": "Returns the event threshold configurations for `orgId` or `clusterId`, with optional filters `eventName` and `eventScope`.",
         "tags": [
           "Video Mesh"
@@ -27796,7 +27796,7 @@
           }
         },
         "summary": "Update Event Threshold Configuration",
-        "operationId": "Update Event Threshold Configuration",
+        "operationId": "updateEventThresholdConfiguration",
         "description": "Updates an existing event threshold configuration for given Event Threshold IDs.",
         "tags": [
           "Video Mesh"
@@ -27934,7 +27934,7 @@
           }
         },
         "summary": "Get Event Threshold Configuration",
-        "operationId": "Get Event Threshold Configuration",
+        "operationId": "getEventThresholdConfiguration",
         "description": "Returns the event threshold configurations for `eventThresholdId`.",
         "tags": [
           "Video Mesh"
@@ -28032,7 +28032,7 @@
           }
         },
         "summary": "Reset Event Threshold Configuration",
-        "operationId": "Reset Event Threshold Configuration",
+        "operationId": "resetEventThresholdConfiguration",
         "description": "Resets the existing event threshold configuration for given Event Threshold IDs to default value. To stop receiving webhook events, use the [Webhooks API](docs/api/v1/webhooks) to delete the webhook in question.",
         "tags": [
           "Video Mesh"
@@ -28148,7 +28148,7 @@
           }
         },
         "summary": "List Webhooks",
-        "operationId": "List Webhooks",
+        "operationId": "listWebhooks",
         "description": "List all of your webhooks.",
         "tags": [
           "Webhooks"
@@ -28158,7 +28158,7 @@
             "name": "max",
             "in": "query",
             "description": "Limit the maximum number of webhooks in the response.",
-            "example": "100",
+            "example": 100,
             "schema": {
               "type": "number",
               "default": 100
@@ -28247,7 +28247,7 @@
           }
         },
         "summary": "Create a Webhook",
-        "operationId": "Create a Webhook",
+        "operationId": "createAWebhook",
         "description": "Creates a webhook.\n\nTo learn more about how to create and use webhooks, see The [Webhooks Guide](/docs/api/guides/webhooks).",
         "tags": [
           "Webhooks"
@@ -28418,7 +28418,7 @@
           }
         },
         "summary": "Get Webhook Details",
-        "operationId": "Get Webhook Details",
+        "operationId": "getWebhookDetails",
         "description": "Shows details for a webhook, by ID.\n\nSpecify the webhook ID in the `webhookId` parameter in the URI.",
         "tags": [
           "Webhooks"
@@ -28508,7 +28508,7 @@
           }
         },
         "summary": "Update a Webhook",
-        "operationId": "Update a Webhook",
+        "operationId": "updateAWebhook",
         "description": "Updates a webhook, by ID. You cannot use this call to deactivate a webhook, only to activate a webhook that was auto deactivated.\nThe fields that can be updated are `name`, `targetURL`, `secret` and `status`. All other fields, if supplied, are ignored.\n\nSpecify the webhook ID in the `webhookId` parameter in the URI.",
         "tags": [
           "Webhooks"
@@ -28629,7 +28629,7 @@
           }
         },
         "summary": "Delete a Webhook",
-        "operationId": "Delete a Webhook",
+        "operationId": "deleteAWebhook",
         "description": "Deletes a webhook, by ID.\n\nSpecify the webhook ID in the `webhookId` parameter in the URI.",
         "tags": [
           "Webhooks"
@@ -28664,7 +28664,11 @@
             "description": "Indicates whether the ACD object is enabled."
           },
           "displayCallqueueAgentSoftkeys": {
-            "$ref": "#/components/schemas/DisplayCallqueueAgentSoftkeysObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayCallqueueAgentSoftkeysObject"
+              }
+            ],
             "description": "Indicates the call queue agent soft key value of an ACD object."
           }
         }
@@ -28682,7 +28686,11 @@
             "description": "Indicates whether the ACD object is enabled."
           },
           "displayCallqueueAgentSoftkeys": {
-            "$ref": "#/components/schemas/DisplayCallqueueAgentSoftkeysObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayCallqueueAgentSoftkeysObject"
+              }
+            ],
             "description": "Indicates the call queue agent soft key value of an ACD object."
           }
         }
@@ -28709,7 +28717,11 @@
             "description": "Indicates if all the devices within this location will be customized with new requested customizations(if set to `true`) or will be overridden with the one at organization level (if set to `false` or any other value). This field has no effect when the job is being triggered at organization level."
           },
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationObject"
+              }
+            ],
             "description": "Indicates the settings for ATA devices, DECT devices and MPP devices."
           }
         }
@@ -28741,7 +28753,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of an Audio Codec Priority Object."
           },
           "primary": {
@@ -28771,7 +28787,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of an Audio Codec Priority Object."
           },
           "primary": {
@@ -28984,15 +29004,27 @@
         "type": "object",
         "properties": {
           "ata": {
-            "$ref": "#/components/schemas/ataObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaObject"
+              }
+            ],
             "description": "Applicable device settings for an ATA device."
           },
           "mpp": {
-            "$ref": "#/components/schemas/mppObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppObject"
+              }
+            ],
             "description": "Applicable device settings for an MPP device."
           },
           "wifi": {
-            "$ref": "#/components/schemas/wifiObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiObject"
+              }
+            ],
             "description": "Applicable device settings for a WiFi device."
           }
         }
@@ -29001,15 +29033,27 @@
         "type": "object",
         "properties": {
           "ata": {
-            "$ref": "#/components/schemas/ataObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaObjectDevice"
+              }
+            ],
             "description": "Applicable device settings for an ATA device."
           },
           "mpp": {
-            "$ref": "#/components/schemas/mppObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppObjectDevice"
+              }
+            ],
             "description": "Applicable device settings for an MPP device."
           },
           "wifi": {
-            "$ref": "#/components/schemas/wifiObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiObjectDevice"
+              }
+            ],
             "description": "Applicable device settings for a WiFi device."
           }
         }
@@ -29018,19 +29062,35 @@
         "type": "object",
         "properties": {
           "ata": {
-            "$ref": "#/components/schemas/ataObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaObject"
+              }
+            ],
             "description": "Settings that are applicable to ATA devices."
           },
           "dect": {
-            "$ref": "#/components/schemas/dectObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DectObject"
+              }
+            ],
             "description": "Settings that are applicable to DECT devices."
           },
           "mpp": {
-            "$ref": "#/components/schemas/mppObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppObject"
+              }
+            ],
             "description": "Settings that are applicable to MPP devices."
           },
           "wifi": {
-            "$ref": "#/components/schemas/wifiObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiObject"
+              }
+            ],
             "description": "Settings that are applicable to WiFi."
           }
         }
@@ -29045,7 +29105,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of an Audio Codec Priority Object."
           },
           "primary": {
@@ -29144,7 +29208,11 @@
         ],
         "properties": {
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationDeviceLevelObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationDeviceLevelObject"
+              }
+            ],
             "description": "Indicates the customization object of the device settings."
           },
           "customEnabled": {
@@ -29180,7 +29248,11 @@
         ],
         "properties": {
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationDeviceLevelObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationDeviceLevelObjectDevice"
+              }
+            ],
             "description": "Indicates the customization object of the device settings."
           },
           "customEnabled": {
@@ -29283,7 +29355,11 @@
         ],
         "properties": {
           "hoteling": {
-            "$ref": "#/components/schemas/HotelingRequest",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HotelingRequest"
+              }
+            ],
             "description": "Modify person Device Hoteling Setting."
           }
         }
@@ -29464,7 +29540,11 @@
             "description": "Sets the values needed to enable use of the LDAP service on the phone."
           },
           "commSecurityType": {
-            "$ref": "#/components/schemas/CommSecurityType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommSecurityType"
+              }
+            ],
             "description": "Indicates the selection of the protocol for LDAP service on the phone."
           },
           "bindDn": {
@@ -29515,7 +29595,11 @@
             "description": "Sets the values needed to enable use of the LDAP service on the phone."
           },
           "commSecurityType": {
-            "$ref": "#/components/schemas/CommSecurityType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CommSecurityType"
+              }
+            ],
             "description": "Indicates the selection of the protocol for LDAP service on the phone."
           },
           "bindDn": {
@@ -29604,7 +29688,11 @@
         ],
         "properties": {
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationObject"
+              }
+            ],
             "description": "Customization object of the device settings."
           },
           "updateInProgress": {
@@ -29745,7 +29833,11 @@
             "description": "T.38 Fax Compression setting and is available only for ATA Devices. Choose T.38 fax compression if the device requires this option. This will override user level compression options."
           },
           "lineType": {
-            "$ref": "#/components/schemas/LineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineType"
+              }
+            ],
             "description": "Line type is used to differentiate Primary and SCA, at which endpoint it is assigned."
           },
           "lineWeight": {
@@ -29789,11 +29881,19 @@
             "description": "SIP username used in SIP signaling, for example, in registration."
           },
           "memberType": {
-            "$ref": "#/components/schemas/MemberType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberType"
+              }
+            ],
             "description": "Indicates if the member is of type `PEOPLE` or `PLACE`."
           },
           "location": {
-            "$ref": "#/components/schemas/location",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              }
+            ],
             "description": "Location object having a unique identifier for the location and its name."
           }
         }
@@ -29848,7 +29948,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of the Audio Codec Priority Object for an MPP object."
           },
           "primary": {
@@ -30075,7 +30179,11 @@
         ],
         "properties": {
           "customizations": {
-            "$ref": "#/components/schemas/CustomizationDeviceLevelObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CustomizationDeviceLevelObjectDevice"
+              }
+            ],
             "description": "Indicates the customization object of the device settings."
           },
           "customEnabled": {
@@ -30118,7 +30226,11 @@
             "description": "Whether the user is the owner of the device or not, and points to a primary Line/Port of device."
           },
           "lineType": {
-            "$ref": "#/components/schemas/LineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineType"
+              }
+            ],
             "description": "Line type is used to differentiate Primary and SCA, at which endpoint it is assigned."
           },
           "lineWeight": {
@@ -30213,7 +30325,11 @@
             "description": "T.38 Fax Compression setting and available only for ATA Devices. Choose T.38 fax compression if the device requires this option. this will override user level compression options."
           },
           "lineType": {
-            "$ref": "#/components/schemas/LineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineType"
+              }
+            ],
             "description": "Line type is used to differentiate Primary and SCA, at which endpoint it is assigned."
           },
           "allowCallDeclineEnabled": {
@@ -30222,11 +30338,19 @@
             "description": "Set how a person's device behaves when a call is declined. When set to true, a call decline request is extended to all the endpoints on the device. When set to false, a call decline request only declines the current endpoint."
           },
           "memberType": {
-            "$ref": "#/components/schemas/MemberType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberType"
+              }
+            ],
             "description": "Indicates if member is of type `PEOPLE` or `PLACE`."
           },
           "location": {
-            "$ref": "#/components/schemas/location",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              }
+            ],
             "description": "Location object having a unique identifier for the location and its name."
           }
         }
@@ -30296,19 +30420,35 @@
         ],
         "properties": {
           "softKeyMenu": {
-            "$ref": "#/components/schemas/SoftKeyMenuObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SoftKeyMenuObject"
+              }
+            ],
             "description": "Customize SoftKey menu settings."
           },
           "psk": {
-            "$ref": "#/components/schemas/PskObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PskObject"
+              }
+            ],
             "description": "Customize PSK."
           },
           "softKeyMenuDefaults": {
-            "$ref": "#/components/schemas/SoftKeyMenuObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SoftKeyMenuObject"
+              }
+            ],
             "description": "Default SoftKey menu settings."
           },
           "pskDefaults": {
-            "$ref": "#/components/schemas/PskObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PskObject"
+              }
+            ],
             "description": "Default PSK."
           }
         }
@@ -30489,7 +30629,11 @@
             "description": "Unique location identifier for which the numbers have been moved."
           },
           "counts": {
-            "$ref": "#/components/schemas/CountObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountObject"
+              }
+            ],
             "description": "Job statistics."
           }
         }
@@ -30643,7 +30787,11 @@
         ],
         "properties": {
           "selection": {
-            "$ref": "#/components/schemas/SelectionType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SelectionType"
+              }
+            ],
             "description": "Indicates the selection of the Audio Codec Priority Object for an WiFi object."
           },
           "primary": {
@@ -30708,7 +30856,11 @@
             "description": "Indicates whether the wifi network is enabled."
           },
           "authenticationMethod": {
-            "$ref": "#/components/schemas/AuthenticationMethodObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodObject"
+              }
+            ],
             "description": "Authentication method of wifi network."
           },
           "ssidName": {
@@ -30737,7 +30889,11 @@
             "description": "Indicates whether the wifi network is enabled."
           },
           "authenticationMethod": {
-            "$ref": "#/components/schemas/AuthenticationMethodObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AuthenticationMethodObject"
+              }
+            ],
             "description": "Authentication method of the WiFi network."
           },
           "ssidName": {
@@ -30752,7 +30908,7 @@
           }
         }
       },
-      "ataObject": {
+      "AtaObject": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -30768,15 +30924,27 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/AudioCodecPriorityObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AudioCodecPriorityObject"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "ataDtmfMode": {
-            "$ref": "#/components/schemas/AtaDtmfModeObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaDtmfModeObject"
+              }
+            ],
             "description": "DTMF Detection Tx Mode selection for Cisco ATA devices."
           },
           "ataDtmfMethod": {
-            "$ref": "#/components/schemas/AtaDtmfMethodObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaDtmfMethodObject"
+              }
+            ],
             "description": "Method for transmitting DTMF signals to the far end."
           },
           "cdpEnabled": {
@@ -30795,7 +30963,11 @@
             "description": "Enable/disable quality of service tagging of packets from the local device to the Webex Calling platform."
           },
           "vlan": {
-            "$ref": "#/components/schemas/VlanObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VlanObject"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "webAccessEnabled": {
@@ -30809,12 +30981,16 @@
             "description": "Enable/disable the automatic nightly configuration resync of the MPP device."
           },
           "snmp": {
-            "$ref": "#/components/schemas/SnmpObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SnmpObject"
+              }
+            ],
             "description": "Specify values needed to enable use of the SNMP service from the phone."
           }
         }
       },
-      "ataObjectDevice": {
+      "AtaObjectDevice": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -30830,15 +31006,27 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/AudioCodecPriorityObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AudioCodecPriorityObjectDevice"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "ataDtmfMode": {
-            "$ref": "#/components/schemas/AtaDtmfModeObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaDtmfModeObject"
+              }
+            ],
             "description": "DTMF Detection Tx Mode selection for Cisco ATA devices."
           },
           "ataDtmfMethod": {
-            "$ref": "#/components/schemas/AtaDtmfMethodObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AtaDtmfMethodObject"
+              }
+            ],
             "description": "Method for transmitting DTMF signals to the far end."
           },
           "cdpEnabled": {
@@ -30857,7 +31045,11 @@
             "description": "Enable/disable quality of service tagging of packets from the local device to the Webex Calling platform."
           },
           "vlan": {
-            "$ref": "#/components/schemas/VlanObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VlanObjectDevice"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "webAccessEnabled": {
@@ -30871,12 +31063,16 @@
             "description": "Enable/disable the automatic nightly configuration resync of the MPP device."
           },
           "snmp": {
-            "$ref": "#/components/schemas/SnmpObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SnmpObject"
+              }
+            ],
             "description": "Specify values needed to enable use of the SNMP service from the phone."
           }
         }
       },
-      "dectObject": {
+      "DectObject": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -30891,7 +31087,11 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/DectAudioCodecPriorityObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DectAudioCodecPriorityObject"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "cdpEnabled": {
@@ -30918,7 +31118,11 @@
             "description": "Enable/disable quality of service tagging of packets from the local device to the Webex Calling platform."
           },
           "vlan": {
-            "$ref": "#/components/schemas/DectVlanObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DectVlanObject"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "webAccessEnabled": {
@@ -30933,7 +31137,7 @@
           }
         }
       },
-      "deviceList": {
+      "DeviceList": {
         "type": "object",
         "required": [
           "devices",
@@ -30944,7 +31148,7 @@
           "devices": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/devices"
+              "$ref": "#/components/schemas/Devices"
             },
             "description": "Array of devices available to person."
           },
@@ -30958,7 +31162,7 @@
           }
         }
       },
-      "deviceOwner": {
+      "DeviceOwner": {
         "type": "object",
         "required": [
           "id",
@@ -30970,7 +31174,11 @@
             "description": "Unique identifier of a person or a workspace."
           },
           "type": {
-            "$ref": "#/components/schemas/MemberType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberType"
+              }
+            ],
             "description": "Enumeration that indicates if the member is of type `PEOPLE` or `PLACE`."
           },
           "firstName": {
@@ -30983,7 +31191,7 @@
           }
         }
       },
-      "devices": {
+      "Devices": {
         "type": "object",
         "required": [
           "id",
@@ -31011,7 +31219,11 @@
             "description": "Identifier for device model."
           },
           "modelType": {
-            "$ref": "#/components/schemas/DeviceType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceType"
+              }
+            ],
             "description": "Identifier for device model type."
           },
           "mac": {
@@ -31027,19 +31239,35 @@
             "description": "Indicates whether the person or the workspace is the owner of the device, and points to a primary Line/Port of the device."
           },
           "type": {
-            "$ref": "#/components/schemas/DeviceLineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceLineType"
+              }
+            ],
             "description": "Indicates if the line is acting as a primary line or a shared line for this device."
           },
           "hoteling": {
-            "$ref": "#/components/schemas/HotelingRequest",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HotelingRequest"
+              }
+            ],
             "description": "Hoteling login settings, which are available when the device is the owner's primary device and device type is PRIMARY. Hoteling login settings are set at the owner level."
           },
           "owner": {
-            "$ref": "#/components/schemas/deviceOwner",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceOwner"
+              }
+            ],
             "description": "Owner of device."
           },
           "activationState": {
-            "$ref": "#/components/schemas/ActivationStates",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActivationStates"
+              }
+            ],
             "description": "Activation state of device."
           }
         }
@@ -31057,7 +31285,7 @@
         ],
         "description": " * `MPP` - Cisco Multiplatform Phone\n * `ATA` - Analog Telephone Adapters\n * `GENERIC_SIP` - GENERIC Session Initiation Protocol\n * `ESIM` - Esim Supported Webex Go\n * `ROOM_OS` - Cisco Webex Room OS and the Room Series device\n * `MOBILE` - Mobile\n * `DESK_PHONE` - Desk Phone\n"
       },
-      "jobIdResponseObject": {
+      "JobIdResponseObject": {
         "type": "object",
         "required": [
           "name",
@@ -31152,31 +31380,72 @@
             "description": "The location name for which the numbers have been moved."
           },
           "counts": {
-            "$ref": "#/components/schemas/CountObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountObject"
+              }
+            ],
             "description": "Job statistics."
           }
         }
       },
-      "location": {
+      "Location": {
         "type": "object",
         "required": [
-          "id",
-          "name"
+          "address",
+          "countryCode",
+          "latitude",
+          "longitude"
         ],
         "properties": {
           "id": {
             "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzJiNDkyZmZkLTRjNGItNGVmNS04YzAzLWE1MDYyYzM4NDA5Mw",
-            "description": "Location identifier associated with the members."
+            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
+            "description": "Unique identifier for the location."
           },
-          "name": {
+          "locationId": {
             "type": "string",
-            "example": "MainOffice",
-            "description": "Location name associated with the member."
+            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzA2OWEzMDY2LTgwNjMtNDI0Zi05YmE0LTBhZDdhMmYxMzNjNQ",
+            "description": "The ID to use for this location in the [/locations API](/docs/api/v1/locations)"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Cisco Barcelona",
+            "description": "A friendly name for the location."
+          },
+          "address": {
+            "type": "string",
+            "example": "Carrer de Pere IV, Barcelona, Spain",
+            "description": "The location address."
+          },
+          "countryCode": {
+            "type": "string",
+            "example": "ES",
+            "description": "The location country code (ISO 3166-1)."
+          },
+          "cityName": {
+            "type": "string",
+            "example": "Barcelona",
+            "description": "The location city name."
+          },
+          "latitude": {
+            "type": "number",
+            "example": 41.406615,
+            "description": "The location latitude."
+          },
+          "longitude": {
+            "type": "number",
+            "example": 2.200717,
+            "description": "The location longitude."
+          },
+          "notes": {
+            "type": "string",
+            "example": "A note about the location",
+            "description": "Notes associated with the location."
           }
         }
       },
-      "mppObject": {
+      "MppObject": {
         "type": "object",
         "required": [
           "pnacEnabled",
@@ -31232,11 +31501,19 @@
             "description": "Indicates whether the PNAC of MPP object is enabled or not."
           },
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/MppAudioCodecPriorityObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppAudioCodecPriorityObject"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "backlightTimer": {
-            "$ref": "#/components/schemas/BacklightTimerObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BacklightTimerObject"
+              }
+            ],
             "description": "Choose the length of time (in minutes) for the phone's backlight to remain on."
           },
           "background": {
@@ -31251,7 +31528,11 @@
             }
           },
           "displayNameFormat": {
-            "$ref": "#/components/schemas/DisplayNameSelection",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayNameSelection"
+              }
+            ],
             "description": "The display name that appears on the phone screen."
           },
           "cdpEnabled": {
@@ -31259,7 +31540,11 @@
             "description": "Allows you to enable/disable CDP for local devices."
           },
           "defaultLoggingLevel": {
-            "$ref": "#/components/schemas/DefaultLoggingLevelObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DefaultLoggingLevelObject"
+              }
+            ],
             "description": "Choose the desired logging level for an MPP devices."
           },
           "dndServicesEnabled": {
@@ -31268,7 +31553,11 @@
             "description": "Enable/disable Do-Not-Disturb capabilities for Multi-Platform Phones."
           },
           "acd": {
-            "$ref": "#/components/schemas/AcdObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AcdObject"
+              }
+            ],
             "description": "Holds the Acd object value."
           },
           "shortInterdigitTimer": {
@@ -31282,11 +31571,19 @@
             "description": "Indicates the long inter digit timer value.."
           },
           "lineKeyLabelFormat": {
-            "$ref": "#/components/schemas/LineKeyLabelSelection",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyLabelSelection"
+              }
+            ],
             "description": "Line key labels define the format of what's shown next to line keys."
           },
           "lineKeyLEDPattern": {
-            "$ref": "#/components/schemas/LineKeyLEDPattern",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyLEDPattern"
+              }
+            ],
             "description": "LED patterns define lighting schemes for the line keys on the MPP devices. Note that this parameter is not supported on the MPP 8875"
           },
           "lldpEnabled": {
@@ -31307,7 +31604,11 @@
             "description": "Select up to 10 Multicast Group URLs (each with a unique Listening Port)."
           },
           "enhancedMulticast": {
-            "$ref": "#/components/schemas/EnhancedMulticastObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EnhancedMulticastObject"
+              }
+            ],
             "description": "Specify the enhanced multicast settings for the MPP device."
           },
           "offHookTimer": {
@@ -31316,11 +31617,19 @@
             "description": "Specify the amount of time (in seconds) that a phone can remain off-hook."
           },
           "phoneLanguage": {
-            "$ref": "#/components/schemas/PhoneLanguage",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhoneLanguage"
+              }
+            ],
             "description": "Select the language for your MPP phone. Setting this overrides the default language setting in place for your provisioned location."
           },
           "poeMode": {
-            "$ref": "#/components/schemas/PoeMode",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PoeMode"
+              }
+            ],
             "description": "Enable/disable the Power-Over-Ethernet mode for Multi-Platform Phones."
           },
           "qosEnabled": {
@@ -31329,7 +31638,11 @@
             "description": "Allows you to enable/disable tagging of packets from the local device to the Webex Calling platform."
           },
           "screenTimeout": {
-            "$ref": "#/components/schemas/ScreenTimeoutObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScreenTimeoutObject"
+              }
+            ],
             "description": "Specify the amount of inactive time needed (in seconds) before the phone's screen saver activates."
           },
           "usbPortsEnabled": {
@@ -31338,19 +31651,35 @@
             "description": "Enable/disable the use of the USB ports on Multi-Platform phones."
           },
           "vlan": {
-            "$ref": "#/components/schemas/MppVlanObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppVlanObject"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "wifiNetwork": {
-            "$ref": "#/components/schemas/WifiNetworkObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiNetworkObject"
+              }
+            ],
             "description": "Specify the Wi-Fi SSID and password for wireless-enabled MPP phones."
           },
           "callHistory": {
-            "$ref": "#/components/schemas/CallHistoryMethod",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallHistoryMethod"
+              }
+            ],
             "description": "Specify the call history information to use. Only applies to user devices."
           },
           "contacts": {
-            "$ref": "#/components/schemas/DirectoryMethod",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectoryMethod"
+              }
+            ],
             "description": "Specify the directory services to use."
           },
           "webexMeetingsEnabled": {
@@ -31359,19 +31688,35 @@
             "description": "Enable/disable the availability of the webex meetings functionality from the phone."
           },
           "volumeSettings": {
-            "$ref": "#/components/schemas/VolumeSettingsObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VolumeSettingsObject"
+              }
+            ],
             "description": "Specify all volume level values on the phone."
           },
           "cfExpandedSoftKey": {
-            "$ref": "#/components/schemas/CallForwardExpandedSoftKey",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallForwardExpandedSoftKey"
+              }
+            ],
             "description": "Specify the call forward expanded soft key behavior."
           },
           "httpProxy": {
-            "$ref": "#/components/schemas/HttpProxyObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HttpProxyObject"
+              }
+            ],
             "description": "Specify HTTP Proxy values."
           },
           "bluetooth": {
-            "$ref": "#/components/schemas/BluetoothObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BluetoothObject"
+              }
+            ],
             "description": "Enable/disable the visibility of the bluetooth menu on the MPP device."
           },
           "passThroughPortEnabled": {
@@ -31395,7 +31740,11 @@
             "description": "Enable/disable peer firmware sharing."
           },
           "noiseCancellation": {
-            "$ref": "#/components/schemas/NoiseCancellationObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NoiseCancellationObject"
+              }
+            ],
             "description": "Enable/disable local noise cancellation on active calls from the device."
           },
           "voiceFeedbackAccessibilityEnabled": {
@@ -31424,15 +31773,27 @@
             "description": "Enable/disable the visual indication of missed calls."
           },
           "softKeyLayout": {
-            "$ref": "#/components/schemas/SoftKeyLayoutObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SoftKeyLayoutObject"
+              }
+            ],
             "description": "Specify the softkey layout per phone menu state."
           },
           "backgroundImage8875": {
-            "$ref": "#/components/schemas/BackgroundImageColor",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundImageColor"
+              }
+            ],
             "description": "Specify the image option for the MPP 8875 phone background."
           },
           "backlightTimer68XX78XX": {
-            "$ref": "#/components/schemas/BacklightTimer68XX",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BacklightTimer68XX"
+              }
+            ],
             "description": "Specify the use of the backlight feature on 6800 nad 7800 series devices."
           },
           "allowMonitorLinesEnabled": {
@@ -31446,7 +31807,7 @@
           }
         }
       },
-      "mppObjectDevice": {
+      "MppObjectDevice": {
         "type": "object",
         "required": [
           "pnacEnabled",
@@ -31503,11 +31864,19 @@
             "description": "Indicates whether the PNAC of MPP object is enabled or not."
           },
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/MppAudioCodecPriorityObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppAudioCodecPriorityObjectDevice"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "backlightTimer": {
-            "$ref": "#/components/schemas/BacklightTimerObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BacklightTimerObjectDevice"
+              }
+            ],
             "description": "Choose the length of time (in minutes) for the phone's backlight to remain on."
           },
           "background": {
@@ -31522,7 +31891,11 @@
             }
           },
           "displayNameFormat": {
-            "$ref": "#/components/schemas/DisplayNameSelection",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayNameSelection"
+              }
+            ],
             "description": "The display name that appears on the phone screen."
           },
           "cdpEnabled": {
@@ -31530,7 +31903,11 @@
             "description": "Allows you to enable/disable CDP for local devices."
           },
           "defaultLoggingLevel": {
-            "$ref": "#/components/schemas/DefaultLoggingLevelObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DefaultLoggingLevelObject"
+              }
+            ],
             "description": "Choose the desired logging level for an MPP devices."
           },
           "dndServicesEnabled": {
@@ -31539,7 +31916,11 @@
             "description": "Enable/disable Do-Not-Disturb capabilities for Multi-Platform Phones."
           },
           "acd": {
-            "$ref": "#/components/schemas/AcdObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AcdObjectDevice"
+              }
+            ],
             "description": "Holds the Acd object value."
           },
           "shortInterdigitTimer": {
@@ -31553,11 +31934,19 @@
             "description": "Indicates the long inter digit timer value.."
           },
           "lineKeyLabelFormat": {
-            "$ref": "#/components/schemas/LineKeyLabelSelection",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyLabelSelection"
+              }
+            ],
             "description": "Line key labels define the format of what's shown next to line keys."
           },
           "lineKeyLEDPattern": {
-            "$ref": "#/components/schemas/LineKeyLEDPattern",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyLEDPattern"
+              }
+            ],
             "description": "LED patterns define lighting schemes for the line keys on the MPP devices. Note that this parameter is not supported on the MPP 8875"
           },
           "lldpEnabled": {
@@ -31578,7 +31967,11 @@
             "description": "Select up to 10 Multicast Group URLs (each with a unique Listening Port)."
           },
           "enhancedMulticast": {
-            "$ref": "#/components/schemas/EnhancedMulticastObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EnhancedMulticastObject"
+              }
+            ],
             "description": "Specify the enhanced multicast settings for the MPP device."
           },
           "offHookTimer": {
@@ -31587,11 +31980,19 @@
             "description": "Specify the amount of time (in seconds) that a phone can remain off-hook."
           },
           "phoneLanguage": {
-            "$ref": "#/components/schemas/PhoneLanguage",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PhoneLanguage"
+              }
+            ],
             "description": "Select the language for your MPP phone. Setting this overrides the default language setting in place for your provisioned location."
           },
           "poeMode": {
-            "$ref": "#/components/schemas/PoeMode",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PoeMode"
+              }
+            ],
             "description": "Enable/disable the Power-Over-Ethernet mode for Multi-Platform Phones."
           },
           "qosEnabled": {
@@ -31600,7 +32001,11 @@
             "description": "Allows you to enable/disable tagging of packets from the local device to the Webex Calling platform."
           },
           "screenTimeout": {
-            "$ref": "#/components/schemas/ScreenTimeoutObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ScreenTimeoutObject"
+              }
+            ],
             "description": "Specify the amount of inactive time needed (in seconds) before the phone's screen saver activates."
           },
           "usbPortsEnabled": {
@@ -31609,23 +32014,43 @@
             "description": "Enable/disable the use of the USB ports on Multi-Platform phones."
           },
           "usbPorts": {
-            "$ref": "#/components/schemas/UsbPortsObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsbPortsObject"
+              }
+            ],
             "description": "By default the Side USB port is enabled to support KEMs and other peripheral devices. Use the option to disable use of this port."
           },
           "vlan": {
-            "$ref": "#/components/schemas/MppVlanObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MppVlanObjectDevice"
+              }
+            ],
             "description": "Specify a numeric Virtual LAN ID for devices."
           },
           "wifiNetwork": {
-            "$ref": "#/components/schemas/WifiNetworkObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiNetworkObjectDevice"
+              }
+            ],
             "description": "Specify the Wi-Fi SSID and password for wireless-enabled MPP phones."
           },
           "callHistory": {
-            "$ref": "#/components/schemas/CallHistoryMethod",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallHistoryMethod"
+              }
+            ],
             "description": "Specify the call history information to use. Only applies to user devices."
           },
           "contacts": {
-            "$ref": "#/components/schemas/DirectoryMethod",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectoryMethod"
+              }
+            ],
             "description": "Specify the directory services to use."
           },
           "webexMeetingsEnabled": {
@@ -31634,19 +32059,35 @@
             "description": "Enable/disable the availability of the webex meetings functionality from the phone."
           },
           "volumeSettings": {
-            "$ref": "#/components/schemas/VolumeSettingsObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VolumeSettingsObject"
+              }
+            ],
             "description": "Specify all volume level values on the phone."
           },
           "cfExpandedSoftKey": {
-            "$ref": "#/components/schemas/CallForwardExpandedSoftKey",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CallForwardExpandedSoftKey"
+              }
+            ],
             "description": "Specify the call forward expanded soft key behavior."
           },
           "httpProxy": {
-            "$ref": "#/components/schemas/HttpProxyObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HttpProxyObjectDevice"
+              }
+            ],
             "description": "Specify HTTP Proxy values."
           },
           "bluetooth": {
-            "$ref": "#/components/schemas/BluetoothObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BluetoothObjectDevice"
+              }
+            ],
             "description": "Enable/disable the visibility of the bluetooth menu on the MPP device."
           },
           "passThroughPortEnabled": {
@@ -31670,7 +32111,11 @@
             "description": "Enable/disable peer firmware sharing."
           },
           "noiseCancellation": {
-            "$ref": "#/components/schemas/NoiseCancellationObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NoiseCancellationObject"
+              }
+            ],
             "description": "Enable/disable local noise cancellation on active calls from the device."
           },
           "voiceFeedbackAccessibilityEnabled": {
@@ -31699,15 +32144,27 @@
             "description": "Enable/disable the visual indication of missed calls."
           },
           "softKeyLayout": {
-            "$ref": "#/components/schemas/SoftKeyLayoutObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SoftKeyLayoutObject"
+              }
+            ],
             "description": "Specify the softkey layout per phone menu state."
           },
           "backgroundImage8875": {
-            "$ref": "#/components/schemas/BackgroundImageColor",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BackgroundImageColor"
+              }
+            ],
             "description": "Specify the image option for the MPP 8875 phone background."
           },
           "backlightTimer68XX78XX": {
-            "$ref": "#/components/schemas/BacklightTimer68XXDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BacklightTimer68XXDevice"
+              }
+            ],
             "description": "Specify the use of the backlight feature on 6800 nad 7800 series devices."
           },
           "allowMonitorLinesEnabled": {
@@ -31721,7 +32178,7 @@
           }
         }
       },
-      "placeDeviceList": {
+      "PlaceDeviceList": {
         "type": "object",
         "required": [
           "devices",
@@ -31732,7 +32189,7 @@
           "devices": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/placeDevices"
+              "$ref": "#/components/schemas/PlaceDevices"
             },
             "description": "Array of devices associated with a workspace."
           },
@@ -31746,7 +32203,7 @@
           }
         }
       },
-      "placeDevices": {
+      "PlaceDevices": {
         "type": "object",
         "required": [
           "id",
@@ -31786,24 +32243,40 @@
             "description": "Indicates whether the person or the workspace is the owner of the device and points to a primary Line/Port of the device."
           },
           "type": {
-            "$ref": "#/components/schemas/LineType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineType"
+              }
+            ],
             "description": "Indicates if the line is acting as a primary line or a shared line for this device."
           },
           "hoteling": {
-            "$ref": "#/components/schemas/Hoteling",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Hoteling"
+              }
+            ],
             "description": "Indicates Hoteling details of a device."
           },
           "owner": {
-            "$ref": "#/components/schemas/deviceOwner",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceOwner"
+              }
+            ],
             "description": "Owner of the device."
           },
           "activationState": {
-            "$ref": "#/components/schemas/DeviceActivationStates",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DeviceActivationStates"
+              }
+            ],
             "description": "Activation state of a device."
           }
         }
       },
-      "wifiObject": {
+      "WifiObject": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -31813,15 +32286,27 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/WifiAudioCodecPriorityObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiAudioCodecPriorityObject"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "ldap": {
-            "$ref": "#/components/schemas/LdapObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LdapObject"
+              }
+            ],
             "description": "Set the values needed to enable use of the LDAP service on the phone."
           },
           "webAccess": {
-            "$ref": "#/components/schemas/WebAccessObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WebAccessObject"
+              }
+            ],
             "description": "Set the availability of the local end user web access for an 840/860 WiFi phone."
           },
           "phoneSecurityPwd": {
@@ -31831,7 +32316,7 @@
           }
         }
       },
-      "wifiObjectDevice": {
+      "WifiObjectDevice": {
         "type": "object",
         "required": [
           "audioCodecPriority",
@@ -31841,15 +32326,27 @@
         ],
         "properties": {
           "audioCodecPriority": {
-            "$ref": "#/components/schemas/WifiAudioCodecPriorityObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WifiAudioCodecPriorityObjectDevice"
+              }
+            ],
             "description": "Choose up to three predefined codec priority options available for your region."
           },
           "ldap": {
-            "$ref": "#/components/schemas/LdapObjectDevice",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LdapObjectDevice"
+              }
+            ],
             "description": "Set the values needed to enable use of the LDAP service on the phone."
           },
           "webAccess": {
-            "$ref": "#/components/schemas/WebAccessObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WebAccessObject"
+              }
+            ],
             "description": "Set the availability of the local end user web access for an 840/860 WiFi phone."
           },
           "phoneSecurityPwd": {
@@ -32023,7 +32520,11 @@
             "description": "Unique identifier to track the HTTP requests."
           },
           "error": {
-            "$ref": "#/components/schemas/ErrorMessageObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ErrorMessageObject"
+              }
+            ],
             "description": "Description of errors in the job."
           }
         }
@@ -32104,7 +32605,11 @@
             "description": "Exclude devices with these tags."
           },
           "advisoryTypes": {
-            "$ref": "#/components/schemas/LineKeyTemplateAdvisoryTypes",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyTemplateAdvisoryTypes"
+              }
+            ],
             "description": "Refine search with advisories."
           }
         }
@@ -32155,7 +32660,11 @@
             "description": "An index representing a Line Key. Index starts from 1 representing the first key on the left side of the phone."
           },
           "lineKeyType": {
-            "$ref": "#/components/schemas/LineKeyType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyType"
+              }
+            ],
             "description": "The action that would be performed when the Line Key is pressed."
           },
           "lineKeyLabel": {
@@ -32195,7 +32704,7 @@
           }
         }
       },
-      "lineKeyTemplatesResponse": {
+      "LineKeyTemplatesResponse": {
         "type": "object",
         "required": [
           "id",
@@ -32268,7 +32777,11 @@
             "description": "A model type of the device."
           },
           "activationState": {
-            "$ref": "#/components/schemas/ActivationStates",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ActivationStates"
+              }
+            ],
             "description": "Activation state of the device. This field is only populated for a device added by a unique activation code generated by Control Hub for use with Webex."
           },
           "description": {
@@ -32334,7 +32847,11 @@
         ],
         "properties": {
           "layoutMode": {
-            "$ref": "#/components/schemas/LayoutMode",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LayoutMode"
+              }
+            ],
             "description": "Defines the layout mode of the device, i.e. DEFAULT or CUSTOM."
           },
           "userReorderEnabled": {
@@ -32350,7 +32867,11 @@
             "description": "Contains a mapping of Line Keys and their corresponding actions. This field is required when `layoutMode` is CUSTOM. When `layoutMode` is DEFAULT, this field is not returned in GET responses and should not be included in PUT requests, as the system uses the default line-key assignments."
           },
           "kemModuleType": {
-            "$ref": "#/components/schemas/KemModuleType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/KemModuleType"
+              }
+            ],
             "description": "Type of KEM module."
           },
           "kemKeys": {
@@ -32382,7 +32903,11 @@
             "description": "An index representing a KEM Key. The Index starts from 1 representing the first key on the left side of the phone."
           },
           "kemKeyType": {
-            "$ref": "#/components/schemas/LineKeyType",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LineKeyType"
+              }
+            ],
             "description": "The action that would be performed when the KEM Key is pressed."
           },
           "kemKeyLabel": {
@@ -32495,7 +33020,11 @@
             "description": "Displays the most recent step's execution status. Contains execution statuses of all the steps involved in the execution of the job."
           },
           "latestExecutionStatus": {
-            "$ref": "#/components/schemas/LatestExecutionStatus",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LatestExecutionStatus"
+              }
+            ],
             "description": "Indicates the most recent status of the job at the time of invocation."
           },
           "latestExecutionExitCode": {
@@ -32575,7 +33104,7 @@
           }
         }
       },
-      "listBackgroundImagesObject": {
+      "ListBackgroundImagesObject": {
         "type": "object",
         "required": [
           "backgroundImageUrl",
@@ -32594,7 +33123,7 @@
           }
         }
       },
-      "deleteImageResponseObject": {
+      "DeleteImageResponseObject": {
         "type": "object",
         "required": [
           "fileName",
@@ -32642,7 +33171,7 @@
           }
         }
       },
-      "deleteImageResponseSuccessObject": {
+      "DeleteImageResponseSuccessObject": {
         "type": "object",
         "required": [
           "fileName",
@@ -32670,7 +33199,7 @@
           }
         }
       },
-      "deleteImageRequestObject": {
+      "DeleteImageRequestObject": {
         "type": "object",
         "required": [
           "fileName"
@@ -32688,7 +33217,7 @@
           }
         }
       },
-      "userDeviceCount": {
+      "UserDeviceCount": {
         "type": "object",
         "required": [
           "totalDeviceCount",
@@ -33416,7 +33945,7 @@
           "stepExecutionStatuses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/stepExecutionStatusesObject"
+              "$ref": "#/components/schemas/StepExecutionStatusesObject"
             },
             "description": "Status of each step within a job."
           }
@@ -33454,7 +33983,7 @@
           }
         }
       },
-      "stepExecutionStatusesObject": {
+      "StepExecutionStatusesObject": {
         "type": "object",
         "required": [
           "id"
@@ -33677,7 +34206,7 @@
           }
         }
       },
-      "supportedDevicesObject": {
+      "SupportedDevicesObject": {
         "type": "object",
         "required": [
           "devices",
@@ -34234,11 +34763,19 @@
             "description": "The unique identifier for the event."
           },
           "resource": {
-            "$ref": "#/components/schemas/EventResourceEnum",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventResourceEnum"
+              }
+            ],
             "description": "The type of resource in the event."
           },
           "type": {
-            "$ref": "#/components/schemas/EventTypeEnum",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventTypeEnum"
+              }
+            ],
             "description": "The action which took place in the event."
           },
           "appId": {
@@ -34537,62 +35074,6 @@
             "type": "string",
             "example": "2024-08-29T20:00:00Z",
             "description": "The end time of the booking."
-          }
-        }
-      },
-      "Location": {
-        "type": "object",
-        "required": [
-          "address",
-          "countryCode",
-          "latitude",
-          "longitude"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VybjpURUFNOnVzLWVhc3QtMV9pbnQxMy9XT1JLU1BBQ0VfTE9DQVRJT04vM2E2ZmYzNzMtNjhhNy00NGU0LTkxZDYtYTI3NDYwZTBhYzVjIzUxOWY2N2E1LTlkOTktNGM2My04YTA5LWI5MTcxY2M2NmJkMQ==",
-            "description": "Unique identifier for the location."
-          },
-          "locationId": {
-            "type": "string",
-            "example": "Y2lzY29zcGFyazovL3VzL0xPQ0FUSU9OLzA2OWEzMDY2LTgwNjMtNDI0Zi05YmE0LTBhZDdhMmYxMzNjNQ",
-            "description": "The ID to use for this location in the [/locations API](/docs/api/v1/locations)"
-          },
-          "displayName": {
-            "type": "string",
-            "example": "Cisco Barcelona",
-            "description": "A friendly name for the location."
-          },
-          "address": {
-            "type": "string",
-            "example": "Carrer de Pere IV, Barcelona, Spain",
-            "description": "The location address."
-          },
-          "countryCode": {
-            "type": "string",
-            "example": "ES",
-            "description": "The location country code (ISO 3166-1)."
-          },
-          "cityName": {
-            "type": "string",
-            "example": "Barcelona",
-            "description": "The location city name."
-          },
-          "latitude": {
-            "type": "number",
-            "example": 41.406615,
-            "description": "The location latitude."
-          },
-          "longitude": {
-            "type": "number",
-            "example": 2.200717,
-            "description": "The location longitude."
-          },
-          "notes": {
-            "type": "string",
-            "example": "A note about the location",
-            "description": "Notes associated with the location."
           }
         }
       },
@@ -39434,7 +39915,11 @@
             "description": "Summary of all answers."
           },
           "respondents": {
-            "$ref": "#/components/schemas/RespondentsReferenceLinks",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RespondentsReferenceLinks"
+              }
+            ],
             "description": "Question's respondents."
           }
         }
@@ -39468,7 +39953,11 @@
         "type": "object",
         "properties": {
           "links": {
-            "$ref": "#/components/schemas/Link",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Link"
+              }
+            ],
             "description": "The pagination links of this question's respondent."
           },
           "items": {
@@ -39849,7 +40338,11 @@
             "description": "Information for video conferencing systems used to connect to Webex meetings. ***Note***: The ***Call My Video System*** feature is available only if it has been purchased for your site and your administrator has enabled it."
           },
           "schedulingOptions": {
-            "$ref": "#/components/schemas/SchedulingOptionsObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SchedulingOptionsObject"
+              }
+            ],
             "description": "Meeting scheduling options."
           },
           "sites": {
@@ -41903,7 +42396,11 @@
             "description": "Whether or not live streaming is enabled. If it's enabled, the `liveStream` must be specified. The RTMP streaming specified by `liveStream.rtmpUrl` can be started and viewed during the meeting without any ad-hoc settings."
           },
           "liveStream": {
-            "$ref": "#/components/schemas/LiveStreamObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveStreamObject"
+              }
+            ],
             "description": "Live streaming settings. It applies when `enabledLiveStream` is `true`."
           }
         }
@@ -42571,7 +43068,11 @@
             "description": "Whether or not live streaming is enabled. If it's enabled, the `liveStream` must be specified. The RTMP streaming specified by `liveStream.rtmpUrl` can be started and viewed during the meeting without any ad-hoc settings."
           },
           "liveStream": {
-            "$ref": "#/components/schemas/LiveStreamObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveStreamObject"
+              }
+            ],
             "description": "Live streaming settings. It applies when `enabledLiveStream` is `true`."
           }
         }
@@ -43218,7 +43719,11 @@
             "description": "Whether or not live streaming is enabled. If it's enabled, the `liveStream` must be specified. The RTMP streaming specified by `liveStream.rtmpUrl` can be started and viewed during the meeting without any ad-hoc settings."
           },
           "liveStream": {
-            "$ref": "#/components/schemas/LiveStreamObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveStreamObject"
+              }
+            ],
             "description": "Live streaming settings. It applies when `enabledLiveStream` is `true`."
           }
         }
@@ -43741,7 +44246,11 @@
             "description": "Whether or not live streaming is enabled. If enabled, the `liveStream` must be specified. The RTMP streaming specified by `liveStream.rtmpUrl` can be started and viewed during the meeting without any ad-hoc settings."
           },
           "liveStream": {
-            "$ref": "#/components/schemas/LiveStreamObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveStreamObject"
+              }
+            ],
             "description": "Live streaming settings. Applies when `enabledLiveStream` is `true`."
           }
         }
@@ -44069,7 +44578,11 @@
             "description": "Whether or not live streaming is enabled."
           },
           "liveStream": {
-            "$ref": "#/components/schemas/LiveStreamObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveStreamObject"
+              }
+            ],
             "description": "Live streaming settings. It applies when `enabledLiveStream` is `true`."
           }
         }
@@ -44392,7 +44905,11 @@
             "description": "When `true`, live streaming is enabled."
           },
           "liveStream": {
-            "$ref": "#/components/schemas/LiveStreamObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveStreamObject"
+              }
+            ],
             "description": "Live streaming settings. Applies when `enabledLiveStream` is `true`."
           }
         }
@@ -44720,7 +45237,11 @@
             "description": "Whether or not live streaming is enabled."
           },
           "liveStream": {
-            "$ref": "#/components/schemas/LiveStreamObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveStreamObject"
+              }
+            ],
             "description": "Live streaming settings. It applies when `enabledLiveStream` is `true`."
           }
         }
@@ -45199,7 +45720,11 @@
             "description": "Whether or not live streaming is enabled. If it's enabled, the `liveStream` must be specified. The RTMP streaming specified by `liveStream.rtmpUrl` can be started and viewed during the meeting without any ad-hoc settings."
           },
           "liveStream": {
-            "$ref": "#/components/schemas/LiveStreamObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LiveStreamObject"
+              }
+            ],
             "description": "Live streaming settings. It applies when `enabledLiveStream` is `true`."
           }
         }
@@ -45361,7 +45886,11 @@
             "description": "Whether or not the meeting template is a standard template."
           },
           "meeting": {
-            "$ref": "#/components/schemas/CreateMeetingObject",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreateMeetingObject"
+              }
+            ],
             "description": "Meeting object which is used to create a meeting by the meeting template. Please note that the meeting object should be used to create a meeting immediately after retrieval since the `start` and `end` may be invalid quickly after generation."
           }
         }
@@ -45804,7 +46333,7 @@
           }
         }
       },
-      "queryRegistrants": {
+      "QueryRegistrants": {
         "type": "object",
         "required": [
           "emails"
@@ -49271,7 +49800,11 @@
             "description": "Name of the Video Mesh cluster."
           },
           "utilizationMetrics": {
-            "$ref": "#/components/schemas/UtilizationMetricsT1SJ",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtilizationMetricsT1SJ"
+              }
+            ],
             "description": "Utilization details for the cluster in the time interval."
           }
         }
@@ -49290,7 +49823,11 @@
             "description": "Name of the Video Mesh cluster."
           },
           "utilizationMetrics": {
-            "$ref": "#/components/schemas/UtilizationMetricsT1Blr",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtilizationMetricsT1Blr"
+              }
+            ],
             "description": "Utilization details for the cluster in the time interval."
           }
         }
@@ -49380,7 +49917,11 @@
             "description": "Name of the Video Mesh cluster."
           },
           "utilizationMetrics": {
-            "$ref": "#/components/schemas/UtilizationMetricsT2SJ",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtilizationMetricsT2SJ"
+              }
+            ],
             "description": "Utilization details for the cluster in the time interval."
           }
         }
@@ -49399,7 +49940,11 @@
             "description": "Name of the Video Mesh cluster."
           },
           "utilizationMetrics": {
-            "$ref": "#/components/schemas/UtilizationMetricsT2Blr",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UtilizationMetricsT2Blr"
+              }
+            ],
             "description": "Utilization Metric details for the cluster in the time interval."
           }
         }
@@ -50044,7 +50589,11 @@
             "description": "Release Channel of the Video Mesh cluster."
           },
           "upgradeSchedule": {
-            "$ref": "#/components/schemas/ClusterUpgradeScheduleBlr",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClusterUpgradeScheduleBlr"
+              }
+            ],
             "description": "Upgrade Schedule details of the Video Mesh cluster."
           }
         }
@@ -50068,7 +50617,11 @@
             "description": "Deployment Type of the Video Mesh node."
           },
           "location": {
-            "$ref": "#/components/schemas/BlrNodeLocation",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlrNodeLocation"
+              }
+            ],
             "description": "Location details of the Video Mesh node."
           }
         }
@@ -50112,7 +50665,11 @@
             "description": "Deployment Type of the Video Mesh node."
           },
           "location": {
-            "$ref": "#/components/schemas/BlrNodeLocation",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BlrNodeLocation"
+              }
+            ],
             "description": "Location details of the Video Mesh node."
           }
         }
@@ -50150,7 +50707,11 @@
             "description": "Release Channel of the Video Mesh cluster."
           },
           "upgradeSchedule": {
-            "$ref": "#/components/schemas/ClusterUpgradeScheduleSJ",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClusterUpgradeScheduleSJ"
+              }
+            ],
             "description": "Upgrade Schedule details of the Video Mesh cluster."
           }
         }
@@ -50174,7 +50735,11 @@
             "description": "Deployment Type of the Video Mesh node."
           },
           "location": {
-            "$ref": "#/components/schemas/SJNodeLocation",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SJNodeLocation"
+              }
+            ],
             "description": "Location details of the Video Mesh node."
           }
         }
@@ -50198,7 +50763,11 @@
             "description": "Deployment Type of the Video Mesh node."
           },
           "location": {
-            "$ref": "#/components/schemas/SJNodeLocation",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SJNodeLocation"
+              }
+            ],
             "description": "Location details of the Video Mesh node."
           }
         }
@@ -50594,7 +51163,7 @@
           }
         }
       },
-      "TriggerOn-DemandBodyCluster": {
+      "TriggerOnDemandBodyCluster": {
         "type": "object",
         "properties": {
           "type": {
@@ -51614,7 +52183,11 @@
             "description": "The `entityId` is the unique ID of the Organization or the unique ID of the Video Mesh Cluster."
           },
           "thresholdConfig": {
-            "$ref": "#/components/schemas/EventThresholdConfig1",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventThresholdConfig1"
+              }
+            ],
             "description": "Threshold configuration of an `entityId`."
           }
         }
@@ -51658,7 +52231,11 @@
             "description": "The `entityId` is the unique ID of the Organization or the unique ID of the Video Mesh Cluster."
           },
           "thresholdConfig": {
-            "$ref": "#/components/schemas/EventThresholdConfig2",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventThresholdConfig2"
+              }
+            ],
             "description": "Threshold configuration of an `entityId`."
           }
         }
@@ -51727,7 +52304,11 @@
             "description": "The `entityId` is the unique ID of the Organization or the unique ID of the Video Mesh Cluster."
           },
           "thresholdConfig": {
-            "$ref": "#/components/schemas/UpdateEventThresholdConfig1",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UpdateEventThresholdConfig1"
+              }
+            ],
             "description": "Threshold configuration of an `entityId`."
           }
         }
@@ -51756,7 +52337,11 @@
             "description": "The `entityId` is the unique ID of the Organization or the unique ID of the Video Mesh Cluster."
           },
           "thresholdConfig": {
-            "$ref": "#/components/schemas/UpdateEventThresholdConfig2",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UpdateEventThresholdConfig2"
+              }
+            ],
             "description": "Threshold configuration of an `entityId`."
           }
         }

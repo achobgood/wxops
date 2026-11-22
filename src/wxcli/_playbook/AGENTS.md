@@ -2,7 +2,7 @@
 
 Build, configure, migrate and audit Webex with Codex: Webex Calling, admin, devices, messaging and meetings through the `wxcli` command line; Contact Center voice flows (Flow Designer), Webex Connect flows, AI agents (AI Agent Studio) and Business Rules Engine lookups through the skills and docs below.
 
-**Execution pattern:** `wxcli` commands first, raw HTTP as the fallback. `wxcli` has 200 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface; the raw HTTP forms are in `docs/reference/`.
+**Execution pattern:** `wxcli` commands first, raw HTTP as the fallback. `wxcli` has 202 command groups covering the full Webex Calling, admin, device, messaging, meetings, and contact center API surface; the raw HTTP forms are in `docs/reference/`.
 
 **MCP only when it does the whole job.** `wxcli` commands are the default. Move a job to an official Cisco MCP server only when that server does the whole job, writes included, has been tested live on a real tenant, and costs the same or fewer tokens.
 
@@ -234,6 +234,7 @@ Find the user's words in the first column. **When the row names a skill, invokin
 | recording | per-user Calling recording: `manage-call-settings`. CC / Customer Assist queue recording: `customer-assist`. Download converged or org/admin recordings (`admin-recordings`): `reporting` | |
 | workspace | Calling device workspace: `manage-devices`; its hoteling, hot desking: `manage-call-settings`. CC journey (JDS) workspace: `contact-center`. Workspace metrics: `reporting-meetings` | CC journey § 1 |
 | business hours, holidays, schedule | Calling schedule (AA/CQ/HG): `configure-features`. CC business hours, holiday list: `contact-center` | CC core §§ 15–16 |
+| organization-wide schedule, org schedule, schedule usage export | `configure-features` (`org-wide-schedules`, `export-schedule-usage-jobs`) | `docs/reference/location-calling-media.md` § 6 |
 | IVR, phone menu, voice menu | Flow Designer IVR: `design-flow` first, not `build-flow-designer`. Calling auto attendant (key presses): `configure-features`. AI that answers calls (`ai-receptionist`): `configure-features` | |
 | SMS, text message | outbound: `build-notification`. Inbound with an AI agent: `build-digital-inbound` | inbound without one: `docs/playbooks/inbound-sms.md` |
 | webhook, event subscription | Calling telephony events, `webhook-interest-registrations`: `call-control`. Messaging webhooks: `messaging-bots`. CC event subscriptions (`cc-subscriptions`): `contact-center` | Connect flow trigger: `docs/playbooks/webhook-triggers.md`; CC analytics § 9 |

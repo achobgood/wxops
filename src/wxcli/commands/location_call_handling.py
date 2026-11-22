@@ -71,7 +71,7 @@ def show(
 
 
 
-_BODY_SKELETON_UPDATE = '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":"ROUTE_GROUP"}}'
+_BODY_SKELETON_UPDATE = '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":{}}}'
 
 @app.command("update", short_help="Modify the Internal Dialing configuration for a location.")
 def update(
@@ -84,7 +84,7 @@ def update(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify the Internal Dialing configuration for a location.\n\n\b\nExample: wxcli location-call-handling update LOCATION_ID\n\n\b\nExample --json-body: '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":"ROUTE_GROUP"}}'"""
+    """Modify the Internal Dialing configuration for a location.\n\n\b\nExample: wxcli location-call-handling update LOCATION_ID\n\n\b\nExample --json-body: '{"enableUnknownExtensionRoutePolicy":true,"unknownExtensionRouteIdentity":{"id":"...","type":{}}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE), indent=2))
         raise typer.Exit(0)

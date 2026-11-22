@@ -158,6 +158,7 @@ wxcli ai-receptionist create LOCATION_ID --generate-json-body > receptionist.jso
 wxcli ai-receptionist create LOCATION_ID --json-body file://receptionist.json
 
 wxcli ai-receptionist list --all                          # org-wide
+wxcli ai-receptionist list --agent-id AGENT_ID            # filter by agent identifier (query agentId; spec only, unverified, 2026-11-22)
 wxcli ai-receptionist show LOCATION_ID AI_RECEPTIONIST_ID # one receptionist
 wxcli ai-receptionist update LOCATION_ID AI_RECEPTIONIST_ID --json-body file://changes.json --verify
 wxcli ai-receptionist delete LOCATION_ID AI_RECEPTIONIST_ID

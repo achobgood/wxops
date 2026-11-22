@@ -11,7 +11,7 @@ from wxcli.config import get_org_id
 app = typer.Typer(help="Manage Webex Calling: numbers.")
 
 
-_BODY_SKELETON_CREATE = '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'
+_BODY_SKELETON_CREATE = '{"phoneNumbers":["..."],"numberType":{},"numberUsageType":{},"state":{},"subscriptionId":"...","carrierId":"..."}'
 
 @app.command("create", short_help="Add Phone Numbers to a Location.")
 def create(
@@ -27,7 +27,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Add Phone Numbers to a Location.\n\n\b\nExample: wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers":["..."]}'\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"numberType":"TOLLFREE","numberUsageType":"NONE","state":"ACTIVE","subscriptionId":"...","carrierId":"..."}'"""
+    """Add Phone Numbers to a Location.\n\n\b\nExample: wxcli numbers create LOCATION_ID --json-body '{"phoneNumbers":["..."]}'\n\n\b\nExample --json-body: '{"phoneNumbers":["..."],"numberType":{},"numberUsageType":{},"state":{},"subscriptionId":"...","carrierId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)

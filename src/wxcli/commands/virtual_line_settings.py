@@ -507,7 +507,7 @@ def list_caller_id(
 
 
 
-_BODY_SKELETON_UPDATE_CALLER_ID_VIRTUAL_LINES = '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true,"additionalExternalCallerIdLocationNumberEnabled":true,"additionalExternalCallerIdCustomNumber":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByFirstName":"...","dialByLastName":"..."}'
+_BODY_SKELETON_UPDATE_CALLER_ID_VIRTUAL_LINES = '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true,"additionalExternalCallerIdLocationNumberEnabled":true,"additionalExternalCallerIdCustomNumber":"...","directLineCallerIdName":{"selection":{},"customName":"..."},"dialByFirstName":"...","dialByLastName":"..."}'
 
 @app.command("update-caller-id-virtual-lines", short_help="Configure Caller ID Settings for a Virtual Line.")
 def update_caller_id_virtual_lines(
@@ -531,7 +531,7 @@ def update_caller_id_virtual_lines(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Caller ID Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-caller-id-virtual-lines VIRTUAL_LINE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true,"additionalExternalCallerIdLocationNumberEnabled":true,"additionalExternalCallerIdCustomNumber":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByFirstName":"...","dialByLastName":"..."}'"""
+    """Configure Caller ID Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-caller-id-virtual-lines VIRTUAL_LINE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","firstName":"...","lastName":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","additionalExternalCallerIdDirectLineEnabled":true,"additionalExternalCallerIdLocationNumberEnabled":true,"additionalExternalCallerIdCustomNumber":"...","directLineCallerIdName":{"selection":{},"customName":"..."},"dialByFirstName":"...","dialByLastName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALLER_ID_VIRTUAL_LINES), indent=2))
         raise typer.Exit(0)
@@ -1529,7 +1529,7 @@ def list_available_caller_ids(
         handle_network_error(e)
     result = result or []
     items = result.get("availableCallerIds", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Type', 'type'), ('Phone Number', 'phoneNumber'), ('Extension', 'extension')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Phone Number', 'phoneNumber'), ('Extension', 'extension')], limit=limit)
 
 
 
@@ -1903,7 +1903,7 @@ def list_push_to_talk(
 
 
 
-_BODY_SKELETON_UPDATE_PUSH_TO_TALK = '{"allowAutoAnswer":true,"connectionType":"ONE_WAY","accessType":"ALLOW_MEMBERS","members":["..."]}'
+_BODY_SKELETON_UPDATE_PUSH_TO_TALK = '{"allowAutoAnswer":true,"connectionType":{},"accessType":{},"members":["..."]}'
 
 @app.command("update-push-to-talk", short_help="Configure Push-to-Talk Settings for a Virtual Line.")
 def update_push_to_talk(
@@ -1918,7 +1918,7 @@ def update_push_to_talk(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Push-to-Talk Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-push-to-talk VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"allowAutoAnswer":true,"connectionType":"ONE_WAY","accessType":"ALLOW_MEMBERS","members":["..."]}'"""
+    """Configure Push-to-Talk Settings for a Virtual Line.\n\n\b\nExample: wxcli virtual-line-settings update-push-to-talk VIRTUAL_LINE_ID\n\n\b\nExample --json-body: '{"allowAutoAnswer":true,"connectionType":{},"accessType":{},"members":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PUSH_TO_TALK), indent=2))
         raise typer.Exit(0)

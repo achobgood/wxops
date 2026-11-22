@@ -176,7 +176,7 @@ def cmd_list(
 
 
 
-_BODY_SKELETON_UPDATE_CALLER_ID = '{"selected":"DIRECT_LINE","customNumber":"...","displayName":"...","displayDetail":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","locationExternalCallerIdName":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'
+_BODY_SKELETON_UPDATE_CALLER_ID = '{"selected":"DIRECT_LINE","customNumber":"...","displayName":"...","displayDetail":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","locationExternalCallerIdName":"...","directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'
 
 @app.command("update-caller-id", short_help="Configure Caller ID Settings for a Workspace.")
 def update_caller_id(
@@ -197,7 +197,7 @@ def update_caller_id(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Caller ID Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-caller-id WORKSPACE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","displayName":"...","displayDetail":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","locationExternalCallerIdName":"...","directLineCallerIdName":{"selection":"CUSTOM_NAME","customName":"..."},"dialByName":"..."}'"""
+    """Configure Caller ID Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-caller-id WORKSPACE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","customNumber":"...","displayName":"...","displayDetail":"...","blockInForwardCallsEnabled":true,"externalCallerIdNamePolicy":"DIRECT_LINE","customExternalCallerIdName":"...","locationExternalCallerIdName":"...","directLineCallerIdName":{"selection":{},"customName":"..."},"dialByName":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CALLER_ID), indent=2))
         raise typer.Exit(0)
@@ -1441,7 +1441,7 @@ def list_available_numbers_workspaces(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Telephony Type', 'telephonyType'), ('Is Service Number', 'isServiceNumber')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Is Main Number', 'isMainNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 
 
@@ -1484,7 +1484,7 @@ def list_available_numbers_emergency_callback_number(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Telephony Type', 'telephonyType')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 
 
@@ -1530,7 +1530,7 @@ def list_available_numbers_call_forwarding(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 
 
@@ -1576,7 +1576,7 @@ def list_available_numbers_call_intercept(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Extension', 'extension'), ('Is Main Number', 'isMainNumber'), ('Toll Free Number', 'tollFreeNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 
 
@@ -1893,7 +1893,7 @@ def list_push_to_talk(
 
 
 
-_BODY_SKELETON_UPDATE_PUSH_TO_TALK = '{"allowAutoAnswer":true,"connectionType":"ONE_WAY","accessType":"ALLOW_MEMBERS","members":["..."]}'
+_BODY_SKELETON_UPDATE_PUSH_TO_TALK = '{"allowAutoAnswer":true,"connectionType":{},"accessType":{},"members":["..."]}'
 
 @app.command("update-push-to-talk", short_help="Configure Push-to-Talk Settings for a Workspace.")
 def update_push_to_talk(
@@ -1908,7 +1908,7 @@ def update_push_to_talk(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Configure Push-to-Talk Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-push-to-talk WORKSPACE_ID\n\n\b\nExample --json-body: '{"allowAutoAnswer":true,"connectionType":"ONE_WAY","accessType":"ALLOW_MEMBERS","members":["..."]}'"""
+    """Configure Push-to-Talk Settings for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-push-to-talk WORKSPACE_ID\n\n\b\nExample --json-body: '{"allowAutoAnswer":true,"connectionType":{},"accessType":{},"members":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_PUSH_TO_TALK), indent=2))
         raise typer.Exit(0)
@@ -2171,9 +2171,9 @@ _BODY_SKELETON_UPDATE_CRITERIA_SEQUENTIAL_RING = '{"scheduleName":"...","schedul
 def update_criteria_sequential_ring(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     id: str = typer.Argument(help="Webex CRITERIA id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the sequential ring is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the sequential ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: holidays, businessHours"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: SELECT_PHONE_NUMBERS, ANY_PHONE_NUMBER"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true` incoming calls from private numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true` incoming calls from unavailable numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
@@ -2396,9 +2396,9 @@ _BODY_SKELETON_CREATE_CRITERIA_SEQUENTIAL_RING = '{"callsFrom":"SELECT_PHONE_NUM
 @app.command("create-criteria-sequential-ring", short_help="Create Sequential Ring Criteria for a Workspace.")
 def create_criteria_sequential_ring(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the sequential ring is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the sequential ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: holidays, businessHours"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: SELECT_PHONE_NUMBERS, ANY_PHONE_NUMBER"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true` incoming calls from private numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true` incoming calls from unavailable numbers are allowed. This is only applicable when `callsFrom` is set to `SELECT_PHONE_NUMBERS`."),
@@ -2648,15 +2648,15 @@ def show_criteria_simultaneous_ring(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_SIMULTANEOUS_RING = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringEnabled":true}'
+_BODY_SKELETON_UPDATE_CRITERIA_SIMULTANEOUS_RING = '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringEnabled":true}'
 
 @app.command("update-criteria-simultaneous-ring", short_help="Modify Simultaneous Ring Criteria for a Workspace.")
 def update_criteria_simultaneous_ring(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     id: str = typer.Argument(help="Webex CRITERIA id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the simultaneous ring is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
@@ -2668,7 +2668,7 @@ def update_criteria_simultaneous_ring(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Simultaneous Ring Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-simultaneous-ring WORKSPACE_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringEnabled":true}'"""
+    """Modify Simultaneous Ring Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-simultaneous-ring WORKSPACE_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SIMULTANEOUS_RING), indent=2))
         raise typer.Exit(0)
@@ -2746,14 +2746,14 @@ def delete_criteria_simultaneous_ring(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SIMULTANEOUS_RING = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_CREATE_CRITERIA_SIMULTANEOUS_RING = '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"ringEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
 @app.command("create-criteria-simultaneous-ring", short_help="Create Simultaneous Ring Criteria for a Workspace.")
 def create_criteria_simultaneous_ring(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the simultaneous ring is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the schedule which determines when the simultaneous ring is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -2764,7 +2764,7 @@ def create_criteria_simultaneous_ring(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Simultaneous Ring Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-simultaneous-ring WORKSPACE_ID --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level GROUP --calls-from ANY_PHONE_NUMBER --ring-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","ringEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Create Simultaneous Ring Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-simultaneous-ring WORKSPACE_ID --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level GROUP --calls-from ANY_PHONE_NUMBER --ring-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"ringEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SIMULTANEOUS_RING), indent=2))
         raise typer.Exit(0)
@@ -2912,15 +2912,15 @@ def show_criteria_selective_reject(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_REJECT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"rejectEnabled":true}'
+_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_REJECT = '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"rejectEnabled":true}'
 
 @app.command("update-criteria-selective-reject", short_help="Modify Selective Reject Criteria for a Workspace.")
 def update_criteria_selective_reject(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     id: str = typer.Argument(help="Webex CRITERIA id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the selective reject is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the selective reject is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
@@ -2932,7 +2932,7 @@ def update_criteria_selective_reject(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Selective Reject Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-selective-reject WORKSPACE_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"rejectEnabled":true}'"""
+    """Modify Selective Reject Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-selective-reject WORKSPACE_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"rejectEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -3010,14 +3010,14 @@ def delete_criteria_selective_reject(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_REJECT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_REJECT = '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"rejectEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
 @app.command("create-criteria-selective-reject", short_help="Create Selective Reject Criteria for a Workspace.")
 def create_criteria_selective_reject(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the selective reject is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the schedule which determines when the selective reject is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -3028,7 +3028,7 @@ def create_criteria_selective_reject(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Selective Reject Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-selective-reject WORKSPACE_ID --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level GROUP --calls-from ANY_PHONE_NUMBER --reject-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","rejectEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Create Selective Reject Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-selective-reject WORKSPACE_ID --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level GROUP --calls-from ANY_PHONE_NUMBER --reject-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"rejectEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_REJECT), indent=2))
         raise typer.Exit(0)
@@ -3078,7 +3078,7 @@ def create_criteria_selective_reject(
 
 
 
-_BODY_SKELETON_UPDATE_NUMBERS = '{"phoneNumbers":[{"primary":true,"action":"ADD","directNumber":"...","extension":"...","ringPattern":"NORMAL"}],"distinctiveRingEnabled":true}'
+_BODY_SKELETON_UPDATE_NUMBERS = '{"phoneNumbers":[{"primary":true,"action":{},"directNumber":"...","extension":"...","ringPattern":{}}],"distinctiveRingEnabled":true}'
 
 @app.command("update-numbers", short_help="Assign or Unassign numbers associated with a specific workspace.")
 def update_numbers(
@@ -3090,7 +3090,7 @@ def update_numbers(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Assign or Unassign numbers associated with a specific workspace.\n\n\b\nExample: wxcli workspace-settings update-numbers WORKSPACE_ID --json-body '{"phoneNumbers":[{"primary":true,"action":"ADD","directNumber":"..."}]}'\n\n\b\nExample --json-body: '{"phoneNumbers":[{"primary":true,"action":"ADD","directNumber":"...","extension":"...","ringPattern":"NORMAL"}],"distinctiveRingEnabled":true}'"""
+    """Assign or Unassign numbers associated with a specific workspace.\n\n\b\nExample: wxcli workspace-settings update-numbers WORKSPACE_ID --json-body '{"phoneNumbers":[{"primary":true,"action":{},"directNumber":"..."}]}'\n\n\b\nExample --json-body: '{"phoneNumbers":[{"primary":true,"action":{},"directNumber":"...","extension":"...","ringPattern":{}}],"distinctiveRingEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_NUMBERS), indent=2))
         raise typer.Exit(0)
@@ -3219,15 +3219,15 @@ def show_criteria_selective_accept(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_ACCEPT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"acceptEnabled":true}'
+_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_ACCEPT = '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"acceptEnabled":true}'
 
 @app.command("update-criteria-selective-accept", short_help="Modify Selective Accept Criteria for a Workspace.")
 def update_criteria_selective_accept(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     id: str = typer.Argument(help="Webex CRITERIA id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the selective accept is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the selective accept is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
@@ -3239,7 +3239,7 @@ def update_criteria_selective_accept(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Selective Accept Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-selective-accept WORKSPACE_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"acceptEnabled":true}'"""
+    """Modify Selective Accept Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-selective-accept WORKSPACE_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"acceptEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_ACCEPT), indent=2))
         raise typer.Exit(0)
@@ -3317,14 +3317,14 @@ def delete_criteria_selective_accept(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_ACCEPT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_ACCEPT = '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"acceptEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
 
 @app.command("create-criteria-selective-accept", short_help="Create Selective Accept Criteria for a Workspace.")
 def create_criteria_selective_accept(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the selective accept is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the schedule which determines when the selective accept is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, FORWARDED"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
@@ -3335,7 +3335,7 @@ def create_criteria_selective_accept(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Selective Accept Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-selective-accept WORKSPACE_ID --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level GROUP --calls-from ANY_PHONE_NUMBER --accept-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","acceptEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Create Selective Accept Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-selective-accept WORKSPACE_ID --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level GROUP --calls-from ANY_PHONE_NUMBER --accept-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"acceptEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_ACCEPT), indent=2))
         raise typer.Exit(0)
@@ -3483,19 +3483,20 @@ def show_criteria_priority_alert(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_PRIORITY_ALERT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true}'
+_BODY_SKELETON_UPDATE_CRITERIA_PRIORITY_ALERT = '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true,"ringPattern":"NORMAL"}'
 
 @app.command("update-criteria-priority-alert", short_help="Modify Priority Alert Criteria for a Workspace.")
 def update_criteria_priority_alert(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     id: str = typer.Argument(help="Webex CRITERIA id"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the priority alert is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criterion. When provided with a non-empty value, `scheduleType` and `scheduleLevel` must also be provided. Set `scheduleName` to `null` or an empty string to remove the current schedule association. When no schedule is associated, the criterion is..."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers."),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable."),
-    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="When set to `true` priority alerting criteria is enabled for calls that meet the current criteria. Criteria with `notificationEnabled` set to `false` take priority."),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criterion. Required when `callsFrom` is `SELECT_PHONE_NUMBERS`; omit otherwise."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criterion. Required when `callsFrom` is `SELECT_PHONE_NUMBERS`; omit otherwise."),
+    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="Determines whether priority alerting is applied for calls matching this criterion. Omit it to preserve the current value. This field cannot be cleared with `null`. If `true`, priority alerting is applied. If `false`, this criterion acts as a 'Don't Alert' rule, preventing priority alerting...."),
+    ring_pattern: str = typer.Option(None, "--ring-pattern", help="Choices: NORMAL, LONG_LONG, SHORT_LONG_SHORT, SHORT_SHORT_LONG"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("json", "--output", "-o", help="Output format: table|json|text"),
@@ -3503,7 +3504,7 @@ def update_criteria_priority_alert(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Priority Alert Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-priority-alert WORKSPACE_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true}'"""
+    """Modify Priority Alert Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-priority-alert WORKSPACE_ID ID\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"callsFrom":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"notificationEnabled":true,"ringPattern":"NORMAL"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_PRIORITY_ALERT), indent=2))
         raise typer.Exit(0)
@@ -3531,6 +3532,8 @@ def update_criteria_priority_alert(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if notification_enabled is not None:
             body["notificationEnabled"] = notification_enabled
+        if ring_pattern is not None:
+            body["ringPattern"] = ring_pattern
     try:
         result = api.session.rest_put(url, json=body, params=params)
     except WebexError as e:
@@ -3581,25 +3584,26 @@ def delete_criteria_priority_alert(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_PRIORITY_ALERT = '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","notificationEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'
+_BODY_SKELETON_CREATE_CRITERIA_PRIORITY_ALERT = '{"callsFrom":{},"notificationEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringPattern":"NORMAL"}'
 
 @app.command("create-criteria-priority-alert", short_help="Create Priority Alert Criteria for a Workspace.")
 def create_criteria_priority_alert(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="(required) Name of the location's schedule which determines when the priority alert is in effect."),
-    schedule_type: str = typer.Option(None, "--schedule-type", help="(required) Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="(required) Choices: GROUP"),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule to be associated with the criterion. When provided with a non-empty value, `scheduleType` and `scheduleLevel` must also be provided. Omit this field or set it to an empty string to create the criterion without a schedule association. When no schedule is associated, the..."),
+    schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS"),
-    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables calls from anonymous callers. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
-    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables calls even if callers are unavailable. Value for this attribute is required if `callsFrom` is `SELECT_PHONE_NUMBERS`."),
-    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="(required) When set to `true` priority alerting criteria is enabled for calls that meet the current criteria. Criteria with `notificationEnabled` set to `false` take priority."),
+    anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="Indicates whether anonymous callers are included in this criterion. Required when `callsFrom` is `SELECT_PHONE_NUMBERS`; omit otherwise."),
+    unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="Indicates whether unavailable callers are included in this criterion. Required when `callsFrom` is `SELECT_PHONE_NUMBERS`; omit otherwise."),
+    notification_enabled: bool = typer.Option(None, "--notification-enabled/--no-notification-enabled", help="(required) Determines whether priority alerting is applied for calls matching this criterion. This field is required and cannot be `null`. If `true`, priority alerting is applied. If `false`, this criterion acts as a 'Don't Alert' rule, preventing priority alerting. Criteria with `notificationEnabled` set to..."),
+    ring_pattern: str = typer.Option(None, "--ring-pattern", help="Choices: NORMAL, LONG_LONG, SHORT_LONG_SHORT, SHORT_SHORT_LONG"),
     generate_json_body: bool = typer.Option(False, "--generate-json-body", help="Print a JSON body skeleton and exit, for use with --json-body."),
     json_body: str = typer.Option(None, "--json-body", help="Full JSON body (overrides other options). Accepts inline JSON, file://path, a path, or - for stdin."),
     output: str = typer.Option("id", "--output", "-o", help="Output format: id|table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Priority Alert Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-priority-alert WORKSPACE_ID --schedule-name SCHEDULE_NAME --schedule-type businessHours --schedule-level GROUP --calls-from ANY_PHONE_NUMBER --notification-enabled\n\n\b\nExample --json-body: '{"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","callsFrom":"ANY_PHONE_NUMBER","notificationEnabled":true,"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."]}'"""
+    """Create Priority Alert Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-priority-alert WORKSPACE_ID --calls-from ANY_PHONE_NUMBER --notification-enabled\n\n\b\nExample --json-body: '{"callsFrom":{},"notificationEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"phoneNumbers":["..."],"ringPattern":"NORMAL"}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_PRIORITY_ALERT), indent=2))
         raise typer.Exit(0)
@@ -3627,7 +3631,9 @@ def create_criteria_priority_alert(
             body["unavailableCallersEnabled"] = unavailable_callers_enabled
         if notification_enabled is not None:
             body["notificationEnabled"] = notification_enabled
-        _missing = [f for f in ['scheduleName', 'scheduleType', 'scheduleLevel', 'callsFrom', 'notificationEnabled'] if f not in body or body[f] is None]
+        if ring_pattern is not None:
+            body["ringPattern"] = ring_pattern
+        _missing = [f for f in ['callsFrom', 'notificationEnabled'] if f not in body or body[f] is None]
         if _missing:
             typer.echo("Error: Missing required fields: " + ", ".join(_missing), err=True)
             raise typer.Exit(1)
@@ -3756,7 +3762,7 @@ def show_criteria_selective_forward(
 
 
 
-_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD = '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'
+_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD = '{"callsFrom":{},"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'
 
 @app.command("update-criteria-selective-forward", short_help="Modify Selective Forward Criteria for a Workspace.")
 def update_criteria_selective_forward(
@@ -3764,9 +3770,9 @@ def update_criteria_selective_forward(
     id: str = typer.Argument(help="Webex CRITERIA id"),
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward calls to during this schedule."),
     destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option is only available for internal phone numbers or extensions."),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the selective forward is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the selective forward is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables selective forward to calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables selective forward to calls if the callers are unavailable."),
@@ -3778,7 +3784,7 @@ def update_criteria_selective_forward(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Modify Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-selective-forward WORKSPACE_ID ID --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'"""
+    """Modify Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings update-criteria-selective-forward WORKSPACE_ID ID --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"callsFrom":{},"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_CRITERIA_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -3860,16 +3866,16 @@ def delete_criteria_selective_forward(
 
 
 
-_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD = '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'
+_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD = '{"callsFrom":{},"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'
 
 @app.command("create-criteria-selective-forward", short_help="Create Selective Forward Criteria for a Workspace.")
 def create_criteria_selective_forward(
     workspace_id: str = typer.Argument(help="Webex PLACE id, from: wxcli workspaces list"),
     forward_to_phone_number: str = typer.Option(None, "--forward-to-phone-number", help="Phone number to forward calls to during this schedule."),
     destination_voicemail_enabled: bool = typer.Option(None, "--destination-voicemail-enabled/--no-destination-voicemail-enabled", help="Enables forwarding for all calls to voicemail. This option is only available for internal phone numbers or extensions."),
-    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the location's schedule which determines when the selective forward is in effect."),
+    schedule_name: str = typer.Option(None, "--schedule-name", help="Name of the schedule which determines when the selective forward is in effect."),
     schedule_type: str = typer.Option(None, "--schedule-type", help="Choices: businessHours, holidays"),
-    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP"),
+    schedule_level: str = typer.Option(None, "--schedule-level", help="Choices: GROUP, ORGANIZATION"),
     calls_from: str = typer.Option(None, "--calls-from", help="(required) Choices: ANY_PHONE_NUMBER, SELECT_PHONE_NUMBERS, ANY_INTERNAL, ANY_EXTERNAL"),
     anonymous_callers_enabled: bool = typer.Option(None, "--anonymous-callers-enabled/--no-anonymous-callers-enabled", help="When `true`, enables selective forward to calls from anonymous callers."),
     unavailable_callers_enabled: bool = typer.Option(None, "--unavailable-callers-enabled/--no-unavailable-callers-enabled", help="When `true`, enables selective forward to calls if the callers are unavailable."),
@@ -3880,7 +3886,7 @@ def create_criteria_selective_forward(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-selective-forward WORKSPACE_ID --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"callsFrom":"ANY_PHONE_NUMBER","forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":"businessHours","scheduleLevel":"GROUP","anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'"""
+    """Create Selective Forward Criteria for a Workspace.\n\n\b\nExample: wxcli workspace-settings create-criteria-selective-forward WORKSPACE_ID --calls-from ANY_PHONE_NUMBER\n\n\b\nExample --json-body: '{"callsFrom":{},"forwardToPhoneNumber":"...","destinationVoicemailEnabled":true,"scheduleName":"...","scheduleType":{},"scheduleLevel":{},"anonymousCallersEnabled":true,"unavailableCallersEnabled":true,"numbers":["..."],"forwardEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE_CRITERIA_SELECTIVE_FORWARD), indent=2))
         raise typer.Exit(0)
@@ -3970,7 +3976,7 @@ def list_available_numbers_fax_message(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Telephony Type', 'telephonyType'), ('Is Service Number', 'isServiceNumber')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Is Main Number', 'isMainNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 
 
@@ -4010,7 +4016,7 @@ def list_available_numbers_secondary(
         handle_network_error(e)
     result = result or []
     items = result.get("phoneNumbers", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('State', 'state'), ('Is Main Number', 'isMainNumber'), ('Telephony Type', 'telephonyType'), ('Is Service Number', 'isServiceNumber')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('Phone Number', 'phoneNumber'), ('Is Main Number', 'isMainNumber'), ('Is Service Number', 'isServiceNumber')], limit=limit)
 
 
 

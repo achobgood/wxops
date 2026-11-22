@@ -92,7 +92,7 @@ def show(
 
 
 
-_BODY_SKELETON_CREATE = '{"email":"...","orgPrefix":"wxc","partnerRedskyOrgId":"..."}'
+_BODY_SKELETON_CREATE = '{"email":"...","orgPrefix":{},"partnerRedskyOrgId":"..."}'
 
 @app.command("create", short_help="Create an Account and Admin in RedSky.")
 def create(
@@ -105,7 +105,7 @@ def create(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Create an Account and Admin in RedSky.\n\n\b\nExample: wxcli emergency-services create --email EMAIL\n\n\b\nExample --json-body: '{"email":"...","orgPrefix":"wxc","partnerRedskyOrgId":"..."}'"""
+    """Create an Account and Admin in RedSky.\n\n\b\nExample: wxcli emergency-services create --email EMAIL\n\n\b\nExample --json-body: '{"email":"...","orgPrefix":{},"partnerRedskyOrgId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_CREATE), indent=2))
         raise typer.Exit(0)
@@ -170,7 +170,7 @@ def show_status_red_sky(
 
 
 
-_BODY_SKELETON_UPDATE_STATUS_RED_SKY = '{"complianceStatus":"OPTED_OUT"}'
+_BODY_SKELETON_UPDATE_STATUS_RED_SKY = '{"complianceStatus":{}}'
 
 @app.command("update-status-red-sky", short_help="Update the Organization RedSky Account's Compliance Status.")
 def update_status_red_sky(
@@ -182,7 +182,7 @@ def update_status_red_sky(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update the Organization RedSky Account's Compliance Status.\n\n\b\nExample: wxcli emergency-services update-status-red-sky --compliance-status OPTED_OUT\n\n\b\nExample --json-body: '{"complianceStatus":"OPTED_OUT"}'"""
+    """Update the Organization RedSky Account's Compliance Status.\n\n\b\nExample: wxcli emergency-services update-status-red-sky --compliance-status OPTED_OUT\n\n\b\nExample --json-body: '{"complianceStatus":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STATUS_RED_SKY), indent=2))
         raise typer.Exit(0)
@@ -338,7 +338,7 @@ def show_status_red_sky_1(
 
 
 
-_BODY_SKELETON_UPDATE_STATUS_RED_SKY_1 = '{"complianceStatus":"OPTED_OUT"}'
+_BODY_SKELETON_UPDATE_STATUS_RED_SKY_1 = '{"complianceStatus":{}}'
 
 @app.command("update-status-red-sky-1", short_help="Update a Location's RedSky Compliance Status.")
 def update_status_red_sky_1(
@@ -351,7 +351,7 @@ def update_status_red_sky_1(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Location's RedSky Compliance Status.\n\n\b\nExample: wxcli emergency-services update-status-red-sky-1 LOCATION_ID --compliance-status OPTED_OUT\n\n\b\nExample --json-body: '{"complianceStatus":"OPTED_OUT"}'"""
+    """Update a Location's RedSky Compliance Status.\n\n\b\nExample: wxcli emergency-services update-status-red-sky-1 LOCATION_ID --compliance-status OPTED_OUT\n\n\b\nExample --json-body: '{"complianceStatus":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_STATUS_RED_SKY_1), indent=2))
         raise typer.Exit(0)
@@ -669,7 +669,7 @@ def show_emergency_callback_number_people(
 
 
 
-_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_PEOPLE = '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'
+_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_PEOPLE = '{"selected":{},"locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'
 
 @app.command("update-emergency-callback-number-people", short_help="Update a Person's Emergency Callback Number.")
 def update_emergency_callback_number_people(
@@ -685,7 +685,7 @@ def update_emergency_callback_number_people(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Person's Emergency Callback Number.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-people PERSON_ID\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'"""
+    """Update a Person's Emergency Callback Number.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-people PERSON_ID\n\n\b\nExample --json-body: '{"selected":{},"locationMemberId":"...","elinEnabled":true,"elinForWebexAppEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_PEOPLE), indent=2))
         raise typer.Exit(0)
@@ -772,7 +772,7 @@ def show_emergency_callback_number_workspaces(
 
 
 
-_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_WORKSPACES = '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true}'
+_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_WORKSPACES = '{"selected":{},"locationMemberId":"...","elinEnabled":true}'
 
 @app.command("update-emergency-callback-number-workspaces", short_help="Update a Workspace Emergency Callback Number.")
 def update_emergency_callback_number_workspaces(
@@ -787,7 +787,7 @@ def update_emergency_callback_number_workspaces(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Workspace Emergency Callback Number.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-workspaces WORKSPACE_ID\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","locationMemberId":"...","elinEnabled":true}'"""
+    """Update a Workspace Emergency Callback Number.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-workspaces WORKSPACE_ID\n\n\b\nExample --json-body: '{"selected":{},"locationMemberId":"...","elinEnabled":true}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_WORKSPACES), indent=2))
         raise typer.Exit(0)
@@ -896,7 +896,7 @@ def show_emergency_callback_number_virtual_lines(
 
 
 
-_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_VIRTUAL_LINES = '{"selected":"DIRECT_LINE","locationMemberId":"..."}'
+_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_VIRTUAL_LINES = '{"selected":{},"locationMemberId":"..."}'
 
 @app.command("update-emergency-callback-number-virtual-lines", short_help="Update a Virtual Line's Emergency Callback settings.")
 def update_emergency_callback_number_virtual_lines(
@@ -910,7 +910,7 @@ def update_emergency_callback_number_virtual_lines(
     verify: bool = typer.Option(False, "--verify", help="After the write, re-read the resource and report any sent field that did not take. A 2xx means accepted, not applied."),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update a Virtual Line's Emergency Callback settings.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-virtual-lines VIRTUAL_LINE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":"DIRECT_LINE","locationMemberId":"..."}'"""
+    """Update a Virtual Line's Emergency Callback settings.\n\n\b\nExample: wxcli emergency-services update-emergency-callback-number-virtual-lines VIRTUAL_LINE_ID --selected DIRECT_LINE\n\n\b\nExample --json-body: '{"selected":{},"locationMemberId":"..."}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_EMERGENCY_CALLBACK_NUMBER_VIRTUAL_LINES), indent=2))
         raise typer.Exit(0)

@@ -863,6 +863,25 @@ order has not been tested here**, so do not promise the user it will be refused 
 
 ---
 
+### Organization-Level Schedules and Schedule Usage Export
+
+> **Unverified:** (spec only, 2026-11-16) — added by the weekly spec sync; not tested live.
+> Reference: `docs/reference/location-calling-media.md` § 6.
+
+| Task | Command group | Example |
+|------|---------------|---------|
+| Business hours / holiday schedules owned by the organization, not one location | `org-wide-schedules` | `wxcli org-wide-schedules list --level ORGANIZATION` |
+| Export who and what uses one schedule, as a background job | `export-schedule-usage-jobs` | `wxcli export-schedule-usage-jobs show JOB_ID` |
+
+```bash
+wxcli org-wide-schedules create --name "Corporate Hours" --type businessHours
+```
+
+A feature picks the org schedule only when its `businessScheduleLevel` / `holidayScheduleLevel`
+is `ORGANIZATION` (`call-features-major.md` § 1 and § 4).
+
+---
+
 ### Deployment Plan Template
 
 Before executing any commands, present the full plan to the user:

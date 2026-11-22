@@ -397,6 +397,7 @@ api.session.rest_delete(f"{BASE}/telephony/config/people/{person_id}/simultaneou
 - **Criteria `scheduleName` must reference an existing schedule**, otherwise 400 `[Error 4167] The time schedule cannot be found`. `scheduleLevel` read back as `LOCATION` for a location schedule.
 - **CLI read fixed:** `wxcli user-settings list-simultaneous-ring` used to print `[]` for the object above; it now prints the whole object (Verified live 2026-10-13 after the generator fix, ADR-14).
 - The `criteria` list is excluded from the update payload. Criteria are managed via dedicated CRUD methods.
+- **`scheduleLevel` gained `ORGANIZATION`.** **Unverified:** (spec only, 2026-11-16) — on `user-settings create-criteria-simultaneous-ring` and `user-settings update-criteria-simultaneous-ring` the spec now lists `LOCATION` (schedule configured at the location level), `PEOPLE` (person level) and `ORGANIZATION` (organization level, the new `org-wide-schedules` group). Not tested live.
 
 ---
 

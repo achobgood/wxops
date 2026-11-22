@@ -111,7 +111,7 @@ def cmd_list(
         handle_network_error(e)
     result = result or []
     items = result.get("dectNetworks", result.get("data", result if isinstance(result, list) else [])) if isinstance(result, dict) else (result if isinstance(result, list) else [])
-    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Display Name', 'displayName'), ('Chain ID', 'chainId'), ('Model', 'model')], limit=limit)
+    emit(items, output=output, fields=fields, columns=[('ID', 'id'), ('Name', 'name'), ('Display Name', 'displayName'), ('Chain ID', 'chainId'), ('Default Access Code Enabled', 'defaultAccessCodeEnabled')], limit=limit)
 
 
 
@@ -229,7 +229,7 @@ def delete(
 
 
 
-_BODY_SKELETON_UPDATE_DEBUG_LEVEL = '{"debugLevel":"STANDARD"}'
+_BODY_SKELETON_UPDATE_DEBUG_LEVEL = '{"debugLevel":{}}'
 
 @app.command("update-debug-level", short_help="Update DECT Network Debug Level.")
 def update_debug_level(
@@ -242,7 +242,7 @@ def update_debug_level(
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
     debug: bool = typer.Option(False, "--debug"),
 ):
-    """Update DECT Network Debug Level.\n\n\b\nExample: wxcli dect-devices update-debug-level LOCATION_ID DECT_NETWORK_ID --debug-level STANDARD\n\n\b\nExample --json-body: '{"debugLevel":"STANDARD"}'"""
+    """Update DECT Network Debug Level.\n\n\b\nExample: wxcli dect-devices update-debug-level LOCATION_ID DECT_NETWORK_ID --debug-level STANDARD\n\n\b\nExample --json-body: '{"debugLevel":{}}'"""
     if generate_json_body:
         typer.echo(json.dumps(json.loads(_BODY_SKELETON_UPDATE_DEBUG_LEVEL), indent=2))
         raise typer.Exit(0)
