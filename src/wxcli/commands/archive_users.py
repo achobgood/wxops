@@ -16,7 +16,7 @@ def cmd_list(
     filter_param: str = typer.Option(..., "--filter", help="A SCIM-style filter expression used to search archived users. Supported attributes are `username` and `id`, and only the `eq` operator is supported. Examples: - `username eq \"test_user_1@example.com\"` - `id eq \"40929cc6-2df2-4ab5-871c-ec8e38f07b93\"`"),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    limit: int = typer.Option(0, "--limit", help="Max results. 0 (the default) returns what the one request returns; the spec declares no paging."),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),

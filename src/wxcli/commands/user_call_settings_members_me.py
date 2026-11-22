@@ -40,7 +40,7 @@ def list_voice_messages(
     line_owner_id: str = typer.Option(None, "--line-owner-id", help="The ID of a user, workspace, virtual line, auto attendant, hunt group, or call queue for which there is a secondary line on a device owned by the authenticated user, or that was shared with the authenticated user."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    limit: int = typer.Option(0, "--limit", help="Max results. 0 (the default) returns what the one request returns; the spec declares no paging."),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),
@@ -194,7 +194,7 @@ def create_mark_as_unread(
 def list_memberships(
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    limit: int = typer.Option(0, "--limit", help="Max results. 0 (the default) returns what the one request returns; the spec declares no paging."),
     offset: int = typer.Option(0, "--offset", help="Start offset"),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),

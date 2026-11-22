@@ -1514,6 +1514,28 @@ class OffsetIgnoredError(ValueError):
     turns this into a readable ERROR and exit 1 (ADR-18)."""
 
 
+def _limit_help(ep: Endpoint) -> str:
+    """`--limit` help for a list command that sends it as max/limit (not the
+    page-numbered or SCIM translations, which say what they send).
+
+    Branch-aware since 2026-11-22. The old single string, "Max results (0=all
+    for paginated endpoints, API default for non-paginated)", was true only on
+    `paginates` (Link) commands, where the default walks every page; on a list
+    that pages without a declared Link, `--limit 0` returns exactly one page, so
+    the help made its strongest promise where it did not hold (tools/CLAUDE.md,
+    "`--all` is only as good as the spec's paging declaration"). Keep the
+    "Max results" prefix: test_every_generated_list_command_accepts_all counts it.
+    """
+    if ep.paginates:
+        return ("Max results. 0 (the default) fetches every page; N switches to "
+                "one request for up to N.")
+    if ep.pagination_style in ("link", "page", "scim"):
+        return ("Max results. 0 (the default) returns one page, the server's "
+                "default size; --all fetches every page.")
+    return ("Max results. 0 (the default) returns what the one request returns; "
+            "the spec declares no paging.")
+
+
 def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
     _check_reserved_collisions(ep)
     func_name = _safe_func_name(ep.command_name)
@@ -1609,7 +1631,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
 
     params.extend(_render_output_options("table"))
     if offset_ignored:
-        params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
+        params.append(f'    limit: int = typer.Option(0, "--limit", help="{_limit_help(ep)}"),')
         slice_hint = ("Use --all and slice the output, e.g. --fields \'[2:5]\'." if walks
                       else "Slice the output instead, e.g. --fields \'[2:5]\'.")
         params.append(f'    offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, {basis}. {slice_hint}"),')
@@ -1620,7 +1642,7 @@ def _render_list_command(ep: Endpoint, folder_overrides: dict) -> str:
         params.append('    limit: int = typer.Option(0, "--limit", help="Max results, sent as the page size (count); 0 = the server default page. Ignored with --all."),')
         params.append('    offset: int = typer.Option(0, "--offset", help="Skip this many records (sent as the 1-based startIndex = offset + 1)."),')
     else:
-        params.append('    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),')
+        params.append(f'    limit: int = typer.Option(0, "--limit", help="{_limit_help(ep)}"),')
         params.append('    offset: int = typer.Option(0, "--offset", help="Start offset"),')
     # Uniform on EVERY list command, including the ones the spec calls
     # unpaginated. An option present on most commands but not all teaches a

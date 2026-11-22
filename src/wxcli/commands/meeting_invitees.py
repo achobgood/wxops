@@ -18,7 +18,7 @@ def cmd_list(
     panelist: str = typer.Option(None, "--panelist", help="Filter invitees or attendees for webinars only. If `true`, returns invitees. If `false`, returns attendees. If `null`, returns both invitees and attendees."),
     output: str = typer.Option("table", "--output", "-o", help="Output format: table|json|text"),
     fields: str = typer.Option(None, "--fields", help="JMESPath expression selecting/filtering response fields, e.g. \"[].{name:name,id:id}\""),
-    limit: int = typer.Option(0, "--limit", help="Max results (0=all for paginated endpoints, API default for non-paginated)"),
+    limit: int = typer.Option(0, "--limit", help="Max results. 0 (the default) fetches every page; N switches to one request for up to N."),
     offset: int = typer.Option(0, "--offset", help="Refused (exit 2): this endpoint ignores it, measured live. Use --all and slice the output, e.g. --fields '[2:5]'."),
     all_pages: bool = typer.Option(False, "--all", help="Fetch every page, not just the first. Overrides --limit."),
     debug: bool = typer.Option(False, "--debug"),

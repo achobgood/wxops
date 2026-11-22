@@ -1173,7 +1173,17 @@ returns 5 more hits, all of them `.../availableMembers/count` operations (3 dist
 `totalCount` is the answer the endpoint exists to give, not a paging total. Exclude
 `/count`-terminating paths or the check reports 7 and means 2.
 
-**DO THIS ON THE NEXT REGEN — `--limit`'s help string is wrong on 211 commands.**
+**DONE 2026-11-22 — `--limit`'s help is branch-aware (`command_renderer._limit_help`).** The
+339 list commands that carried the generic string now say what the default does on their
+branch: 61 Link (`paginates`) commands "0 (the default) fetches every page; N switches to one
+request for up to N"; 119 that page without a declared Link "0 (the default) returns one page,
+the server's default size; --all fetches every page"; 159 with no declared paging "0 (the
+default) returns what the one request returns; the spec declares no paging". The page-numbered
+(113) and SCIM (5) translations keep their own strings. Regen diff: only `--limit` lines (678,
+117 modules); snapshot refreshed. `--all`'s string was left as is (not wrong, only silent on
+the single-fetch default). The original finding, kept for the record:
+
+**Was: DO THIS ON THE NEXT REGEN — `--limit`'s help string is wrong on 211 commands.**
 Every list command ships one generic pair, emitted before the renderer picks a branch:
 
 ```
