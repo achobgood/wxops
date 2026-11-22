@@ -9280,6 +9280,29 @@
             },
             "description": "Device hosted meetings configuration."
           },
+          "enhancedAI": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "example": true,
+                "description": "Whether an Enhanced AI license is applied to the workspace."
+              },
+              "license": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0xJQ0VOU0UvMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExOlBSRU1BSV8yMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjI",
+                "description": "The applied Enhanced AI license. Present only when `enabled` is `true`. This is the actual applied license, including when a license was selected automatically."
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "description": "Enhanced AI licensing state. When disabled, this object contains `enabled: false` without a `license`.",
+            "example": {
+              "enabled": true,
+              "license": "Y2lzY29zcGFyazovL3VzL0xJQ0VOU0UvMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExOlBSRU1BSV8yMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjI"
+            }
+          },
           "devicePlatform": {
             "type": "string",
             "enum": [
@@ -9525,6 +9548,29 @@
             },
             "description": "To enable device hosted meetings, set a Webex `siteUrl` and the `enabled` flag to `true`."
           },
+          "enhancedAI": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "example": true,
+                "description": "Set to `true` to enable Enhanced AI or `false` to disable it and remove its license."
+              },
+              "license": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0xJQ0VOU0UvMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExOlBSRU1BSV8yMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjI",
+                "description": "This optional field lets you specify an Enhanced AI license. This is useful if you have multiple subscriptions with Enhanced AI licenses and want to choose a specific license. Omit this field to have a license automatically assigned from your available Enhanced AI licenses."
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "description": "To enable Enhanced AI on the workspace, set the enabled flag to true. This can only be applied to a Webex Calling Professional workspace, and you must have a subscription with an Enhanced AI license.",
+            "example": {
+              "enabled": true,
+              "license": "Y2lzY29zcGFyazovL3VzL0xJQ0VOU0UvMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExOlBSRU1BSV8yMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjI"
+            }
+          },
           "supportedDevices": {
             "type": "string",
             "enum": [
@@ -9685,6 +9731,29 @@
               }
             },
             "description": "To enable device hosted meetings, set a Webex `siteUrl` and the `enabled` flag to `true`."
+          },
+          "enhancedAI": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "example": true,
+                "description": "Set to `true` to enable Enhanced AI or `false` to disable it and remove its license."
+              },
+              "license": {
+                "type": "string",
+                "example": "Y2lzY29zcGFyazovL3VzL0xJQ0VOU0UvMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExOlBSRU1BSV8yMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjI",
+                "description": "An Enhanced AI license. Only Enhanced AI licenses are accepted. Specify a license to replace the current Enhanced AI license. If omitted when enabling, the existing license is retained, or a suitable license is selected automatically if none is applied. Not required when disabling."
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "description": "Enhanced AI configuration. Enabling requires a Webex Calling Professional workspace. Omit this object to leave the current configuration unchanged.",
+            "example": {
+              "enabled": true,
+              "license": "Y2lzY29zcGFyazovL3VzL0xJQ0VOU0UvMTExMTExMTEtMTExMS00MTExLTgxMTEtMTExMTExMTExMTExOlBSRU1BSV8yMjIyMjIyMi0yMjIyLTQyMjItODIyMi0yMjIyMjIyMjIyMjI"
+            }
           },
           "indoorNavigation": {
             "type": "object",

@@ -23,7 +23,11 @@ def test_triggers_on_tag_push_or_release_branch_push_only():
     trigger = wf.get("on", wf.get(True))  # 'on' may parse as the boolean True
     assert trigger["push"]["tags"] == ["v*"]
     assert trigger["push"]["branches"] == ["release/v*"]
-    assert set(trigger) == {"push"}, "two triggers = two publishes for one gh release create"
+    # No `release:` trigger: a human `gh release create` also pushes the tag, so it
+    # would publish twice. workflow_run is the unattended path (2026-11-02) and is
+    # idempotent: `decide` releases nothing once the notes' version is tagged.
+    assert set(trigger) == {"push", "workflow_run"}, "a `release:` trigger = two publishes for one gh release create"
+    assert trigger["workflow_run"] == {"workflows": ["CI"], "types": ["completed"], "branches": ["main"]}
 
 
 def test_tag_is_only_set_after_the_ref_is_resolved():
@@ -65,8 +69,10 @@ def test_release_branch_path_pushes_the_tag_before_pypi_and_cleans_up_last():
     delete = names.index("Delete the release branch")
     assert names.index("Version guard (never publish a dirty version)") < push < publish
     assert delete == len(steps) - 1
-    for i in (push, delete):
-        assert steps[i]["if"] == "github.ref_type == 'branch'"
+    assert steps[push]["if"] == "github.ref_type == 'branch'"
+    # On workflow_run, ref_type is 'branch' and REF_NAME is `main`: without the
+    # event_name guard this step would delete main.
+    assert steps[delete]["if"] == "github.event_name == 'push' && github.ref_type == 'branch'"
 
 
 def test_release_is_created_after_pypi_and_before_upload_and_is_idempotent():
@@ -162,3 +168,31 @@ def test_publish_job_grants_actions_read_for_the_ci_gate():
     assert permissions.get("actions") == "read", (
         "the CI gate reads workflow runs; without actions:read every release 403s"
     )
+
+
+def test_workflow_run_path_releases_only_an_untagged_version_from_green_main():
+    """The spec-sync sandbox may not push a release ref (auto-mode classifier,
+    2026-11-02), so a green CI run on main releases the version the notes name.
+    `decide` must require success on a push to main, read the `# vX.Y.Z ` header,
+    and name nothing when the tag exists, so every later main commit is a no-op."""
+    jobs = _load()["jobs"]
+    decide = jobs["decide"]
+    assert "github.event.workflow_run.conclusion == 'success'" in decide["if"]
+    assert "github.event.workflow_run.event == 'push'" in decide["if"]
+    assert decide["permissions"] == {"contents": "read"}
+    checkout = decide["steps"][0]
+    assert checkout["with"]["ref"] == "${{ github.event.workflow_run.head_sha }}"
+    run = decide["steps"][1]["run"]
+    assert "${{" not in run
+    assert "release-notes.md" in run and 'ls-remote --tags origin "refs/tags/$TAG"' in run
+    assert run.index("ls-remote") < run.index('tag=$TAG" >> "$GITHUB_OUTPUT"')
+    publish = jobs["publish"]
+    assert publish["needs"] == "decide"
+    assert "!cancelled()" in publish["if"] and "needs.decide.outputs.tag != ''" in publish["if"]
+    assert publish["env"]["AUTO_TAG"] == "${{ needs.decide.outputs.tag }}"
+    pub_checkout = _steps()[0]
+    assert pub_checkout["with"]["ref"] == "${{ github.event.workflow_run.head_sha || github.sha }}"
+    resolve = next(s for s in _steps() if s.get("name") == "Resolve the release tag")["run"]
+    # The auto tag goes through the same four checks as a release/v* branch.
+    assert resolve.index('TAG="$AUTO_TAG"') < resolve.index('head -1 "$NOTES"')
+    assert _load()["concurrency"] == {"group": "release", "cancel-in-progress": False}

@@ -687,6 +687,13 @@ wxcli workspaces delete <workspace_id>
 wxcli workspaces delete <workspace_id> --force
 ```
 
+- **`enhancedAI` (request body, `workspaces create` and `workspaces update`).** **Unverified:** (spec only, 2026-11-09) An object `{ "enabled": <boolean>, "license": "<license id>" }`; `enabled` is required. The spec says it can only be applied to a Webex Calling Professional workspace and needs a subscription with an Enhanced AI license. On `create`, omitting `license` has one assigned automatically from the available Enhanced AI licenses. On `update`, `enabled: false` disables Enhanced AI and removes its license; when enabling, omitting `license` keeps the existing one (or selects one if none is applied); omitting the whole object leaves the configuration unchanged. Responses carry the same object, with `license` present only when `enabled` is `true`.
+
+```bash
+# Unverified (spec only, 2026-11-09): turn on Enhanced AI for a Professional workspace
+wxcli workspaces update <workspace_id> --json-body '{"enhancedAI": {"enabled": true}}'
+```
+
 ### Workspace Settings
 
 > **License note:** Most `/telephony/config/workspaces/{id}/` settings require **Professional** license. Basic workspaces only support `musicOnHold` and `doNotDisturb` at this path. For Basic workspaces, use the `/workspaces/{id}/features/` path family (callForwarding, callWaiting, callerId, intercept, monitoring). See the [endpoint access by license tier table](#key-patterns-and-gotchas) in Gotchas for the full matrix.

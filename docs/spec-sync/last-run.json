@@ -1,10 +1,1 @@
-{
-  "date": "2026-10-12",
-  "outcome": "specs-only",
-  "sha": "dd4462bab85b119d4e6e215da5e6dc017b95b06f",
-  "version": null,
-  "groups": 192,
-  "commands": 2157,
-  "issue": null,
-  "notes": "Quiet week. update-specs: 1 of 7 specs updated (webex-cloud-calling.json, 776 -> 776 paths, +37/-3 lines) — purely additive response-schema fields: transcriptLanguage on the converged-recording object and a nested location{id,name} on the Customer Assist available-agent object, plus the matching example payloads. No paths, operations, arguments or ID kinds changed, so regeneration produced no CLI diff and the spec snapshot refresh recorded 0 structural, 0 ID-kind, 0 prose deltas; sync_classify verdict=none (added=0 removed=0 retargeted=0, groups +0/-0), so specs only, no version bump and no release. No MOVED lines from the name-lock refresh and no registry change, so rules A/B/C never triggered and no doc or routing work was owed. Pass bar clean on the first attempt, zero repairs: sync_guard 0 forbidden edits, drift_check --enforce result PASS (192 command sets / 2157 commands / 1987 non-skipped spec ops, 0 moved 0 removed 0 groups gone 0 unlocked), 4427 passed / 6 skipped, assemble.py idempotent (no _playbook diff), sync_classify --fail-on-human exit 0."
-}
+{"date": "2026-11-09", "outcome": "released", "sha": "0817354efed3a56f4a168cdf87a45dbcb44908f6", "version": "v1.11.3", "groups": 200, "commands": 2244, "issue": null, "notes": "7 specs updated; patch: 23 new commands (AA/hunt group/queue voicemail, fax availableNumbers, AI receptionist callRecordings), regenerated ai_receptionist, auto_attendant, call_queue, hunt_group, workspaces; 2 check-35 gaps documented (workspaces create/update body:enhancedAI)"}

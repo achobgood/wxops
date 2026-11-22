@@ -342,7 +342,16 @@ Checks (docs/arch/target-architecture.md §A6):
       count; a missing map is BLIND. wxcc's check 2 (every emitted URL maps to
       a spec operation) needed no port: check 1's CLI-ahead-of-spec fires on a
       planted invented URL (docs/merge/plan-2-decisions.md, Task 18).
-  35. Query-parameter enum missing from --help: a query option whose spec
+  35. A documented command's request surface the docs never mention
+      (tools/doc_gap.py): for every command a docs/reference/ file cites, each
+      request-body property, query parameter and enum value of its spec
+      operation must appear in a `## ` section that cites it. Gated only for a
+      gap absent from tools/doc_gap_baseline.json (the 2026-11-02 debt
+      snapshot, shrink-only: --refresh-doc-gap-baseline). A baseline entry
+      that is no longer a gap is ADVISORY. Closes the hole where Cisco adds a
+      field or value to an existing command and the weekly sync releases it
+      with no doc (CUSTOM_MESSAGING on `channel create`, 2026-10-13).
+  36. Query-parameter enum missing from --help: a query option whose spec
       schema resolves (through `$ref`, and `items` for an array) to an enum
       must list every value in its `help=`, compared case-insensitively.
       `parse_parameters` read `enum` off the raw schema, so `pstn
@@ -352,14 +361,14 @@ Checks (docs/arch/target-architecture.md §A6):
       guess cost a 400, and a 500 on the pstn command). An option a
       per-operation `param_help` override replaces is skipped and counted, never
       a finding. Examined = enum query options.
-  36. readOnly request property rendered as a flag: a POST/PUT/PATCH command
+  37. readOnly request property rendered as a flag: a POST/PUT/PATCH command
       must not write `body["<name>"]`, and its `--generate-json-body` skeleton
       must not carry the top-level key, for a request property that resolves
       `readOnly: true` (own schema or `$ref`). `createdTime` and
       `lastUpdatedTime` of the shared Contact Center DTOs were flags on 22
       commands; the server ignores them (audit F6, live 2026-11-10). Top level
       only. Examined = write commands with a spec op and a body.
-  37. Composed object/array body property rendered as a text flag: for every
+  38. Composed object/array body property rendered as a text flag: for every
       `body["<name>"] = <option>` write whose option is a scalar
       `typer.Option`, the spec property is resolved through `$ref`, `allOf`,
       `oneOf` and `anyOf`; one that resolves to an object or an array fires.
@@ -367,14 +376,14 @@ Checks (docs/arch/target-architecture.md §A6):
       create` offered `--default-action DEFAULT_ACTION` and its Example was
       that call (audit F2). A composed enum missing from the help is an
       ADVISORY line, never a failure. Examined = scalar body flags.
-  38. `oneOf`/`anyOf` request body read as `allOf`: for a write whose body is a
+  39. `oneOf`/`anyOf` request body read as `allOf`: for a write whose body is a
       top-level `oneOf`/`anyOf` (a) the rendered `_missing = [...]` is a subset
       of the branches' required intersection, (b) every enum that varies by
       branch is fully listed in the help, (c) the skeleton and the minimal
       Example equal `_schema_to_example` of the FIRST branch. `cc-agent-summaries
       create` required `--interaction-id` AND `--agent-ci-user-id` together and
       offered only `AGENT` (audit F3). Examined = oneOf/anyOf write commands.
-  39. Request body shape: for a POST/PUT/PATCH/DELETE whose spec body is an
+  40. Request body shape: for a POST/PUT/PATCH/DELETE whose spec body is an
       object or an array, the top-level JSON type the flag path builds
       (`body = {}`, `body = [patch_op]`, or the "JSON array" refusal) equals
       the type of the parser's RESOLVED schema; an array of JSON Patch
@@ -384,13 +393,13 @@ Checks (docs/arch/target-architecture.md §A6):
       X` sent `[{"title": "X"}]` for an object body (HTTP 400 live) and
       `cc-journey delete-person-id-workspace-id` sent `[{"value": ...}]` for an
       array of strings (audit F1). Examined = write commands with such a body.
-  40. Positional order: the `typer.Argument` parameters of a command, in
+  41. Positional order: the `typer.Argument` parameters of a command, in
       declaration order, equal the order their `{placeholders}` have in the
       command's `url = f"..."`. `cc-flow publish` took `FLOW_ID PROJECT_ID`
       for `.../project/{project_id}/flows/{flow_id}:publish` while its sibling
       `export` took `PROJECT_ID FLOW_ID` (audit F5). Pure source check, no spec.
       Examined = commands with two or more arguments that appear in the URL.
-  41. Header parameters sent: every non-transport `in: header` parameter of a
+  42. Header parameters sent: every non-transport `in: header` parameter of a
       command's spec operation (path-level included, `$ref` resolved;
       transport = Authorization, Content-Type, Accept, Content-Length,
       TrackingId) is written into `headers["<Name>"]` with every session call
@@ -5585,6 +5594,11 @@ def check_command_map(surface: dict, top_level: set, path: Path | None = None,
                            "command-map rows naming a wxcli command")
 
 
+CHECK_PRINT["35"] = (
+    "documented commands whose new request fields/values no doc section names",
+    "documented commands",
+    lambda f: f"{f['cmd']:40} {f['key'].split(' ', 2)[2]:40} {', '.join(f['docs'])}",
+)
 CHECK_PRINT["34i"] = (
     "(i) wxcc-flow / wxcc-toolkit commands in scanned docs",
     "code spans",
@@ -5598,7 +5612,7 @@ CHECK_PRINT["34ii"] = (
 
 
 
-# ----------------------------------------------------------------- check 35
+# ----------------------------------------------------------------- check 36
 
 # One rendered option per line: `name: str = typer.Option(None, "--flag", help="…")`.
 _OPTION_LINE = re.compile(
@@ -5722,12 +5736,12 @@ def check_query_enum_help(commands_dir: Path = COMMANDS_DIR,
                 "spec": ", ".join(sorted({s.spec_file for s, _, _ in missing_by_spec})),
             })
     return record_examined(
-        "35", findings, examined,
+        "36", findings, examined,
         skipped + helper_skip_count("modules", "blocks", "specs"),
         "enum query options")
 
 
-CHECK_PRINT["35"] = (
+CHECK_PRINT["36"] = (
     "query options whose --help omits a choice the spec declares",
     "enum query options",
     lambda f: (f"wxcli {f['group']} {f['command']} --{_kebab(f['param'])}"
@@ -5736,7 +5750,7 @@ CHECK_PRINT["35"] = (
                f"{' ...' if len(f['missing']) > 8 else ''}  {f['op']}  ({f['spec']})"))
 
 
-# ----------------------------------------------------------------- check 36
+# ----------------------------------------------------------------- check 37
 
 def _readonly_props(spec: dict, op: dict) -> list[str]:
     """Top-level request-body properties of `op` that resolve `readOnly: true`
@@ -5828,19 +5842,19 @@ def check_readonly_flags(commands_dir: Path = COMMANDS_DIR,
             "spec": ", ".join(sorted({s.spec_file for s in sops})),
         })
     return record_examined(
-        "36", findings, examined,
+        "37", findings, examined,
         skipped + helper_skip_count("modules", "blocks", "specs"),
         "write commands with a request body")
 
 
-CHECK_PRINT["36"] = (
+CHECK_PRINT["37"] = (
     "write commands that offer a readOnly (server-assigned) body field",
     "write commands",
     lambda f: (f"wxcli {f['group']} {f['command']}  {', '.join(f['props'])}: "
                f"{', '.join(f['defects'])}  {f['op']}  ({f['spec']})"))
 
 
-# ----------------------------------------------------------------- check 37
+# ----------------------------------------------------------------- check 38
 
 # Advisory lines a check reports but never fails on: {"NN": [finding, ...]},
 # reset by each call of the check that owns the key.
@@ -5889,7 +5903,7 @@ def check_composed_property_flags(commands_dir: Path = COMMANDS_DIR,
     declaring spec must agree (under-report rather than fail a correct
     command). ADVISORY, never gated: a property that resolves to an enum
     through composition whose option help omits a value
-    (`CHECK_ADVISORIES["37"]`). No ack key (ADR-13 rules).
+    (`CHECK_ADVISORIES["38"]`). No ack key (ADR-13 rules).
 
     Examined = body writes joined to a property the spec declares; blocks with
     no spec op are skipped and counted.
@@ -5952,21 +5966,21 @@ def check_composed_property_flags(commands_dir: Path = COMMANDS_DIR,
                 else:
                     continue
                 break
-    CHECK_ADVISORIES["37"] = advisories
+    CHECK_ADVISORIES["38"] = advisories
     return record_examined(
-        "37", findings, examined,
+        "38", findings, examined,
         skipped + helper_skip_count("modules", "blocks", "specs"),
         "scalar body flags")
 
 
-CHECK_PRINT["37"] = (
+CHECK_PRINT["38"] = (
     "composed body properties rendered as a text flag",
     "scalar body flags",
     lambda f: (f"wxcli {f['group']} {f['command']} {f['flag']}  "
                f"{f['field']} is an {f['shape']}  {f['op']}  ({f['spec']})"))
 
 
-# ----------------------------------------------------------------- check 38
+# ----------------------------------------------------------------- check 39
 
 def _schema_required(spec: dict, schema, depth: int = 0) -> list[str]:
     """`required` of a schema, `$ref` followed and `allOf` members merged."""
@@ -6136,19 +6150,19 @@ def check_oneof_bodies(commands_dir: Path = COMMANDS_DIR,
                     "kind": kind, "fields": fields,
                     "spec": ", ".join(sorted({s.spec_file for s, _ in readings}))})
     return record_examined(
-        "38", findings, examined,
+        "39", findings, examined,
         skipped + helper_skip_count("modules", "blocks", "specs"),
         "oneOf/anyOf request bodies")
 
 
-CHECK_PRINT["38"] = (
+CHECK_PRINT["39"] = (
     "oneOf/anyOf request bodies read as allOf",
     "oneOf/anyOf request bodies",
     lambda f: (f"wxcli {f['group']} {f['command']}  {f['kind']}: "
                f"{', '.join(f['fields'])}  {f['op']}  ({f['spec']})"))
 
 
-# ----------------------------------------------------------------- check 39
+# ----------------------------------------------------------------- check 40
 
 _BODY_WRITE_METHODS = ("POST", "PUT", "PATCH", "DELETE")
 # What a rendered block's flag path (the `else:` of `if json_body:`) builds.
@@ -6252,12 +6266,12 @@ def check_body_shape(commands_dir: Path = COMMANDS_DIR,
                     "fields": first["fields"],
                     "spec": ", ".join(sorted({p["spec"] for p in per_spec}))})
     return record_examined(
-        "39", findings, examined,
+        "40", findings, examined,
         skipped + helper_skip_count("modules", "blocks", "specs"),
         "request bodies")
 
 
-CHECK_PRINT["39"] = (
+CHECK_PRINT["40"] = (
     "request body shape",
     "request bodies",
     lambda f: (f"wxcli {f['group']} {f['command']}  {f['kind']}: spec declares "
@@ -6266,7 +6280,7 @@ CHECK_PRINT["39"] = (
                + f"  {f['op']}  ({f['spec']})"))
 
 
-# ----------------------------------------------------------------- check 40
+# ----------------------------------------------------------------- check 41
 
 _POSITIONAL_ARG = re.compile(r"^    (\w+)\s*:\s*[\w\[\], .|]+=\s*typer\.Argument\(", re.M)
 _URL_FSTRING_PLACEHOLDER = re.compile(r"\{(\w+)\}")
@@ -6321,12 +6335,12 @@ def check_positional_order(commands_dir: Path = COMMANDS_DIR) -> list[dict]:
                 "group": block.group, "command": block.command,
                 "arguments": bad["declared"], "url_order": bad["url"]})
     return record_examined(
-        "40", findings, examined,
+        "41", findings, examined,
         skipped + helper_skip_count("modules", "blocks"),
         "multi-argument commands")
 
 
-CHECK_PRINT["40"] = (
+CHECK_PRINT["41"] = (
     "positional order vs URL",
     "multi-argument commands",
     lambda f: (f"wxcli {f['group']} {f['command']}  arguments "
@@ -6334,7 +6348,7 @@ CHECK_PRINT["40"] = (
                f"URL order {' '.join(a.upper() for a in f['url_order'])}"))
 
 
-# ----------------------------------------------------------------- check 41
+# ----------------------------------------------------------------- check 42
 
 # The two operations whose OPTIONAL `X-ORGANIZATION-ID` header is deliberately
 # not rendered: the call already returns the same 200 without it, so an option
@@ -6396,7 +6410,7 @@ def check_header_params(commands_dir: Path = COMMANDS_DIR,
           `HEADER_OPTIONAL_ORG_EXCEPTIONS`.
 
     Anything else is `dropped`. Every declaring spec must fail for a finding
-    (as checks 37-39). The exceptions are re-validated: an entry no spec op
+    (as checks 38-40). The exceptions are re-validated: an entry no spec op
     matches with an optional X-ORGANIZATION-ID is `stale-exception`. No ack
     key (ADR-13 rules). Examined = blocks whose spec op declares a
     non-transport header; a block with no spec op is skipped and counted.
@@ -6450,12 +6464,12 @@ def check_header_params(commands_dir: Path = COMMANDS_DIR,
                 "headers": ["X-ORGANIZATION-ID"], "op": f"{method} {path}",
                 "spec": why})
     return record_examined(
-        "41", findings, examined,
+        "42", findings, examined,
         skipped + helper_skip_count("modules", "blocks", "specs"),
         "header-bearing commands")
 
 
-CHECK_PRINT["41"] = (
+CHECK_PRINT["42"] = (
     "header parameters sent",
     "header-bearing commands",
     lambda f: (f"wxcli {f['group']} {f['command']}  {f['kind']}: "
@@ -7356,6 +7370,9 @@ def main() -> int:
                              "additive — refuses if a locked name moved")
     parser.add_argument("--force", action="store_true",
                         help="with --refresh-name-lock: accept moved/removed names")
+    parser.add_argument("--refresh-doc-gap-baseline", action="store_true",
+                        help="shrink tools/doc_gap_baseline.json (check 35) to the gaps "
+                             "that still exist; refuses to add one unless --force")
     parser.add_argument("--name-lock-diff", metavar="DIR",
                         help="compare a rendered commands directory against the lock "
                              "and print what moved; exits 1 if anything did")
@@ -7365,6 +7382,9 @@ def main() -> int:
         return refresh_spec_snapshot()
     if args.refresh_name_lock:
         return refresh_name_lock(force=args.force)
+    if args.refresh_doc_gap_baseline:
+        from tools import doc_gap  # noqa: PLC0415
+        return doc_gap.refresh_baseline(force=args.force)
     if args.name_lock_diff:
         d = Path(args.name_lock_diff)
         stems = sorted(p.stem for p in d.glob("*.py") if not p.stem.startswith("_"))
@@ -7441,6 +7461,8 @@ def main() -> int:
     command_map_present = (REPO / COMMAND_MAP).is_file()
     command_map_unresolved = (check_command_map(surface, top_level)
                               if command_map_present else [])
+    from tools import doc_gap  # noqa: PLC0415 — doc_gap imports this module lazily
+    doc_gaps, doc_gaps_closed = doc_gap.check_doc_gaps(sys.modules[__name__])
     query_enum_help = check_query_enum_help()
     readonly_flags = check_readonly_flags()
     composed_flags = check_composed_property_flags()
@@ -7506,14 +7528,16 @@ def main() -> int:
         "33_paging_advice": paging_advice,
         "34_legacy_cli_tokens": legacy_cli_tokens,
         "34_command_map_unresolved": command_map_unresolved,
-        "35_query_enum_help": query_enum_help,
-        "36_readonly_flags": readonly_flags,
-        "37_composed_property_flags": composed_flags,
-        "37_composed_enum_advisory": CHECK_ADVISORIES.get("37", []),
-        "38_oneof_bodies": oneof_bodies,
-        "39_body_shape": body_shape,
-        "40_positional_order": positional_order,
-        "41_header_params": header_params,
+        "35_doc_gaps": doc_gaps,
+        "35_doc_gaps_closed_advisory": doc_gaps_closed,
+        "36_query_enum_help": query_enum_help,
+        "37_readonly_flags": readonly_flags,
+        "38_composed_property_flags": composed_flags,
+        "38_composed_enum_advisory": CHECK_ADVISORIES.get("38", []),
+        "39_oneof_bodies": oneof_bodies,
+        "40_body_shape": body_shape,
+        "41_positional_order": positional_order,
+        "42_header_params": header_params,
     }
     failed = bool(parity["missing_from_cli"] or parity["cli_ahead_of_spec"]
                   or dead_refs or count_mismatches or unreferenced
@@ -7536,6 +7560,7 @@ def main() -> int:
                   or list_drops_object_fields or query_body_findings
                   or paging_advice
                   or legacy_cli_tokens or command_map_unresolved
+                  or doc_gaps
                   or query_enum_help or readonly_flags
                   or composed_flags or oneof_bodies or body_shape
                   or positional_order or header_params)
@@ -7790,22 +7815,27 @@ def main() -> int:
         else:
             print(f"[34] (ii) command-map rows: not checked "
                   f"({COMMAND_MAP.as_posix()} is not in this tree)")
-        print_check_findings("35", query_enum_help)
-        print_check_findings("36", readonly_flags)
-        print_check_findings("37", composed_flags)
-        advisory_37 = CHECK_ADVISORIES.get("37", [])
-        if advisory_37:
-            print(f"[37] ADVISORY — composed enum missing from --help: "
-                  f"{len(advisory_37)}   (not gated)")
-            for f in advisory_37[:10]:
+        print_check_findings("35", doc_gaps,
+                             note=f"({len(doc_gap.load_baseline())} in the baseline)")
+        print(f"[35] ADVISORY — baseline gaps now closed: {len(doc_gaps_closed)}"
+              + ("   (shrink it: python -m tools.drift_check "
+                 "--refresh-doc-gap-baseline)" if doc_gaps_closed else ""))
+        print_check_findings("36", query_enum_help)
+        print_check_findings("37", readonly_flags)
+        print_check_findings("38", composed_flags)
+        advisory_38 = CHECK_ADVISORIES.get("38", [])
+        if advisory_38:
+            print(f"[38] ADVISORY — composed enum missing from --help: "
+                  f"{len(advisory_38)}   (not gated)")
+            for f in advisory_38[:10]:
                 print(f"      wxcli {f['group']} {f['command']} {f['flag']}  "
                       f"missing: {', '.join(f['missing'][:8])}  ({f['spec']})")
-            if len(advisory_37) > 10:
-                print(f"      ... and {len(advisory_37) - 10} more (--json for all)")
-        print_check_findings("38", oneof_bodies)
-        print_check_findings("39", body_shape)
-        print_check_findings("40", positional_order)
-        print_check_findings("41", header_params)
+            if len(advisory_38) > 10:
+                print(f"      ... and {len(advisory_38) - 10} more (--json for all)")
+        print_check_findings("39", oneof_bodies)
+        print_check_findings("40", body_shape)
+        print_check_findings("41", positional_order)
+        print_check_findings("42", header_params)
         print(f"\nresult: {'FAIL' if failed else 'PASS'}"
               f"{' (advisory — not enforcing)' if failed and not args.enforce else ''}")
 

@@ -239,9 +239,9 @@ def test_lifecycle_lock_unlock_copy_publish(make_flow, project_id, tmp_path):
     finally:
         if copy_id:
             _delete(project_id, copy_id)
-    # Map row 14: wxcc's `publish` skipped validation, and `cc-flow publish`
-    # validates unless given `--skip-validation true` (P2-3).
-    pub = run_cli("cc-flow", "publish", project_id, fid, "--skip-validation", "true")
+    # Map row 14: wxcc's `publish` skipped validation; `cc-flow publish`
+    # always validates since upstream dropped skipValidation (2026-10-26).
+    pub = run_cli("cc-flow", "publish", project_id, fid)
     print(f"lifecycle publish exit={pub.code}: {pub.combined[:160]}")
     assert "Traceback" not in pub.combined
 

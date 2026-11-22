@@ -1,4 +1,4 @@
-"""Drift gate check 38: a `oneOf`/`anyOf` request body read as if it were `allOf`.
+"""Drift gate check 39: a `oneOf`/`anyOf` request body read as if it were `allOf`.
 
 `_resolve_schema_node` merged the branches of a top-level `oneOf` body with
 `dict.update` and concatenated their `required` lists, so `cc-agent-summaries
@@ -119,7 +119,7 @@ def tree(tmp_path):
 
 def test_correct_block_is_clean(tree):
     assert tree(_block(), _spec()) == []
-    assert drift_check.CHECK_EXAMINED["38"] == {"examined": 1, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 1, "skipped": 0}
 
 
 def test_required_union_fires_a(tree):
@@ -196,18 +196,18 @@ def test_allof_body_is_not_examined(tree):
     schema["allOf"] = schema.pop("oneOf")
     findings = tree(_block(missing=("orgId", "interactionId")), spec)
     assert findings and "error" in findings[0]          # BLIND: examined 0
-    assert drift_check.CHECK_EXAMINED["38"]["examined"] == 0
+    assert drift_check.CHECK_EXAMINED["39"]["examined"] == 0
 
 
 def test_get_blocks_are_not_examined(tree):
     findings = tree(_block(method_call="rest_get"), _spec(method="get"))
     assert findings and "error" in findings[0]
-    assert drift_check.CHECK_EXAMINED["38"]["examined"] == 0
+    assert drift_check.CHECK_EXAMINED["39"]["examined"] == 0
 
 
 def test_block_with_no_spec_op_is_skipped_and_counted(tree):
     findings = tree(_block(), _spec(path="/elsewhere"))
-    assert drift_check.CHECK_EXAMINED["38"] == {"examined": 0, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 0, "skipped": 1}
     assert len(findings) == 1 and "error" in findings[0]
 
 
@@ -222,16 +222,16 @@ def test_enum_that_does_not_vary_is_not_required_in_help(tree):
 # --------------------------------------------------------- registered + safe
 
 def test_registered_for_printing_and_never_raises(capsys):
-    assert "38" in drift_check.CHECK_PRINT
-    drift_check.CHECK_EXAMINED["38"] = {"examined": 3, "skipped": 0}
-    drift_check.print_check_findings("38", [{"bogus": 1}])
+    assert "39" in drift_check.CHECK_PRINT
+    drift_check.CHECK_EXAMINED["39"] = {"examined": 3, "skipped": 0}
+    drift_check.print_check_findings("39", [{"bogus": 1}])
     out = capsys.readouterr().out
-    assert out.startswith("[38] ") and "FORMAT-ERROR" in out
+    assert out.startswith("[39] ") and "FORMAT-ERROR" in out
 
 
 def test_printed_line_names_the_command_and_kind(capsys, tree):
     drift_check.print_check_findings(
-        "38", tree(_block(missing=("orgId", "interactionId")), _spec()))
+        "39", tree(_block(missing=("orgId", "interactionId")), _spec()))
     out = capsys.readouterr().out
     assert "wxcli zz-probe create" in out and "required" in out
 
@@ -257,5 +257,5 @@ def test_enforce_exit_follows_a_planted_defect(monkeypatch, capsys, tree,
         monkeypatch.setattr(drift_check, other, lambda *a, **k: [])
     assert drift_check.main() == expected_exit
     out = capsys.readouterr().out
-    assert "[38] oneOf/anyOf request bodies" in out
+    assert "[39] oneOf/anyOf request bodies" in out
     assert ("FAIL" if expected_exit else "PASS") in out.splitlines()[-1]

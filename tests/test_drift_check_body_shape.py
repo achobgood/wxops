@@ -1,4 +1,4 @@
-"""Drift gate check 39: the top-level JSON type a command's flag path sends must
+"""Drift gate check 40: the top-level JSON type a command's flag path sends must
 be the type the spec's request body declares (audit F1).
 
 `openapi_parser.parse_operation` chose the patch-array renderer from the media
@@ -100,7 +100,7 @@ def tree(tmp_path):
 
 def test_object_body_built_as_object_is_clean(tree):
     assert tree(_block("object"), _spec(OBJECT)) == []
-    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 1, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["40"] == {"examined": 1, "skipped": 0}
 
 
 def test_object_body_wrapped_in_an_array_fires(tree):
@@ -124,7 +124,7 @@ def test_array_of_strings_wrapped_as_a_patch_op_fires(tree):
 
 def test_array_body_refusing_without_json_body_is_clean(tree):
     assert tree(_block("array_refusal"), _spec(STRINGS)) == []
-    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 1, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["40"] == {"examined": 1, "skipped": 0}
 
 
 def test_array_body_built_as_an_object_fires(tree):
@@ -150,7 +150,7 @@ def test_declared_type_comes_from_the_resolved_schema_not_the_raw_one(tree):
 
 def test_op_array_with_every_required_item_key_flagged_is_clean(tree):
     assert tree(_block("patch"), _spec(OP_ARRAY)) == []
-    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 1, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["40"] == {"examined": 1, "skipped": 0}
 
 
 def test_op_array_whose_required_item_key_has_no_flag_fires(tree):
@@ -170,7 +170,7 @@ def test_op_array_flag_path_that_builds_an_object_fires_the_type_rule(tree):
 
 def test_single_patch_op_is_skipped_and_counted(tree):
     findings = tree(_block("patch"), _spec(PATCH_OP))
-    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 0, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["40"] == {"examined": 0, "skipped": 1}
     assert findings and "error" in findings[0]          # BLIND: examined 0
 
 
@@ -178,17 +178,17 @@ def test_string_and_untyped_bodies_are_skipped_and_counted(tree):
     for schema in ({"type": "string"}, {}):
         tree(_block("object", method_call="rest_post", command="create"),
              _spec(schema, method="post", content_type="application/json"))
-        assert drift_check.CHECK_EXAMINED["39"] == {"examined": 0, "skipped": 1}, schema
+        assert drift_check.CHECK_EXAMINED["40"] == {"examined": 0, "skipped": 1}, schema
 
 
 def test_block_with_no_recognised_flag_path_is_skipped(tree):
     tree(_block("none"), _spec(OBJECT))
-    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 0, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["40"] == {"examined": 0, "skipped": 1}
 
 
 def test_block_with_no_spec_op_is_skipped_and_counted(tree):
     findings = tree(_block("object"), _spec(OBJECT, path="/elsewhere"))
-    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 0, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["40"] == {"examined": 0, "skipped": 1}
     assert len(findings) == 1 and "error" in findings[0]
 
 
@@ -197,13 +197,13 @@ def test_operation_with_no_body_is_not_examined(tree):
     del spec["paths"][PATH]["patch"]["requestBody"]
     findings = tree(_block("patch"), spec)
     assert findings and "error" in findings[0]
-    assert drift_check.CHECK_EXAMINED["39"] == {"examined": 0, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["40"] == {"examined": 0, "skipped": 0}
 
 
 def test_get_blocks_are_not_examined(tree):
     findings = tree(_block("object", method_call="rest_get"), _spec(OBJECT, method="get"))
     assert findings and "error" in findings[0]
-    assert drift_check.CHECK_EXAMINED["39"]["examined"] == 0
+    assert drift_check.CHECK_EXAMINED["40"]["examined"] == 0
 
 
 def test_put_post_and_delete_are_examined(tree):
@@ -221,15 +221,15 @@ def test_two_specs_that_disagree_do_not_fire(tree):
 # --------------------------------------------------------- registered + safe
 
 def test_registered_for_printing_and_never_raises(capsys):
-    assert "39" in drift_check.CHECK_PRINT
-    drift_check.CHECK_EXAMINED["39"] = {"examined": 3, "skipped": 0}
-    drift_check.print_check_findings("39", [{"bogus": 1}])
+    assert "40" in drift_check.CHECK_PRINT
+    drift_check.CHECK_EXAMINED["40"] = {"examined": 3, "skipped": 0}
+    drift_check.print_check_findings("40", [{"bogus": 1}])
     out = capsys.readouterr().out
-    assert out.startswith("[39] ") and "FORMAT-ERROR" in out
+    assert out.startswith("[40] ") and "FORMAT-ERROR" in out
 
 
 def test_printed_line_names_the_command_and_both_types(capsys, tree):
-    drift_check.print_check_findings("39", tree(_block("patch"), _spec(OBJECT)))
+    drift_check.print_check_findings("40", tree(_block("patch"), _spec(OBJECT)))
     out = capsys.readouterr().out
     assert "wxcli zz-probe update" in out
     assert "object" in out and "array" in out
@@ -256,5 +256,5 @@ def test_enforce_exit_follows_a_planted_defect(monkeypatch, capsys, tree,
         monkeypatch.setattr(drift_check, other, lambda *a, **k: [])
     assert drift_check.main() == expected_exit
     out = capsys.readouterr().out
-    assert "[39] request body shape" in out
+    assert "[40] request body shape" in out
     assert ("FAIL" if expected_exit else "PASS") in out.splitlines()[-1]

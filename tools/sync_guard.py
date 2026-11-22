@@ -34,6 +34,8 @@ CONTRACT = REPO / "docs" / "spec-sync-contract.md"
 FORBIDDEN_PATHS: tuple[str, ...] = (
     "tools/drift_check.py",
     "tools/drift_check_allowlist.txt",
+    "tools/doc_gap.py",              # drift check 35's rule
+    "tools/doc_gap_baseline.json",   # check 35's debt snapshot: a run clears a gap by writing the doc
     "tools/sync_guard.py",
     "tools/sync_classify.py",
     "tools/sync_version.py",
@@ -44,7 +46,6 @@ FORBIDDEN_PATHS: tuple[str, ...] = (
     "tools/update-specs.py",
     ".github/workflows/",
     "docs/spec-sync-contract.md",
-    "tests/",
     "tools/sync_*.py",
 )
 # The check is deny-by-default off ALLOWED_YAML_KEYS: every top-level key NOT in

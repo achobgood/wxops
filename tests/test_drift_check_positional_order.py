@@ -1,4 +1,4 @@
-"""Drift gate check 40: a command's positional arguments must follow the URL
+"""Drift gate check 41: a command's positional arguments must follow the URL
 (audit F5).
 
 The renderer took each operation's positional path IDs in the order the spec
@@ -88,46 +88,46 @@ def test_a_paged_walker_with_two_urls_fires_when_either_disagrees(tree):
 
 
 def test_single_argument_is_skipped_and_counted(tree):
-    drift_check.CHECK_EXAMINED.pop("40", None)
+    drift_check.CHECK_EXAMINED.pop("41", None)
     # alone it examines nothing, which the gate reports as BLIND, never as 0
     found = tree(_block(["flow_id"], "flows/{flow_id}"))
-    assert [f.get("check") for f in found] == ["40"] and "error" in found[0]
-    assert drift_check.CHECK_EXAMINED["40"]["examined"] == 0
-    assert drift_check.CHECK_EXAMINED["40"]["skipped"] >= 1
+    assert [f.get("check") for f in found] == ["41"] and "error" in found[0]
+    assert drift_check.CHECK_EXAMINED["41"]["examined"] == 0
+    assert drift_check.CHECK_EXAMINED["41"]["skipped"] >= 1
     # beside one judged command, the single-argument one is skipped, not a finding
     src = (_block(["flow_id"], "flows/{flow_id}", command="show")
            + _block(["project_id", "flow_id"], URL))
     assert tree(src) == []
-    assert drift_check.CHECK_EXAMINED["40"] == {
-        **drift_check.CHECK_EXAMINED["40"], "examined": 1, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["41"] == {
+        **drift_check.CHECK_EXAMINED["41"], "examined": 1, "skipped": 1}
 
 
 def test_examined_counts_judged_commands(tree):
-    drift_check.CHECK_EXAMINED.pop("40", None)
+    drift_check.CHECK_EXAMINED.pop("41", None)
     src = (_block(["project_id", "flow_id"], URL, command="publish")
            + _block(["flow_id", "project_id"], URL, command="lock"))
     found = tree(src)
-    assert drift_check.CHECK_EXAMINED["40"]["examined"] == 2
+    assert drift_check.CHECK_EXAMINED["41"]["examined"] == 2
     assert [f["command"] for f in found] == ["lock"]
 
 
 def test_live_tree_is_not_blind():
     """The shipped modules must give the check something to examine."""
     drift_check.check_positional_order()
-    assert drift_check.CHECK_EXAMINED["40"]["examined"] > 100
+    assert drift_check.CHECK_EXAMINED["41"]["examined"] > 100
 
 
 def test_registered_for_printing_and_never_raises(capsys):
-    assert "40" in drift_check.CHECK_PRINT
-    drift_check.CHECK_EXAMINED["40"] = {"examined": 3, "skipped": 0}
-    drift_check.print_check_findings("40", [{"bogus": 1}])
+    assert "41" in drift_check.CHECK_PRINT
+    drift_check.CHECK_EXAMINED["41"] = {"examined": 3, "skipped": 0}
+    drift_check.print_check_findings("41", [{"bogus": 1}])
     out = capsys.readouterr().out
-    assert out.startswith("[40] ") and "FORMAT-ERROR" in out
+    assert out.startswith("[41] ") and "FORMAT-ERROR" in out
 
 
 def test_printed_line_names_the_command_and_both_orders(capsys, tree):
     drift_check.print_check_findings(
-        "40", tree(_block(["flow_id", "project_id"], URL)))
+        "41", tree(_block(["flow_id", "project_id"], URL)))
     out = capsys.readouterr().out
     assert "wxcli zz-probe publish" in out
     assert "FLOW_ID PROJECT_ID" in out and "PROJECT_ID FLOW_ID" in out
@@ -153,5 +153,5 @@ def test_enforce_exit_follows_a_planted_defect(monkeypatch, capsys, tree,
         monkeypatch.setattr(drift_check, other, lambda *a, **k: [])
     assert drift_check.main() == expected_exit
     out = capsys.readouterr().out
-    assert "[40] positional order vs URL" in out
+    assert "[41] positional order vs URL" in out
     assert ("FAIL" if expected_exit else "PASS") in out.splitlines()[-1]

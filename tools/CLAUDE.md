@@ -116,7 +116,7 @@ Read this before running `spec_sync.py` against a refreshed spec. It exists beca
 | Old name kept as a hidden alias whenever a rename lands | `original_command_name` |
 | List/dict table cells render without dropping data | `output._render_cell` |
 
-**GATED — if it recurs, a check fails and tells you.** Checks 1-41 in `drift_check.py`'s header,
+**GATED — if it recurs, a check fails and tells you.** Checks 1-42 in `drift_check.py`'s header,
 plus `verb_semantics_ack` (hard-fails a destructive op whose name gives no hint) and the
 stale-`command_name_overrides` guard. A spec conflict on a shared path fails check 9 until
 someone pins `spec_authority` with evidence.
@@ -383,13 +383,49 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   name the new command.
 - The two halves print as two `[34]` lines (`CHECK_EXAMINED` keys `34i`/`34ii`;
   `print_check_findings(..., heading="[34]")`), each with its own examined count. CI's
-  completion assertion greps the highest-numbered check (`^\[41\]` since 2026-11-10). Tests: `tests/wxcc/test_drift_check.py`
+  completion assertion greps the highest-numbered check (`^\[42\]` since 2026-11-22). Tests: `tests/wxcc/test_drift_check.py`
   (`TestLegacyCliCheck`: a planted fixture fires and a clean control does not, for each half).
   Proven on the live tree too: a planted `` `wxcc-flow list --type SUBFLOW` `` in
   `contact-center-routing.md` and a map row renamed to `cc-flow-versions show-newest` each
   made the gate FAIL with one finding.
 
-- **[35] A query option whose `--help` omits a choice the spec declares** (audit F7,
+**GATED SINCE 2026-11-02 — check 35 (`tools/doc_gap.py`).** Checks 19 and 20 left a hole
+between them: check 19 sees that Cisco added a field or enum value, check 20 sees a group with
+no doc, and nothing asked whether a field added to an **already-documented** command ever
+reached its doc. So the weekly routine regenerated and released it silently: `channel create`
+gained `CUSTOM_MESSAGING` and a required `messagingPolicy` by the 2026-10-13 sync while
+`contact-center-routing.md` § 15 kept listing four channel types.
+
+- **What it reads.** Every `wxcli <group> <command>` a `docs/reference/` file cites (the shared
+  `command_heads` reader), the spec operation that block renders, and that operation's request
+  surface: top-level body properties (allOf/oneOf/anyOf merged; a lifted query body counts as the
+  body, ADR-16; a CC bulk-save `{items:[{requestAction, item}]}` is judged by its `item` DTO),
+  query parameters minus the org-id/paging names the CLI owns, and the enum values of both.
+  readOnly properties, read-only prose and server timestamps are not asked of a doc.
+- **Covered** = the name, its `--kebab-flag` form, or the enum value appears in a `## ` section
+  that cites the command. **Section, not file:** `CUSTOM_MESSAGING` listed under Assets does not
+  cover `channel create` under Channels; file-level matching hid exactly that case in the first
+  draft.
+- **The baseline is a debt snapshot** (`tools/doc_gap_baseline.json`, 1,492 gaps on 2026-11-02
+  over 1,377 documented commands): gated = a gap NOT in it; a baseline entry no longer a gap is
+  ADVISORY. `--refresh-doc-gap-baseline` is shrink-only and refuses to add without `--force`.
+  Both files are in `sync_guard.FORBIDDEN_PATHS`; the routine clears a new gap by writing the
+  doc (contract § 2 E), in pure-addition hunks, labelled Unverified.
+- **Proven by mutation on the live tree:** renaming `agentACDState` in `call-features-major.md`
+  made the gate FAIL with exactly one finding; restoring it passed. Tests:
+  `tests/test_drift_check_doc_gaps.py` (fires / baseline suppresses / doc mention clears /
+  other-section mention does not count / refresh is shrink-only / live-tree floor).
+- **Known false-positive class:** a body property the server sets but the spec does not mark
+  readOnly (`numberOfAsset` on channels). Widen `_SERVER_OWNED_BODY` in a reviewed commit with
+  the evidence; never baseline a new one with `--force` to quiet the gate.
+
+**GATED SINCE 2026-11-10 — checks 36-42 (generator audit F1-F7).** Numbered 35-41 when they
+landed; renumbered on 2026-11-22, when the merge with `origin/main` brought the doc-gap check
+above, which had taken 35 on 2026-11-02 and which the weekly routine's notes already cite. The
+dated audit records under `docs/audit/` and `docs/plans/` keep the old numbers. Like checks
+23-34, none has an ack, allowlist or exemption key.
+
+- **[36] A query option whose `--help` omits a choice the spec declares** (audit F7,
   2026-11-10). The parameter's schema is resolved through `$ref` and, for `type: array`,
   `items` (the gate's own copy, `_param_enum`); every enum value must appear in the option's
   `help=`, compared case-insensitively. Options with no flag (auto-injected, unified paging)
@@ -398,26 +434,26 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   enum query options (97 on the tree at landing, 5 skipped). **To clear:** fix
   `openapi_parser._resolve_param_schema` / `command_renderer._enum_help`, regen. No ack key.
   Tests: `tests/test_drift_check_query_enum.py`.
-- **[36] A write command that offers a `readOnly` body field** (audit F6, 2026-11-10). For each
+- **[37] A write command that offers a `readOnly` body field** (audit F6, 2026-11-10). For each
   POST/PUT/PATCH block with a spec op, a top-level request property that resolves
   `readOnly: true` (own schema or `$ref`; every declaring spec must agree) must not be written
   as `body["<name>"]` and must not be a top-level key of the command's
   `_BODY_SKELETON_<FUNCTION>`. Top level only. Examined = write commands with a spec op and a
   body (790 at landing). **To clear:** fix `openapi_parser._without_readonly_properties`,
   regen. No ack key. Tests: `tests/test_drift_check_readonly.py`.
-- **[37] A composed object/array body property rendered as a text flag** (audit F2,
+- **[38] A composed object/array body property rendered as a text flag** (audit F2,
   2026-11-10). For every `body["<name>"] = <param>` write whose `<param>` is a scalar
   `typer.Option` (POST/PUT/PATCH blocks with a spec op), the spec property is resolved through
   `$ref`, `allOf`, `oneOf` and `anyOf` (`_composed_shape`; a `oneOf`/`anyOf` body is read
   across its branches); one that resolves to an object or an array fires. Every declaring spec
   must agree. **ADVISORY, never gated:** a property that resolves to an enum through
-  composition whose option help omits a value (`CHECK_ADVISORIES["37"]`, printed as
-  `[37] ADVISORY`). `field_shape` (checks 13/14) now resolves composition too. Examined =
+  composition whose option help omits a value (`CHECK_ADVISORIES["38"]`, printed as
+  `[38] ADVISORY`). `field_shape` (checks 13/14) now resolves composition too. Examined =
   scalar body flags (3,275 at landing). Run against the pre-fix modules it fires 6 (the six
   object fields of `ai-receptionist create`/`update`) and lists 5 advisories (the five scalar
   enums). **To clear:** fix `openapi_parser._resolve_property_schema` / `parse_request_body`,
   regen. No ack key. Tests: `tests/test_drift_check_composed.py`.
-- **[38] A `oneOf`/`anyOf` request body read as `allOf`** (audit F3, 2026-11-10). For a write
+- **[39] A `oneOf`/`anyOf` request body read as `allOf`** (audit F3, 2026-11-10). For a write
   whose spec body is a top-level `oneOf`/`anyOf`: (a) `kind: required` — the rendered
   `_missing = [...]` is a subset of the branches' required intersection (plus the body's own);
   (b) `kind: enum` — every enum that varies by branch is fully listed in that option's help
@@ -427,7 +463,7 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   `cc-tasks create-tasks`, `create-messages`). Run against the pre-fix modules it fires 10.
   **To clear:** fix `openapi_parser._merge_alternatives` / `_request_body_schema`, regen. No
   ack key. Tests: `tests/test_drift_check_oneof.py`.
-- **[39] A flag path that builds a different top-level JSON type than the spec's body**
+- **[40] A flag path that builds a different top-level JSON type than the spec's body**
   (audit F1, 2026-11-10). For a POST/PUT/PATCH/DELETE block with a spec op whose body is an
   object or an array: what the flag path builds (`body = {}` an object; `body = [patch_op]`
   an array; the "JSON array" refusal an array that only `--json-body` supplies) must equal
@@ -442,7 +478,7 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   `openapi_parser._classify_body` / the renderer's `wrap_patch` and `_array_body_build`,
   regen. No ack key. Tests: `tests/test_drift_check_body_shape.py`.
 
-- **[40] A command's positional arguments contradict its URL** (audit F5, 2026-11-10). For
+- **[41] A command's positional arguments contradict its URL** (audit F5, 2026-11-10). For
   every command block with two or more `typer.Argument` parameters that also appear as
   `{name}` in a `url = f"..."` of the block, the arguments' declaration order must equal the
   order of their placeholders in that URL. Pure source check, no spec read; an argument the URL
@@ -454,7 +490,7 @@ Like checks 23-33 it has no ack, allowlist or exemption key.
   `command_renderer._order_path_vars_by_url`, regen. No ack key. Tests:
   `tests/test_drift_check_positional_order.py`.
 
-- **[41] An `in: header` spec parameter the command does not send** (audit F4, 2026-11-10). For
+- **[42] An `in: header` spec parameter the command does not send** (audit F4, 2026-11-10). For
   every block with a spec op, each header outside the transport set (Authorization, Content-Type,
   Accept, Content-Length, TrackingId; `openapi_parser.TRANSPORT_HEADERS`, path-level included,
   `$ref` resolved) must be written as `headers["<Name>"] = …` with every session call in the block
@@ -1799,7 +1835,7 @@ run on a spec contradiction.
 refresh that drops a key the live API still accepts fails the gate, and the only way out is
 a human doc edit. The widening rules above soften this; they do not remove it.
 
-### Query-parameter enums through `$ref`/`items`, and `readOnly` body fields (2026-11-10, audit F7 and F6, checks 35-36)
+### Query-parameter enums through `$ref`/`items`, and `readOnly` body fields (2026-11-10, audit F7 and F6, checks 36-37)
 
 **F7.** `parse_parameters` read `enum` and `type` off the raw query schema. It now calls
 `_resolve_param_schema` (follow `$ref`; for `type: array` return the resolved `items` with
@@ -1829,7 +1865,7 @@ so the flags did nothing. **Spec only** for the other 21.
 **Compile guard.** `generate_tag` now `compile()`s each rendered module before writing it and raises
 `RuntimeError` naming the module, so an uncompilable module (a duplicate argument, say) never reaches disk.
 
-### Composed body properties and `oneOf` request bodies (2026-11-10, audit F2 and F3, checks 37-38)
+### Composed body properties and `oneOf` request bodies (2026-11-10, audit F2 and F3, checks 38-39)
 
 **F2.** A body property written `allOf: [{$ref: X}]` (Cisco's way to hang a `description` on a
 `$ref`) had no `type` key, so `parse_request_body` typed it "string": `ai-receptionist create`
@@ -1869,7 +1905,7 @@ cannot work. F3 (`docs/audit/claude-fable-5-2/live_f5_f3.md`, read-only): the se
 blocked a request it accepts. **Spec only:** the new `--json-body` create succeeding, F2's enum
 choices, and F3's `cc-tasks create-tasks` and `create-messages` (not probed).
 
-### Request body shape follows the schema, not the media type (2026-11-10, audit F1, check 39)
+### Request body shape follows the schema, not the media type (2026-11-10, audit F1, check 40)
 
 `parse_operation` took `content_type = "application/json-patch+json"` from the media type
 alone and `_render_update_command` then built `body = [patch_op]` plus a `--value` flag for
@@ -1902,7 +1938,7 @@ name). Known leftover, not in scope: a top-level `allOf` body that composes an a
 by `_resolve_schema_node` as an object with no properties, so it classifies `untyped`;
 no tracked spec has one.
 
-### Positional IDs follow URL order, a BREAKING change on 7 commands (2026-11-10, audit F5, check 40)
+### Positional IDs follow URL order, a BREAKING change on 7 commands (2026-11-10, audit F5, check 41)
 
 A spec lists an operation's path parameters in whatever order its author typed them, and the
 renderer took that order for the positional arguments. `cc-flow publish` therefore read
@@ -1938,12 +1974,12 @@ LAST path argument, so it now reads "Remove Preview Task for <task id>?" (it use
 **Rejected:** a hidden alias that keeps the old order (the two orders cannot be told apart by value,
 so an alias would answer the old question wrongly, the failure this wave exists to remove);
 sorting only the 7 commands by an override (the next spec refresh re-introduces the defect on a new
-operation, which is what check 40 now catches); leaving the order and documenting it (the
+operation, which is what check 41 now catches); leaving the order and documenting it (the
 "Argument-order trap" note that sat in `contact-center-routing.md`, which an agent only reads after
 the wrong call). **Live-verified:** only the 2026-10-13 `export` 404 above. **Spec only:** the 7 new
 orders were not called live; each follows the URL the command already sends.
 
-### `in: header` parameters become options and are sent (2026-11-10, audit F4, check 41)
+### `in: header` parameters become options and are sent (2026-11-10, audit F4, check 42)
 
 `parse_parameters` read `in: path` and `in: query` only, so every header parameter fell through: no
 option, never sent. `meetings list-group-meetings` could not name a host by email,
@@ -1973,7 +2009,7 @@ option, never sent. `meetings list-group-meetings` could not name a host by emai
   headers["<Name>"] = <p>` after the URL line, `headers["X-ORGANIZATION-ID"] =
   get_cc_org_id(api.session)` for an injected one, and `headers=headers or None` on every session
   call and `verify_write`. `needs_cc_org_id` is also true when any endpoint injects a header.
-- Gate: check 41. Commands changed (39): `admin-recordings` ×7, `cc-agent-wellbeing` ×2,
+- Gate: check 42. Commands changed (39): `admin-recordings` ×7, `cc-agent-wellbeing` ×2,
   `converged-recordings` ×3, `meeting-captions` ×1, `meeting-participants` ×2, `meeting-reports`
   ×2, `meeting-session-types` ×1, `meeting-tracking-codes` ×1, `meetings` ×16, `recording-report`
   ×4. The audit baseline (`count_header_params.baseline.json`) listed 38 non-TrackingId commands:
@@ -1999,7 +2035,7 @@ webhook URL; not run). The doc rows say which (`> **Unverified:**`).
 `live_f4_headers_round3.md`) shows the server reads the header (a bogus org → 401) but returns the
 same 200 body without it, so sending or offering it would change nothing a working command does.
 Only `/search/v2/meta` was tested; `external-data-updates update` follows by analogy (same header,
-same optional declaration, same host). Check 41 names exactly those two in
+same optional declaration, same host). Check 42 names exactly those two in
 `HEADER_OPTIONAL_ORG_EXCEPTIONS` with that evidence path, re-validates them every run (a vanished
 op, or a header that became required, is `stale-exception`), and fires `dropped` on an optional
 `X-ORGANIZATION-ID` on any third operation.

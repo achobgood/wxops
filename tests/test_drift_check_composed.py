@@ -1,4 +1,4 @@
-"""Drift gate check 37: a composed object/array body property rendered as a text flag.
+"""Drift gate check 38: a composed object/array body property rendered as a text flag.
 
 `parse_request_body` typed a property declared only by composition
 (`allOf: [{$ref: <object>}]`) as "string", so `ai-receptionist create` offered
@@ -96,12 +96,12 @@ def test_allof_object_flag_fires(tree):
     assert f["group"] == "zz-probe" and f["command"] == "create"
     assert f["field"] == "defaultAction" and f["flag"] == "--default-action"
     assert f["shape"] == "object" and f["op"] == f"POST {PATH}"
-    assert drift_check.CHECK_EXAMINED["37"] == {"examined": 2, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["38"] == {"examined": 2, "skipped": 0}
 
 
 def test_flagless_block_is_clean(tree):
     assert tree(GOOD, _spec(ALLOF_OBJ)) == []
-    assert drift_check.CHECK_EXAMINED["37"]["examined"] == 1
+    assert drift_check.CHECK_EXAMINED["38"]["examined"] == 1
 
 
 @pytest.mark.parametrize("prop,shape", [
@@ -151,12 +151,12 @@ def test_get_blocks_are_not_examined(tree):
     findings = tree(BAD.replace("rest_post(url, json=body)", "rest_get(url)"),
                     _spec(ALLOF_OBJ, method="get"))
     assert findings and "error" in findings[0]          # BLIND: examined 0
-    assert drift_check.CHECK_EXAMINED["37"]["examined"] == 0
+    assert drift_check.CHECK_EXAMINED["38"]["examined"] == 0
 
 
 def test_block_with_no_spec_op_is_skipped_and_counted(tree):
     findings = tree(BAD, _spec(ALLOF_OBJ, path="/elsewhere"))
-    assert drift_check.CHECK_EXAMINED["37"] == {"examined": 0, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["38"] == {"examined": 0, "skipped": 1}
     assert len(findings) == 1 and "error" in findings[0]
 
 
@@ -171,7 +171,7 @@ def test_a_write_of_a_property_the_spec_lacks_is_counted_not_fired(tree):
     spec["paths"][PATH]["post"]["requestBody"]["content"]["application/json"][
         "schema"]["properties"].pop("defaultAction")
     assert tree(BAD, spec) == []
-    assert drift_check.CHECK_EXAMINED["37"]["examined"] == 1
+    assert drift_check.CHECK_EXAMINED["38"]["examined"] == 1
 
 
 # ------------------------------------------------- the enum advisory
@@ -179,7 +179,7 @@ def test_a_write_of_a_property_the_spec_lacks_is_counted_not_fired(tree):
 def test_enum_missing_from_help_is_an_advisory_not_a_failure(tree):
     spec = _spec({"allOf": [{"$ref": "#/components/schemas/Mode"}]})
     assert tree(BAD, spec) == []
-    adv = drift_check.CHECK_ADVISORIES["37"]
+    adv = drift_check.CHECK_ADVISORIES["38"]
     assert len(adv) == 1
     assert adv[0]["flag"] == "--default-action" and adv[0]["missing"] == ["ONE", "TWO"]
 
@@ -188,13 +188,13 @@ def test_enum_listed_in_help_has_no_advisory(tree):
     spec = _spec({"allOf": [{"$ref": "#/components/schemas/Mode"}]})
     block = BAD.replace("Default action configuration.", "Choices: one, TWO")
     assert tree(block, spec) == []
-    assert drift_check.CHECK_ADVISORIES["37"] == []
+    assert drift_check.CHECK_ADVISORIES["38"] == []
 
 
 def test_plain_inline_enum_is_not_part_of_the_advisory(tree):
     spec = _spec({"type": "string", "enum": ["ONE"]})
     assert tree(BAD, spec) == []
-    assert drift_check.CHECK_ADVISORIES["37"] == []
+    assert drift_check.CHECK_ADVISORIES["38"] == []
 
 
 # ------------------------------------------------ field_shape resolves composition
@@ -217,15 +217,15 @@ def test_field_shape_resolves_allof_oneof_anyof():
 # --------------------------------------------------------- registered + safe
 
 def test_registered_for_printing_and_never_raises(capsys):
-    assert "37" in drift_check.CHECK_PRINT
-    drift_check.CHECK_EXAMINED["37"] = {"examined": 3, "skipped": 0}
-    drift_check.print_check_findings("37", [{"bogus": 1}])
+    assert "38" in drift_check.CHECK_PRINT
+    drift_check.CHECK_EXAMINED["38"] = {"examined": 3, "skipped": 0}
+    drift_check.print_check_findings("38", [{"bogus": 1}])
     out = capsys.readouterr().out
-    assert out.startswith("[37] ") and "FORMAT-ERROR" in out
+    assert out.startswith("[38] ") and "FORMAT-ERROR" in out
 
 
 def test_printed_line_names_the_command_and_flag(capsys, tree):
-    drift_check.print_check_findings("37", tree(BAD, _spec(ALLOF_OBJ)))
+    drift_check.print_check_findings("38", tree(BAD, _spec(ALLOF_OBJ)))
     out = capsys.readouterr().out
     assert "wxcli zz-probe create" in out and "--default-action" in out
 
@@ -248,5 +248,5 @@ def test_enforce_exit_follows_a_planted_defect(monkeypatch, capsys, tree,
         monkeypatch.setattr(drift_check, other, lambda *a, **k: [])
     assert drift_check.main() == expected_exit
     out = capsys.readouterr().out
-    assert "[37] composed body properties rendered as a text flag" in out
+    assert "[38] composed body properties rendered as a text flag" in out
     assert ("FAIL" if expected_exit else "PASS") in out.splitlines()[-1]

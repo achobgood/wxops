@@ -1,4 +1,4 @@
-"""Drift gate check 35: a query option whose --help omits a spec enum value.
+"""Drift gate check 36: a query option whose --help omits a spec enum value.
 
 `parse_parameters` read `enum` off the raw schema, so the choices of a query
 parameter behind a `$ref` (`pstn list-available-numbers --action`) or under
@@ -88,12 +88,12 @@ def test_ref_enum_missing_from_help_fires(tree):
     assert f["group"] == "zz-probe" and f["command"] == "list"
     assert f["op"] == f"GET {PATH}" and f["param"] == "action"
     assert f["missing"] == ENUM3 and f["array"] is False
-    assert drift_check.CHECK_EXAMINED["35"] == {"examined": 1, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["36"] == {"examined": 1, "skipped": 0}
 
 
 def test_ref_enum_listed_in_help_is_clean(tree):
     assert tree(_block("Choices: " + ", ".join(ENUM3)), _spec()) == []
-    assert drift_check.CHECK_EXAMINED["35"]["examined"] == 1
+    assert drift_check.CHECK_EXAMINED["36"]["examined"] == 1
 
 
 def test_one_missing_value_fires_and_names_only_it(tree):
@@ -151,7 +151,7 @@ def test_param_without_an_option_is_not_examined(tree):
     spec = _spec(params=[_param(), _param(name="other", schema={
         "type": "string", "enum": ["x"]})])
     assert tree(_block("Choices: " + ", ".join(ENUM3)), spec) == []
-    assert drift_check.CHECK_EXAMINED["35"]["examined"] == 1
+    assert drift_check.CHECK_EXAMINED["36"]["examined"] == 1
 
 
 def test_param_without_an_enum_is_not_examined(tree):
@@ -159,7 +159,7 @@ def test_param_without_an_enum_is_not_examined(tree):
         name="b", schema={"type": "array", "items": {"type": "string"}})])
     findings = tree(_block("Anything."), spec)
     assert findings and "error" in findings[0]          # BLIND: examined 0
-    assert drift_check.CHECK_EXAMINED["35"]["examined"] == 0
+    assert drift_check.CHECK_EXAMINED["36"]["examined"] == 0
 
 
 def test_param_help_override_is_skipped_and_counted(tree):
@@ -173,7 +173,7 @@ def test_param_help_override_is_skipped_and_counted(tree):
     findings = tree(_block("Plain words, by design.", extra=extra), spec,
                     overrides=overrides)
     assert findings == []
-    assert drift_check.CHECK_EXAMINED["35"] == {"examined": 1, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["36"] == {"examined": 1, "skipped": 1}
 
 
 def test_without_the_override_the_same_block_fires(tree):
@@ -187,7 +187,7 @@ def test_without_the_override_the_same_block_fires(tree):
 
 def test_block_with_no_spec_op_is_skipped_and_counted(tree):
     findings = tree(_block("x"), _spec(path="/elsewhere"))
-    assert drift_check.CHECK_EXAMINED["35"] == {"examined": 0, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["36"] == {"examined": 0, "skipped": 1}
     assert len(findings) == 1 and "error" in findings[0]   # blind, gated
 
 
@@ -203,16 +203,16 @@ def test_any_satisfied_spec_passes(tree):
 # --------------------------------------------------------- registered + safe
 
 def test_registered_for_printing_and_never_raises(capsys):
-    assert "35" in drift_check.CHECK_PRINT
-    drift_check.CHECK_EXAMINED["35"] = {"examined": 3, "skipped": 0}
-    drift_check.print_check_findings("35", [{"bogus": 1}])
+    assert "36" in drift_check.CHECK_PRINT
+    drift_check.CHECK_EXAMINED["36"] = {"examined": 3, "skipped": 0}
+    drift_check.print_check_findings("36", [{"bogus": 1}])
     out = capsys.readouterr().out
-    assert out.startswith("[35] ") and "FORMAT-ERROR" in out
+    assert out.startswith("[36] ") and "FORMAT-ERROR" in out
 
 
 def test_printed_line_names_the_command_flag_and_values(capsys, tree):
     findings = tree(_block("Words."), _spec())
-    drift_check.print_check_findings("35", findings)
+    drift_check.print_check_findings("36", findings)
     out = capsys.readouterr().out
     assert "wxcli zz-probe list --action" in out and "modifyElin" in out
 
@@ -279,5 +279,5 @@ def test_enforce_exit_follows_a_planted_defect(monkeypatch, capsys, tree,
     monkeypatch.setattr(drift_check, "check_readonly_flags", lambda *a, **k: [])
     assert drift_check.main() == expected_exit
     out = capsys.readouterr().out
-    assert "[35] query options whose --help omits a choice" in out
+    assert "[36] query options whose --help omits a choice" in out
     assert ("FAIL" if expected_exit else "PASS") in out.splitlines()[-1]

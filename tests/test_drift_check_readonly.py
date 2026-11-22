@@ -1,4 +1,4 @@
-"""Drift gate check 36: a server-assigned (`readOnly`) body field offered as a flag.
+"""Drift gate check 37: a server-assigned (`readOnly`) body field offered as a flag.
 
 `parse_request_body` ignored `readOnly: true`, so `createdTime` and
 `lastUpdatedTime` of a shared Contact Center DTO became flags on 22 commands
@@ -124,12 +124,12 @@ def test_prefix_block_fires_with_both_defects(tree):
     assert f["group"] == "zz-probe" and f["command"] == "create"
     assert f["op"] == f"POST {PATH}" and f["props"] == ["createdTime"]
     assert f["defects"] == ["flag write", "skeleton key"]
-    assert drift_check.CHECK_EXAMINED["36"] == {"examined": 1, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["37"] == {"examined": 1, "skipped": 0}
 
 
 def test_fixed_block_is_clean(tree):
     assert tree(FIXED, _spec()) == []
-    assert drift_check.CHECK_EXAMINED["36"]["examined"] == 1
+    assert drift_check.CHECK_EXAMINED["37"]["examined"] == 1
 
 
 def test_flag_write_alone_fires(tree):
@@ -182,7 +182,7 @@ def test_nested_readonly_property_is_not_the_class(tree):
         '        if created_time is not None:\n'
         '            body["createdTime"] = created_time\n', "")
     assert tree(block, spec) == []
-    assert drift_check.CHECK_EXAMINED["36"]["examined"] == 1
+    assert drift_check.CHECK_EXAMINED["37"]["examined"] == 1
 
 
 def test_readonly_false_is_not_the_class(tree):
@@ -202,12 +202,12 @@ def test_get_blocks_are_not_examined(tree):
     block = PRE_FIX.replace("rest_post(url, json=body)", "rest_get(url)")
     findings = tree(block, _spec(method="get"))
     assert findings and "error" in findings[0]          # BLIND: examined 0
-    assert drift_check.CHECK_EXAMINED["36"]["examined"] == 0
+    assert drift_check.CHECK_EXAMINED["37"]["examined"] == 0
 
 
 def test_block_with_no_spec_op_is_skipped_and_counted(tree):
     findings = tree(PRE_FIX, _spec(path="/elsewhere"))
-    assert drift_check.CHECK_EXAMINED["36"] == {"examined": 0, "skipped": 1}
+    assert drift_check.CHECK_EXAMINED["37"] == {"examined": 0, "skipped": 1}
     assert len(findings) == 1 and "error" in findings[0]   # blind, gated
 
 
@@ -226,21 +226,21 @@ def test_a_spec_that_drops_the_marker_reads_a_clean_zero(tree):
     spec = _spec(body={"type": "object", "properties": {
         "name": {"type": "string"}}})
     assert tree(FIXED, spec) == []
-    assert drift_check.CHECK_EXAMINED["36"] == {"examined": 1, "skipped": 0}
+    assert drift_check.CHECK_EXAMINED["37"] == {"examined": 1, "skipped": 0}
 
 
 # --------------------------------------------------------- registered + safe
 
 def test_registered_for_printing_and_never_raises(capsys):
-    assert "36" in drift_check.CHECK_PRINT
-    drift_check.CHECK_EXAMINED["36"] = {"examined": 3, "skipped": 0}
-    drift_check.print_check_findings("36", [{"bogus": 1}])
+    assert "37" in drift_check.CHECK_PRINT
+    drift_check.CHECK_EXAMINED["37"] = {"examined": 3, "skipped": 0}
+    drift_check.print_check_findings("37", [{"bogus": 1}])
     out = capsys.readouterr().out
-    assert out.startswith("[36] ") and "FORMAT-ERROR" in out
+    assert out.startswith("[37] ") and "FORMAT-ERROR" in out
 
 
 def test_printed_line_names_the_command_and_property(capsys, tree):
-    drift_check.print_check_findings("36", tree(PRE_FIX, _spec()))
+    drift_check.print_check_findings("37", tree(PRE_FIX, _spec()))
     out = capsys.readouterr().out
     assert "wxcli zz-probe create" in out and "createdTime" in out
 
@@ -266,5 +266,5 @@ def test_enforce_exit_follows_a_planted_defect(monkeypatch, capsys, tree,
     monkeypatch.setattr(sys, "argv", ["drift_check.py", "--enforce"])
     assert drift_check.main() == expected_exit
     out = capsys.readouterr().out
-    assert "[36] write commands that offer a readOnly" in out
+    assert "[37] write commands that offer a readOnly" in out
     assert ("FAIL" if expected_exit else "PASS") in out.splitlines()[-1]

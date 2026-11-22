@@ -236,7 +236,7 @@ TRANSPORT_HEADERS = frozenset({
 # subscribe/action): auto-injected as the CC org UUID. Optional on two
 # (`/search/v2/meta`, `/v1/data/updateExternal`): not rendered, because the
 # call already succeeds without it (live 2026-11-10,
-# docs/audit/claude-fable-5-2/live_f4_headers_round3.md § 5). Drift check 41
+# docs/audit/claude-fable-5-2/live_f4_headers_round3.md § 5). Drift check 42
 # names those two and fails on a third.
 ORG_HEADER = "x-organization-id"
 

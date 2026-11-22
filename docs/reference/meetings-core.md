@@ -277,6 +277,56 @@ These options are sent as HTTP **request headers**, not query parameters, becaus
 
 > **Unverified:** rows marked *spec only* follow the spec's `in: header` declaration; the option and the header it sends are generated from it (2026-11-10), but no live call has shown the server acting on that header for that operation. `meetings list-meetings --host-email` is a different option: that endpoint declares `hostEmail` as a query parameter, and the header form was measured to be ignored there (2026-11-10).
 
+#### `meetings update-group-meetings` and `update-group-controls` (an admin acting for a host)
+
+The admin counterparts of `update-meetings` and `update-controls`. `update-group-meetings MEETING_ID` is `PATCH /group/meetings/{meetingId}` ("Patch a Group Meeting"); `update-group-controls` is `POST /group/meetings/controls` ("Update Group Meeting Control Status"). Name the host with `--host-email` (table above) or `--person-id`.
+
+> **Unverified:** this subsection is read from `specs/webex-meetings.json` (2026-11-22); neither command has been called live.
+
+`update-group-controls` takes `--meeting-id` (required) and `--action` (required), one of `startRecording`, `stopRecording`, `pauseRecording` or `resumeRecording`.
+
+`update-group-meetings` sends a JSON object. A boolean field's flag is its kebab-case name plus a negative form (`--allow-any-user-to-be-co-host` / `--no-allow-any-user-to-be-co-host`), a scalar's is its kebab-case name. The six object and array fields (`meetingOptions`, `attendeePrivileges`, `audioConnectionOptions`, `liveStream`, `integrationTags`, `trackingCodes`) have no flag: pass them in `--json-body` (`--generate-json-body` prints the skeleton). The body fields below are also every field of `update-meetings` and `update` (which add `hostEmail`) and of `create` (which adds `hostEmail`, `adhoc`, `breakoutSessions`, `invitees`, `registration`, `roomId`, `scheduledType`, `simultaneousInterpretation`, `siteUrl` and `templateId`), per the spec:
+
+| Field | Type | What the spec says |
+|---|---|---|
+| `title` | string | Maximum 128 characters |
+| `agenda` | string | Maximum 1300 characters; `null` clears it |
+| `password` | string | Must meet the site's password complexity settings |
+| `start` | string | ISO 8601; not before the current time |
+| `end` | string | ISO 8601; not before the current time or before `start` |
+| `timezone` | string | IANA time zone the meeting was scheduled in |
+| `recurrence` | string | RFC 2445 rule; a recurring series only |
+| `enabledAutoRecordMeeting` | boolean | Record the meeting automatically |
+| `allowAnyUserToBeCoHost` | boolean | Any attendee with a host account on the site becomes a cohost on joining |
+| `allowFirstUserToBeCoHost` | boolean | The first attendee with a host account on the site becomes a cohost |
+| `enabledJoinBeforeHost` | boolean | Attendees may join before the host |
+| `enableConnectAudioBeforeHost` | boolean | Attendees may connect audio before the host; only with `enabledJoinBeforeHost` |
+| `joinBeforeHostMinutes` | number | Minutes before the start that an attendee may join; only with `enabledJoinBeforeHost` |
+| `excludePassword` | boolean | Leave the password out of the email invitation |
+| `publicMeeting` | boolean | List the meeting on the public calendar |
+| `reminderTime` | number | Minutes before the start that the host's email reminder is sent |
+| `unlockedMeetingJoinSecurity` | string | How people not on the invite join an unlocked meeting: `allowJoin`, `allowJoinWithLobby` or `blockFromJoin` |
+| `sessionTypeId` | number | Meeting session type; required when scheduling a webinar |
+| `enabledWebcastView` | boolean | Webcast view |
+| `panelistPassword` | string | Webinar panelist password; the site's password complexity settings apply |
+| `enableAutomaticLock` | boolean | Lock the meeting automatically after it starts |
+| `automaticLockMinutes` | number | Minutes after the start at which the meeting locks |
+| `allowAuthenticatedDevices` | boolean | Authenticated video devices in the org start or join without a prompt |
+| `sendEmail` | boolean | Email the host and invitees (default `true`) |
+| `enabledBreakoutSessions` | boolean | Breakout sessions allowed |
+| `enabledAudioWatermark` | boolean | Audio watermark |
+| `enabledVisualWatermark` | boolean | Visual watermark over the meeting video |
+| `visualWatermarkOpacity` | number | 5 to 80, inclusive |
+| `requireAttendeeLogin` | boolean | Webinar attendees must sign in (`scheduledType` `webinar`) |
+| `restrictToInvitees` | boolean | Webinar limited to invitees, when registration is off (`scheduledType` `webinar`) |
+| `enabledLiveStream` | boolean | Live streaming on |
+| `liveStream` | object | Live streaming settings; applies when `enabledLiveStream` is `true` |
+| `meetingOptions` | object | Meeting options |
+| `attendeePrivileges` | object | Attendee privileges; not supported for a webinar |
+| `audioConnectionOptions` | object | Audio connection options |
+| `integrationTags` | array | External keys an integration creates in its own domain (Zendesk ticket, Jira, Salesforce opportunity IDs) |
+| `trackingCodes` | array | Tracking codes; a site's codes and options come from List Meeting Tracking Codes |
+
 ---
 
 ## 3. Meeting Lifecycle
